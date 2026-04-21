@@ -1,3 +1,16 @@
 spring:
+  profiles:
+    active: dev # 기본 활성 프로필
+    group:
+      dev: "dev"
+      prod: "prod"
+      test: "test"
+
   application:
     name: omos
+
+  # Jackson 직렬화 설정
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    serialization:
+      fail-on-empty-beans: false

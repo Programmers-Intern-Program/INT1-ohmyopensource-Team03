@@ -1,0 +1,27 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  # 데이터베이스 설정 (Docker Compose 호환)
+  datasource:
+    url: jdbc:postgresql://localhost:5432/oh_my_opensource
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  # JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# 로깅 레벨
+logging:
+  level:
+    root: INFO
+    com.omos: DEBUG # 프로젝트 패키지 로그 레벨
