@@ -1,5 +1,6 @@
 package com.back.omos.domain.prdraft.entity
 
+import com.back.omos.global.jpa.entity.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -20,6 +21,7 @@ import jakarta.persistence.Table
  * @since 2026-04-21
  * @see BaseEntity
  */
+
 @Entity
 @Table(name = "pr_draft")
 class PrDraft(
