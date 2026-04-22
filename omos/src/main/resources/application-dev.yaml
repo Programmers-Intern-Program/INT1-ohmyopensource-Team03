@@ -5,7 +5,7 @@ spring:
 
   # 데이터베이스 설정 (Docker Compose 호환)
   datasource:
-    url: jdbc:postgresql://localhost:5432/oh_my_opensource
+    url: jdbc:postgresql://localhost:5432/oh_my_opensource?stringtype=unspecified
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
