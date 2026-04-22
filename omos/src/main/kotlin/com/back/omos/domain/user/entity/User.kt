@@ -17,6 +17,7 @@ import jakarta.persistence.Table
  * - `updatedAt`: 정보 수정 일시
  *
  * @author MintyU
+ * @since 2026-04-22
  * @see com.back.omos.global.jpa.entity.BaseEntity
  */
 @Entity
@@ -51,7 +52,6 @@ class User(
      * 사용자의 관심사나 활동을 수치화한 벡터 데이터입니다.
      *
      * PostgreSQL의 `pgvector` 확장을 사용하여 벡터 유사도 검색(Cosine Similarity 등)에 활용됩니다.
-     *
      */
     @Column(name = "profile_vector", columnDefinition = "vector(1536)")
     var profileVector: DoubleArray? = null
