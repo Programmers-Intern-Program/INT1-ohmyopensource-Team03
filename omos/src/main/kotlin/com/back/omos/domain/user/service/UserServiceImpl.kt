@@ -1,7 +1,7 @@
 package com.back.omos.domain.user.service
 
 import com.back.omos.domain.user.dto.UserCreateReq
-import com.back.omos.domain.user.dto.UserRes
+import com.back.omos.domain.user.dto.UserInfoRes
 import com.back.omos.domain.user.repository.UserRepository
 import com.plog.global.exception.errorCode.AuthErrorCode
 import com.plog.global.exception.exceptions.AuthException
@@ -28,26 +28,26 @@ class UserServiceImpl(
 ) : UserService {
 
     @Transactional
-    override fun createUser(request: UserCreateReq): UserRes {
+    override fun createUser(request: UserCreateReq): UserInfoRes {
         if (userRepository.existsByGithubId(request.githubId)) {
             throw AuthException(AuthErrorCode.USER_ALREADY_EXIST)
         }
         val user = userRepository.save(request.toEntity())
-        return UserRes.from(user)
+        return UserInfoRes.from(user)
     }
 
-    override fun getUserByGithubId(githubId: String): UserRes {
+    override fun getUserByGithubId(githubId: String): UserInfoRes {
         val user = userRepository.findByGithubId(githubId)
             .orElseThrow { AuthException(AuthErrorCode.USER_NOT_FOUND) }
-        return UserRes.from(user)
+        return UserInfoRes.from(user)
     }
 
     @Transactional
-    override fun updateProfile(githubId: String, name: String?, email: String?): UserRes {
+    override fun updateProfile(githubId: String, name: String?, email: String?): UserInfoRes {
         val user = userRepository.findByGithubId(githubId)
             .orElseThrow { AuthException(AuthErrorCode.USER_NOT_FOUND) }
         
         user.updateProfile(name, email)
-        return UserRes.from(user)
+        return UserInfoRes.from(user)
     }
 }

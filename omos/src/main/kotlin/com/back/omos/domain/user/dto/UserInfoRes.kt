@@ -16,7 +16,7 @@ import com.back.omos.domain.user.entity.User
  * @author MintyU
  * @since 2026-04-22
  */
-data class UserRes(
+data class UserInfoRes(
     val id: Long?,
     val githubId: String,
     val name: String?,
@@ -24,13 +24,13 @@ data class UserRes(
 ) {
     companion object {
         /**
-         * [User] 엔티티를 [UserRes] DTO로 변환합니다.
+         * [User] 엔티티를 [UserInfoRes] DTO로 변환합니다.
          *
          * @param user 변환할 User 엔티티
-         * @return 변환된 UserRes DTO
+         * @return 변환된 UserInfoRes DTO
          */
-        fun from(user: User): UserRes {
-            return UserRes(
+        fun from(user: User): UserInfoRes {
+            return UserInfoRes(
                 id = user.id,
                 githubId = user.githubId,
                 name = user.name,
