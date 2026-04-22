@@ -26,7 +26,8 @@ import org.springframework.stereotype.Service
 @Service
 class PrDraftServiceImpl(
     private val prDraftRepository: PrDraftRepository,
-    private val prDraftPromptBuilder: PrDraftPromptBuilder
+    private val prDraftPromptBuilder: PrDraftPromptBuilder,
+    private val aiClient: AiClient
 ) : PrDraftService {
 
     @Transactional
@@ -40,11 +41,13 @@ class PrDraftServiceImpl(
         val prompt = prDraftPromptBuilder.build(request)
 
         // TODO: AI 호출하기
+        val aiResult = aiClient.generatePrDraft(prompt)
+
         // TODO: 응답 반환하기
 
         return PrInfoRes(
-            title = "feat: 임시 제목",
-            body = prompt
+            title = aiResult.title,
+            body = aiResult.body
         )
     }
 }
