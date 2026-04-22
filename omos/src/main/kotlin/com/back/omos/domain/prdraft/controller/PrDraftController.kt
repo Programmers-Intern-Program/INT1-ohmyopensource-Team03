@@ -27,7 +27,11 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/v1/pr")
 class PrDraftController(
-
+    private val prDraftService: PrDraftService
 ) {
+    @PostMapping
+    fun create(@RequestBody req: CreatePrReq): PrInfoRes {
+        return prDraftService.create(req)
+    }
 
 }
