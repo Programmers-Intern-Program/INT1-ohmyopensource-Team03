@@ -2,7 +2,6 @@ package com.back.omos.domain.issue.repository
 
 import com.back.omos.domain.issue.entity.Issue
 import org.springframework.data.jpa.repository.JpaRepository
-import java.util.Optional
 
 /**
  * 이슈(Issue) 엔티티의 데이터 접근을 담당하는 Repository입니다.
@@ -15,8 +14,4 @@ import java.util.Optional
  * @see
  */
 interface IssueRepository : JpaRepository<Issue, Long> {
-    /**
-     * repositoryId와 issueNumber로 존재하는지 확인
-     */
-    fun existsByRepositoryIdAndIssueNumber(repositoryId : Long, issueNumber: Long) : Boolean
 }
