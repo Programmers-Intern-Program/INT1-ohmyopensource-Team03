@@ -3,6 +3,7 @@ package com.back.omos.domain.prdraft.service
 import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrInfoRes
 import com.back.omos.domain.prdraft.repository.PrDraftRepository
+import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 
 /**
@@ -24,15 +25,26 @@ import org.springframework.stereotype.Service
  */
 @Service
 class PrDraftServiceImpl(
-    private val prDraftRepository: PrDraftRepository
+    private val prDraftRepository: PrDraftRepository,
+    private val prDraftPromptBuilder: PrDraftPromptBuilder
 ) : PrDraftService {
 
+    @Transactional
     override fun create(request: CreatePrReq): PrInfoRes {
-        // TODO:
+        // TODO: val issue = issueRepository.findById
+        // TODO: val repo = repoRepository.findById
+        // TODO: issue의 레포와 repo가 동일한지 확인
+
+        // TODO: 규칙 정리하기
+        // TODO: 프롬프트 만들기
+        val prompt = prDraftPromptBuilder.build(request)
+
+        // TODO: AI 호출하기
+        // TODO: 응답 반환하기
 
         return PrInfoRes(
             title = "feat: 임시 제목",
-            body = "임시 PR 본문."
+            body = prompt
         )
     }
 }
