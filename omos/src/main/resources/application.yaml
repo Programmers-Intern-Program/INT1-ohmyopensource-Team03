@@ -9,6 +9,13 @@ spring:
   application:
     name: omos
 
+  # 서블릿 인코딩 설정
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
   # Jackson 직렬화 설정
   jackson:
     property-naming-strategy: SNAKE_CASE

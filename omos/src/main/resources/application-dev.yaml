@@ -24,4 +24,4 @@ spring:
 logging:
   level:
     root: INFO
-    com.omos: DEBUG # 프로젝트 패키지 로그 레벨
+    com.back.omos: DEBUG # 프로젝트 패키지 로그 레벨
