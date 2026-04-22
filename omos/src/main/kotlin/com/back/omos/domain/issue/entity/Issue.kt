@@ -1,4 +1,4 @@
-package com.back.domain.issue.entity
+package com.back.omos.domain.issue.entity
 
 import com.back.omos.global.jpa.entity.BaseEntity
 import jakarta.persistence.Column
