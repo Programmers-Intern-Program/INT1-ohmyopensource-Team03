@@ -2,6 +2,8 @@ package com.back.omos.domain.prdraft.service
 
 import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrInfoRes
+import com.back.omos.domain.prdraft.repository.PrDraftRepository
+import org.springframework.stereotype.Service
 
 /**
  * PR 생성 기능의 구현체입니다.
@@ -20,9 +22,13 @@ import com.back.omos.domain.prdraft.dto.PrInfoRes
  * @since 2026-04-22
  * @see PrDraftService
  */
-class PrDraftServiceImpl : PrDraftService {
-    override fun createPr(request: CreatePrReq): PrInfoRes {
-        TODO("AI 연동(GLM)")
+@Service
+class PrDraftServiceImpl(
+    private val prDraftRepository: PrDraftRepository
+) : PrDraftService {
+
+    override fun create(request: CreatePrReq): PrInfoRes {
+        // TODO:
 
         return PrInfoRes(
             title = "feat: 임시 제목",
