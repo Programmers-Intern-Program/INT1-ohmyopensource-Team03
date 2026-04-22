@@ -25,27 +25,42 @@ import jakarta.persistence.Table
 @Table(name = "pr_draft")
 class PrDraft(
 
+    /**
+     * PR 초안을 작성한 사용자입니다.
+     *
+     * 하나의 사용자는 여러 개의 PR 초안을 생성할 수 있습니다.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     var user: User,
 
+    /**
+     * PR 초안이 연결된 Issue입니다.
+     *
+     * 해당 Issue를 해결하기 위한 변경 내용을 기반으로 PR이 생성됩니다.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "issue_id", nullable = false)
     var issue: Issue,
 
+    /**
+     * 사용자가 작성한 코드 변경 내용(diff)입니다.
+     *
+     * 파일 변경 내역, 추가/삭제된 코드 등을 포함하며 PR 본문 생성의 입력 데이터로 사용됩니다.
+     */
     @Lob
     @Column(name = "diff_content", nullable = false, columnDefinition = "TEXT")
     var diffContent: String,
 
+    /**
+     * 생성된 PR 본문입니다.
+     *
+     * diff 내용을 기반으로 AI가 생성한 설명(변경 사항, 테스트 방법 등)을 포함합니다.
+     */
     @Lob
     @Column(name = "pr_body", nullable = false, columnDefinition = "TEXT")
     var prBody: String
 
 ) : BaseEntity() {
-    protected constructor() : this(
-        user = User(),
-        issue = Issue(),
-        diffContent = "",
-        prBody = ""
-    )
+
 }
