@@ -18,6 +18,5 @@ spring:
 
   # Jackson 직렬화 설정
   jackson:
-    property-naming-strategy: SNAKE_CASE
     serialization:
       fail-on-empty-beans: false
