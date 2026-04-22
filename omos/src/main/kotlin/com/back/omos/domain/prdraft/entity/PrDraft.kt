@@ -1,5 +1,7 @@
 package com.back.omos.domain.prdraft.entity
 
+import com.back.omos.domain.issue.entity.Issue
+import com.back.omos.domain.user.entity.User
 import com.back.omos.global.jpa.entity.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
