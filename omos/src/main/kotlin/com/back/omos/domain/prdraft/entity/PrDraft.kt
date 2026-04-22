@@ -50,9 +50,17 @@ class PrDraft(
      *
      * 파일 변경 내역, 추가/삭제된 코드 등을 포함하며 PR 본문 생성의 입력 데이터로 사용됩니다.
      */
-    @Lob
-    @Column(name = "diff_content", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "diff_content", nullable = false, length = 255)
     var diffContent: String,
+
+    /**
+     * 생성된 PR 제목입니다.
+     *
+     * diff 내용을 기반으로 AI가 생성한 제목을 포함합니다.
+     */
+    @Lob
+    @Column(name = "pr_title", nullable = false, columnDefinition = "TEXT")
+    var prTitle: String,
 
     /**
      * 생성된 PR 본문입니다.
