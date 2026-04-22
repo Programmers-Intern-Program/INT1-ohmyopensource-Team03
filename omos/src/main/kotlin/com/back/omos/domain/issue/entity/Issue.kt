@@ -1,13 +1,8 @@
 package com.back.omos.domain.issue.entity
 
+import com.back.omos.global.jpa.converter.DoubleArrayToVectorConverter
 import com.back.omos.global.jpa.entity.BaseEntity
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.Table
-import org.hibernate.annotations.JdbcTypeCode
-import org.hibernate.type.SqlTypes
+import jakarta.persistence.*
 
 /**
  * 레포지토리의 이슈(Issue) 정보를 관리하는 핵심 엔티티 클래스입니다.
@@ -67,20 +62,20 @@ class Issue(
      * PostgreSQL의 강력한 jsonb 타입을 사용하여 저장하며, 별도의 연관관계 테이블 없이도
      * 효율적인 검색과 인덱싱이 가능하도록 설계되었습니다.
      */
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    var labels: List<String>? = null,
+    @Column(name = "labels", columnDefinition = "jsonb")
+    var labels: String? = null, // JSON 처리는 라이브러리에 따라 String 또는 전용 DTO 권장
 
     /**
      * 이슈 본문/제목 등의 의미(Context)를 임베딩한 벡터 데이터입니다.
      *
      * AI 기반의 유사도 검색이나 추천 기능 등에 사용됩니다.
      * PostgreSQL의 pgvector 확장을 사용하며, 1536 차원의 벡터 공간을 가집니다.
-     * (참고: 1536은 OpenAI의 text-embedding 모델 등에서 주로 사용하는 차원 수입니다.)
+     *
+     * - **컨버터**: [DoubleArrayToVectorConverter]를 사용하여 DB 입출력을 처리합니다.
      */
-    @JdbcTypeCode(SqlTypes.VECTOR)
+    @Convert(converter = DoubleArrayToVectorConverter::class)
     @Column(name = "issue_vector", columnDefinition = "vector(1536)")
-    var issueVector: FloatArray? = null,
+    var issueVector: DoubleArray? = null,
 
     /**
      * 이슈의 현재 진행 상태입니다.
