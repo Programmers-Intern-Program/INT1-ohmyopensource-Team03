@@ -7,6 +7,7 @@ import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
+import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
 
 /**
@@ -34,8 +35,8 @@ class AnalysisResult(
      * 하나의 이슈에 대해 하나의 분석 결과가 생성되며,
      * 동일 이슈 재요청 시 이 관계를 통해 캐시 히트 여부를 판단합니다.
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "issue_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "issue_id", unique = true, nullable = false)
     var issue: Issue,
 
     /**
@@ -47,8 +48,8 @@ class AnalysisResult(
      * 가이드 생성 시점에 함께 채워지며,
      * 프론트엔드에서 파싱하여 파일 트리 형태로 표시합니다.
      */
-    @Column(name = "file_paths", columnDefinition = "TEXT")
-    var filePaths: String? = null,
+    @Column(name = "file_paths", nullable = false, columnDefinition = "TEXT")
+    var filePaths: String,
 
     /**
      * AI가 생성한 코드 수정 가이드라인입니다.
@@ -59,20 +60,19 @@ class AnalysisResult(
      * 예: "findAll() 호출 시 연관 엔티티가 Lazy Loading으로 인해
      *      N+1 쿼리가 발생합니다. @EntityGraph를 적용하여 해결하세요."
      */
-    @Column(name = "guideline", columnDefinition = "TEXT")
-    var guideline: String? = null,
+    @Column(name = "guideline", nullable = false, columnDefinition = "TEXT")
+    var guideline: String,
 
     /**
      * AI가 생성한 구체적인 의사 코드(Pseudo-code)입니다.
      *
      * guideline보다 한 단계 더 구체적인 코드 수준의 수정 제안으로,
-     * 사용자가 "코드도 보여줘" 버튼을 눌렀을 때 별도 API로 생성·반환됩니다.
-     *
-     * 최초 분석 시에는 null이며, 사용자 요청 시 GLM API를 호출하여 채워집니다.
-     * 이후 동일 요청에는 캐싱된 값을 반환합니다.
+     * 최초 분석 시 guideline과 함께 한 번의 GLM 호출로 생성됩니다.
+     * 프론트엔드에서는 사용자가 "코드도 보여줘" 버튼을 눌렀을 때
+     * 별도 DTO(PseudoCodeResponseDto)로 제공됩니다.
      */
-    @Column(name = "pseudo_code", columnDefinition = "TEXT")
-    var pseudoCode: String? = null,
+    @Column(name = "pseudo_code", nullable = false, columnDefinition = "TEXT")
+    var pseudoCode: String,
 
     /**
      * AI가 분석한 수정 시 발생 가능한 부작용(Side-effect)입니다.
@@ -82,7 +82,7 @@ class AnalysisResult(
      *
      * 예: "기존 Lazy Loading에 의존하는 다른 호출부가 있는지 확인 필요"
      */
-    @Column(name = "side_effects", columnDefinition = "TEXT")
-    var sideEffects: String? = null
+    @Column(name = "side_effects", nullable = false, columnDefinition = "TEXT")
+    var sideEffects: String
 
 ) : BaseEntity()
