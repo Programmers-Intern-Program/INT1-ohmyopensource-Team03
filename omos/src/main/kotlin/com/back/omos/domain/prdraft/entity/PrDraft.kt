@@ -21,7 +21,6 @@ import jakarta.persistence.Table
  * @since 2026-04-21
  * @see BaseEntity
  */
-
 @Entity
 @Table(name = "pr_draft")
 class PrDraft(
