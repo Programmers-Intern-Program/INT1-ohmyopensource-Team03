@@ -1,6 +1,7 @@
 package com.back.omos.domain.user.dto
 
 import com.back.omos.domain.user.entity.User
+import java.time.LocalDateTime
 
 /**
  * 사용자 정보를 응답으로 전달하는 DTO입니다.
@@ -12,6 +13,7 @@ import com.back.omos.domain.user.entity.User
  * @property githubId GitHub 고유 ID
  * @property name 사용자 이름
  * @property email 사용자 이메일
+ * @property vectorUpdatedAt 벡터 데이터 마지막 갱신 일시
  *
  * @author MintyU
  * @since 2026-04-22
@@ -20,7 +22,8 @@ data class UserInfoRes(
     val id: Long?,
     val githubId: String,
     val name: String?,
-    val email: String?
+    val email: String?,
+    val vectorUpdatedAt: LocalDateTime?
 ) {
     companion object {
         /**
@@ -34,7 +37,8 @@ data class UserInfoRes(
                 id = user.id,
                 githubId = user.githubId,
                 name = user.name,
-                email = user.email
+                email = user.email,
+                vectorUpdatedAt = user.vectorUpdatedAt
             )
         }
     }

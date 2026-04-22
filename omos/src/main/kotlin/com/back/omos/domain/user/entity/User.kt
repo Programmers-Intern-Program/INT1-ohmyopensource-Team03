@@ -1,9 +1,9 @@
 package com.back.omos.domain.user.entity
 
+import com.back.omos.global.jpa.converter.DoubleArrayToVectorConverter
 import com.back.omos.global.jpa.entity.BaseEntity
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.Table
+import jakarta.persistence.*
+import java.time.LocalDateTime
 
 /**
  * 서비스의 핵심 사용자 정보를 관리하는 엔티티 클래스입니다.
@@ -52,9 +52,22 @@ class User(
      * 사용자의 관심사나 활동을 수치화한 벡터 데이터입니다.
      *
      * PostgreSQL의 `pgvector` 확장을 사용하여 벡터 유사도 검색(Cosine Similarity 등)에 활용됩니다.
+     *
+     * - **매핑 타입**: [DoubleArray] (DB의 `vector` 타입과 호환)
+     * - **차원 설정**: 현재 `1536`차원으로 설정되어 있으며, 이는 OpenAI `text-embedding-3-small` 등의 모델과 호환됩니다.
+     * - **컨버터**: [DoubleArrayToVectorConverter]를 통해 DB 입출력 시 직렬화됩니다.
      */
+    @Convert(converter = DoubleArrayToVectorConverter::class)
     @Column(name = "profile_vector", columnDefinition = "vector(1536)")
-    var profileVector: DoubleArray? = null
+    var profileVector: DoubleArray? = null,
+
+    /**
+     * 프로필 벡터 데이터가 마지막으로 갱신된 일시입니다.
+     *
+     * [updateVector] 메서드가 호출될 때마다 자동으로 현재 시점으로 갱신됩니다.
+     */
+    @Column(name = "vector_updated_at")
+    var vectorUpdatedAt: LocalDateTime? = null
 
 ) : BaseEntity() {
 
@@ -72,11 +85,12 @@ class User(
     }
 
     /**
-     * 사용자의 프로필 벡터를 갱신합니다.
+     * 사용자의 프로필 벡터를 갱신하고 갱신 시점을 기록합니다.
      *
      * @param newVector 갱신할 새로운 벡터 데이터
      */
     fun updateVector(newVector: DoubleArray?) {
         this.profileVector = newVector
+        this.vectorUpdatedAt = LocalDateTime.now()
     }
 }
