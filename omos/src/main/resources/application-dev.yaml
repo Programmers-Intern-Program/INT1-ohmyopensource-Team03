@@ -47,6 +47,10 @@ gemini:
   embedding:
     model: gemini-embedding-2
 
+# GitHub API 설정
+github:
+  token: ${GITHUB_TOKEN}
+
 # JWT 설정
 jwt:
   secret: ${JWT_SECRET}
