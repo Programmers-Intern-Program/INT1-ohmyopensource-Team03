@@ -3,7 +3,7 @@ package com.back.omos.domain.user.controller
 import com.back.omos.domain.user.dto.UserCreateReq
 import com.back.omos.domain.user.dto.UserInfoRes
 import com.back.omos.domain.user.service.UserService
-import com.plog.global.response.CommonResponse
+import com.back.omos.global.response.CommonResponse
 import org.springframework.web.bind.annotation.*
 
 /**

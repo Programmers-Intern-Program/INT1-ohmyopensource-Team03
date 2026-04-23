@@ -1,4 +1,4 @@
-package com.plog.global.response
+package com.back.omos.global.response
 
 /**
  * 응답 형식에 대한 템플릿입니다. 도메인 및 기능 코드/상태/데이터/메시지가 포함되어 있습니다.
