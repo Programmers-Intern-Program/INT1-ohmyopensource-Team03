@@ -1,8 +1,10 @@
 package com.back.omos.domain.prdraft.service
 
+import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrInfoRes
 import com.back.omos.domain.prdraft.repository.PrDraftRepository
+import com.back.omos.domain.repo.repository.RepoRepository
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 
@@ -26,17 +28,21 @@ import org.springframework.stereotype.Service
 @Service
 class PrDraftServiceImpl(
     private val prDraftRepository: PrDraftRepository,
+    private val issueRepository: IssueRepository,
+    private val repoRepository: RepoRepository,
     private val prDraftPromptBuilder: PrDraftPromptBuilder,
     private val aiClient: AiClient
 ) : PrDraftService {
 
     @Transactional
     override fun create(request: CreatePrReq): PrInfoRes {
-        // TODO: val issue = issueRepository.findById
-        // TODO: val repo = repoRepository.findById
-        // TODO: issue의 레포와 repo가 동일한지 확인
+        // TODO: 에러처리 추가해야함
+        val issue = issueRepository.findById(request.issueId)
+        val repo = repoRepository.findById(request.repositoryId)
 
         // TODO: 규칙 정리하기
+        require(request.diffContent.isNotBlank())   //변경사항이 존재함
+
         // TODO: 프롬프트 만들기
         val prompt = prDraftPromptBuilder.build(request)
 
@@ -44,7 +50,6 @@ class PrDraftServiceImpl(
         val aiResult = aiClient.generatePrDraft(prompt)
 
         // TODO: 응답 반환하기
-
         return PrInfoRes(
             title = aiResult.title,
             body = aiResult.body
