@@ -40,9 +40,6 @@ class PrDraftServiceImpl(
         val issue = issueRepository.findById(request.issueId)
         val repo = repoRepository.findById(request.repositoryId)
 
-        // TODO: 규칙 정리하기
-        require(request.diffContent.isNotBlank())   //변경사항이 존재함
-
         // TODO: 프롬프트 만들기
         val prompt = prDraftPromptBuilder.build(request)
 
