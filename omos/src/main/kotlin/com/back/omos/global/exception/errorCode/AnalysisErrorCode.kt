@@ -1,6 +1,6 @@
 package com.back.omos.global.exception.errorCode
 
-import com.plog.global.exception.errorCode.ErrorCode
+import com.back.omos.global.exception.errorCode.ErrorCode
 import org.springframework.http.HttpStatus
 
 /**
