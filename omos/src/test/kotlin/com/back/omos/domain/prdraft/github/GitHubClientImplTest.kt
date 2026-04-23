@@ -2,14 +2,22 @@ package com.back.omos.domain.prdraft.github
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import java.io.File
 
 class GitHubClientImplTest {
 
-    private val gitHubClient = GitHubClientImpl(System.getenv("GITHUB_TOKEN") ?: "")
+    private val token = File(".env").readLines()
+        .firstOrNull { it.startsWith("GITHUB_TOKEN=") }
+        ?.removePrefix("GITHUB_TOKEN=")
+        ?.trim()
+        ?: System.getenv("GITHUB_TOKEN")
+        ?: ""
+
+    private val gitHubClient = GitHubClientImpl(token)
 
     @Test
     fun `CONTRIBUTING_md가 있는 레포에서 내용을 가져온다`() {
-        val result = gitHubClient.fetchContributing("angular/angular")
+        val result = gitHubClient.fetchContributing("facebook/react")
 
         assertThat(result).isNotNull()
         println("=== CONTRIBUTING.md 내용 ===")
