@@ -3,6 +3,7 @@ package com.back.omos.domain.prdraft.service
 import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrInfoRes
+import com.back.omos.domain.prdraft.ai.AiClient
 import com.back.omos.domain.prdraft.github.GitHubClient
 import com.back.omos.domain.prdraft.repository.PrDraftRepository
 import com.back.omos.domain.repo.repository.RepoRepository
