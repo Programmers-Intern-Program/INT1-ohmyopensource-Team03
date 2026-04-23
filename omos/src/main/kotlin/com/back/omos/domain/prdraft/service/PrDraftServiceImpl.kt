@@ -5,6 +5,10 @@ import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrInfoRes
 import com.back.omos.domain.prdraft.repository.PrDraftRepository
 import com.back.omos.domain.repo.repository.RepoRepository
+import com.back.omos.global.exception.errorCode.IssueErrorCode
+import com.back.omos.global.exception.errorCode.RepoErrorCode
+import com.back.omos.global.exception.exceptions.IssueException
+import com.back.omos.global.exception.exceptions.RepoException
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 
@@ -36,9 +40,10 @@ class PrDraftServiceImpl(
 
     @Transactional
     override fun create(request: CreatePrReq): PrInfoRes {
-        // TODO: 에러처리 추가해야함
         val issue = issueRepository.findById(request.issueId)
+            .orElseThrow { IssueException(IssueErrorCode.ISSUE_NOT_FOUND) }
         val repo = repoRepository.findById(request.repositoryId)
+            .orElseThrow { RepoException(RepoErrorCode.REPO_NOT_FOUND) }
 
         // TODO: 프롬프트 만들기
         val prompt = prDraftPromptBuilder.build(request)
