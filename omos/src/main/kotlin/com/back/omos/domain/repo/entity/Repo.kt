@@ -44,7 +44,7 @@ class Repo(
      * 저장소의 개요나 목적을 나타내며,
      * GitHub API에서 조회한 description 값을 저장합니다.
      */
-    @Column(name = "description")
+    @Column(name = "description", columnDefinition = "TEXT")
     var description: String? = null,
 
     /**
