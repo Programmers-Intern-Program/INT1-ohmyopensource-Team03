@@ -1,7 +1,7 @@
 package com.back.omos.global.exception.exceptions
 
 import com.back.omos.global.exception.errorCode.AnalysisErrorCode
-import com.plog.global.exception.exceptions.BaseException
+import com.back.omos.global.exception.exceptions.BaseException
 
 /**
  * Context Analyzer 도메인에서 발생하는 예외입니다.
