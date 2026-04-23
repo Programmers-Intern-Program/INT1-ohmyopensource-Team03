@@ -9,6 +9,7 @@ import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.global.exception.errorCode.AnalysisErrorCode
 import com.back.omos.global.exception.exceptions.AnalysisException
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import tools.jackson.databind.ObjectMapper
 import tools.jackson.core.type.TypeReference
 
@@ -40,6 +41,7 @@ class ContextAnalyzerServiceImpl(
     private val objectMapper: ObjectMapper
 ) : ContextAnalyzerService {
 
+    @Transactional
     override fun getGuide(issueId: Long): GuideResponseDto {
         val issue = issueRepository.findById(issueId)
             .orElseThrow {
@@ -61,6 +63,7 @@ class ContextAnalyzerServiceImpl(
         return toGuideDto(analysisResult)
     }
 
+    @Transactional
     override fun getPseudoCode(issueId: Long): PseudoCodeResponseDto {
         val issue = issueRepository.findById(issueId)
             .orElseThrow {
