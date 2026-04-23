@@ -1,26 +1,24 @@
 package com.back.omos.domain.repo.repository
 
+import com.back.omos.domain.repo.entity.Repo
+import org.springframework.data.jpa.repository.JpaRepository
+
 /**
- * 코드에 대한 전체적인 역할을 적습니다.
+ * Repository 엔티티에 대한 데이터 접근을 담당하는 인터페이스입니다.
+ *
  * <p>
- * 코드에 대한 작동 원리 등을 적습니다.
+ * Spring Data JPA를 기반으로 Repository 엔티티의 CRUD 및 조회 기능을 제공합니다.
+ * </p>
  *
  * <p><b>상속 정보:</b><br>
- * 상속 정보를 적습니다.
+ * {@link JpaRepository}를 상속받아 기본 CRUD 기능을 제공합니다.
  *
- * <p><b>주요 생성자:</b><br>
- * {@code ExampleClass(String example)}  <br>
- * 주요 생성자와 그 매개변수에 대한 설명을 적습니다. <br>
- *
- * <p><b>빈 관리:</b><br>
- * 필요 시 빈 관리에 대한 내용을 적습니다.
- *
- * <p><b>외부 모듈:</b><br>
- * 필요 시 외부 모듈에 대한 내용을 적습니다.
+ * <p><b>주요 메서드:</b><br>
+ * 함수 추가시 작성
  *
  * @author 5h6vm
  * @since 2026-04-23
- * @see
  */
-interface RepoRespository {
+interface RepoRepository : JpaRepository<Repo, Long> {
+
 }
