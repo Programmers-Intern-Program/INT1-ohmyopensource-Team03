@@ -50,6 +50,8 @@ dependencies {
 
 	// Spring AI: GLM (OpenAI 호환 Chat)
 	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1'
 }
 
 kotlin {

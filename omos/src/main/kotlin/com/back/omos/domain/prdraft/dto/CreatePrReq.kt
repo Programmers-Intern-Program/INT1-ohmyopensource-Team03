@@ -1,5 +1,8 @@
 package com.back.omos.domain.prdraft.dto
 
+import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Positive
+
 /**
  * PR 생성 요청 정보를 담는 DTO입니다.
  *
@@ -11,7 +14,10 @@ package com.back.omos.domain.prdraft.dto
  * @since 2026-04-21
  */
 data class CreatePrReq(
+    @field:Positive(message = "repositoryId는 1 이상이어야 합니다.")
     val repositoryId: Long,
+    @field:Positive(message = "issueId는 1 이상이어야 합니다.")
     val issueId: Long,
+    @field:NotBlank(message = "diffContent는 비어 있을 수 없습니다.")
     val diffContent: String
 )
