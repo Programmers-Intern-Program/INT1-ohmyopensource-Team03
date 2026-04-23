@@ -1,4 +1,4 @@
-package com.back.omos.domain.prdraft.service
+package com.back.omos.domain.prdraft.ai
 
 /**
  * PR 초안 생성을 위한 AI 호출 기능을 추상화한 인터페이스입니다.
