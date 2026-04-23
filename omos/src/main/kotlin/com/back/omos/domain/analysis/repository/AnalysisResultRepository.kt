@@ -2,6 +2,7 @@ package com.back.omos.domain.analysis.repository
 
 import com.back.omos.domain.analysis.entity.AnalysisResult
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
 
 /**
  * [AnalysisResult] 엔티티에 대한 데이터 액세스 인터페이스입니다.
@@ -23,5 +24,6 @@ interface AnalysisResultRepository : JpaRepository<AnalysisResult, Long> {
      * @param issueId 조회할 이슈의 ID
      * @return 해당 이슈의 분석 결과, 없으면 null
      */
+    @Query("SELECT a FROM AnalysisResult a WHERE a.issue.id = :issueId")
     fun findByIssueId(issueId: Long): AnalysisResult?
 }
