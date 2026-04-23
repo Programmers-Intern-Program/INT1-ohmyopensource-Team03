@@ -3,6 +3,18 @@ spring:
     activate:
       on-profile: dev
 
+  # GitHub OAuth2 설정
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            scope:
+              - user:email
+              - read:user
+
   # 데이터베이스 설정 (Docker Compose 호환)
   datasource:
     url: jdbc:postgresql://localhost:5432/oh_my_opensource?stringtype=unspecified
@@ -19,6 +31,16 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 86400000  # 24시간 (ms)
+
+# OAuth2 로그인 성공 후 리다이렉트할 프론트엔드 URI
+app:
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth/callback}
 
 # 로깅 레벨
 logging:
