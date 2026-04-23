@@ -3,6 +3,7 @@ package com.back.omos.domain.prdraft.service
 import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrInfoRes
+import com.back.omos.domain.prdraft.github.GitHubClient
 import com.back.omos.domain.prdraft.repository.PrDraftRepository
 import com.back.omos.domain.repo.repository.RepoRepository
 import com.back.omos.global.exception.errorCode.IssueErrorCode
@@ -35,7 +36,8 @@ class PrDraftServiceImpl(
     private val issueRepository: IssueRepository,
     private val repoRepository: RepoRepository,
     private val prDraftPromptBuilder: PrDraftPromptBuilder,
-    private val aiClient: AiClient
+    private val aiClient: AiClient,
+    private val gitHubClient: GitHubClient
 ) : PrDraftService {
 
     @Transactional
@@ -45,13 +47,13 @@ class PrDraftServiceImpl(
         val repo = repoRepository.findById(request.repositoryId)
             .orElseThrow { RepoException(RepoErrorCode.REPO_NOT_FOUND) }
 
-        // TODO: 프롬프트 만들기
-        val prompt = prDraftPromptBuilder.build(request)
+        val contributing = gitHubClient.fetchContributing(repo.fullName)
+
+        val prompt = prDraftPromptBuilder.build(request, contributing)
 
         // TODO: AI 호출하기
         val aiResult = aiClient.generatePrDraft(prompt)
 
-        // TODO: 응답 반환하기
         return PrInfoRes(
             title = aiResult.title,
             body = aiResult.body
