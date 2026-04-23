@@ -14,7 +14,7 @@ import org.springframework.http.HttpStatus
  *
  * @author jack8
  * @see ErrorCode
- * @see com.plog.global.exception.exceptions.AuthException AuthException
+ * @see com.back.omos.global.exception.exceptions.AuthException AuthException
  * @since 2026-01-15
  */
 enum class AuthErrorCode(

@@ -1,6 +1,5 @@
-package com.back.omosglobal.exception.exceptionHandler
+package com.back.omos.global.exception.exceptionHandler
 
-import com.back.omos.global.exception.exceptionHandler.ExceptionHandlerOrder
 import com.back.omos.global.exception.exceptions.BaseException
 import com.back.omos.global.response.CommonResponse
 import org.slf4j.Logger
@@ -15,7 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
  * custom exception에 대한 exception handler 입니다.
  *
  * <p>{@link ExceptionHandlerOrder}에 정의된 바에 따라 비교적 후순위로 처리됩니다. 내부 필드 isDebug를 통해 내부 메시지의 표시 여부를
- * 결정합니다. 모든 응답은 {@link com.plog.global.response.CommonResponse CommonResponse} 를 통해 이루어집니다.
+ * 결정합니다. 모든 응답은 {@link com.back.omos.global.response.CommonResponse CommonResponse} 를 통해 이루어집니다.
  *
  * <p><b>상속 정보:</b><br>
  * 상속 정보를 적습니다.
