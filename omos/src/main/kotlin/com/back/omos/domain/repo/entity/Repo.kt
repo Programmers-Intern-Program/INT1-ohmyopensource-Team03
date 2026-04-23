@@ -75,14 +75,6 @@ class Repo(
     @Column(name = "url", nullable = false)
     var url: String,
 
-    /**
-     * 해당 저장소에 속한 이슈 목록입니다.
-     *
-     * 하나의 저장소는 여러 개의 이슈를 가질 수 있으며,
-     * 이 관계를 통해 저장소별 이슈를 관리합니다.
-     */
-    @OneToMany(mappedBy = "repository", fetch = FetchType.LAZY)
-    var issues: MutableList<Issue> = mutableListOf()
 
 ) : BaseEntity() {
 }
