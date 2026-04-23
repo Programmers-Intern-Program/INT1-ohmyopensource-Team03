@@ -41,7 +41,6 @@ class ContextAnalyzerServiceImpl(
     private val objectMapper: ObjectMapper
 ) : ContextAnalyzerService {
 
-    @Transactional
     override fun getGuide(issueId: Long): GuideResponseDto {
         val issue = issueRepository.findById(issueId)
             .orElseThrow {
@@ -63,7 +62,6 @@ class ContextAnalyzerServiceImpl(
         return toGuideDto(analysisResult)
     }
 
-    @Transactional
     override fun getPseudoCode(issueId: Long): PseudoCodeResponseDto {
         val issue = issueRepository.findById(issueId)
             .orElseThrow {
