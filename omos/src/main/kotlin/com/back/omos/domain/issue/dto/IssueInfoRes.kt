@@ -26,7 +26,7 @@ data class IssueInfoRes(
     val title: String,
     val content: String?,
     val labels: List<String>?,
-    val status: String  // "OPEN" or "CLOSED"
+    val status: Issue.IssueStatus  // "OPEN" or "CLOSED"
 ) {
     companion object {
         /**
@@ -43,7 +43,7 @@ data class IssueInfoRes(
                 title = issue.title,
                 content = issue.content,
                 labels = issue.labels,
-                status = issue.status.name
+                status = issue.status
             )
         }
     }

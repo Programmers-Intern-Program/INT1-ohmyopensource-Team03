@@ -1,7 +1,8 @@
-package com.plog.global.exception.exceptionHandler
+package com.back.omosglobal.exception.exceptionHandler
 
-import com.plog.global.exception.exceptions.BaseException
-import com.plog.global.response.CommonResponse
+import com.back.omos.global.exception.exceptionHandler.ExceptionHandlerOrder
+import com.back.omos.global.exception.exceptions.BaseException
+import com.back.omos.global.response.CommonResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.core.annotation.Order

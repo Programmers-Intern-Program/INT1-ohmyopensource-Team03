@@ -1,7 +1,6 @@
 package com.back.omos.global.exception.exceptions
 
-import com.back.omos.global.exception.errorCode.RepositoryErrorCode
-import com.plog.global.exception.exceptions.BaseException
+import com.back.omos.global.exception.errorCode.RepoErrorCode
 
 /**
  * 레포지토리 관리 및 처리 과정에서 발생하는 예외입니다.
@@ -20,12 +19,12 @@ import com.plog.global.exception.exceptions.BaseException
  * RepositoryErrorCode와 함께 클라이언트로의 반환 메시지 및 내부 로그 메시지를 담는 예외를 생성합니다. <br>
  *
  * @author 유재원
- * @see RepositoryErrorCode
+ * @see RepoErrorCode
  * @see BaseException
  * @since 2026-04-22
  */
-class RepositoryException : BaseException {
-    constructor(errorCode: RepositoryErrorCode) : super(errorCode)
-    constructor(errorCode: RepositoryErrorCode, logMessage: String) : super(errorCode, logMessage)
-    constructor(errorCode: RepositoryErrorCode, logMessage: String, clientMessage: String) : super(errorCode, logMessage, clientMessage)
+class RepoException : BaseException {
+    constructor(errorCode: RepoErrorCode) : super(errorCode)
+    constructor(errorCode: RepoErrorCode, logMessage: String) : super(errorCode, logMessage)
+    constructor(errorCode: RepoErrorCode, logMessage: String, clientMessage: String) : super(errorCode, logMessage, clientMessage)
 }

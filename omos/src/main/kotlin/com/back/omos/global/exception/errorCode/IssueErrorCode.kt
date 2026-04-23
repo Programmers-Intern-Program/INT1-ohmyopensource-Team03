@@ -1,22 +1,28 @@
 package com.back.omos.global.exception.errorCode
 
-import com.plog.global.exception.errorCode.ErrorCode
 import org.springframework.http.HttpStatus
 
 /**
- * 이슈 관리 및 처리 과정에서 발생하는 예외에 대한 상수 값을 정의합니다.
- *
- * <p>상황에 대한 코드, 클라이언트로의 응답 코드 및 메시지를 가지며, 그 명명 규칙은 문서를 참조해야 합니다. 해당 {@code IssueErrorCode} 는 {@link
- * IssueException IssueException}에서 사용되며, <br>
- * {@code NAME(HttpStatus.STATUS, "some message")}로 저장됩니다.
+ * 코드에 대한 전체적인 역할을 적습니다.
+ * <p>
+ * 코드에 대한 작동 원리 등을 적습니다.
  *
  * <p><b>상속 정보:</b><br>
- * {@link ErrorCode}의 구현체입니다.
+ * 상속 정보를 적습니다.
+ *
+ * <p><b>주요 생성자:</b><br>
+ * {@code ExampleClass(String example)}  <br>
+ * 주요 생성자와 그 매개변수에 대한 설명을 적습니다. <br>
+ *
+ * <p><b>빈 관리:</b><br>
+ * 필요 시 빈 관리에 대한 내용을 적습니다.
+ *
+ * <p><b>외부 모듈:</b><br>
+ * 필요 시 외부 모듈에 대한 내용을 적습니다.
  *
  * @author 유재원
- * @see ErrorCode
- * @see IssueException
- * @since 2026-04-22
+ * @since 2026-04-23
+ * @see
  */
 enum class IssueErrorCode (
     override val httpStatus: HttpStatus,

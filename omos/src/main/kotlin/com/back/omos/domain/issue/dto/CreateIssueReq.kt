@@ -23,7 +23,7 @@ data class CreateIssueReq(
     val title: String,
     val content: String? = null,
     val labels: List<String>? = null,
-    val status: String = "OPEN"  // "OPEN" or "CLOSED"
+    val status: Issue.IssueStatus // "OPEN" or "CLOSED"
 ) {
     /**
      * [CreateIssueReq] DTO를 [Issue] 엔티티로 변환합니다.
@@ -37,7 +37,7 @@ data class CreateIssueReq(
             title = title,
             content = content,
             labels = labels,
-            status = Issue.IssueStatus.valueOf(status)
+            status = status
         )
     }
 }

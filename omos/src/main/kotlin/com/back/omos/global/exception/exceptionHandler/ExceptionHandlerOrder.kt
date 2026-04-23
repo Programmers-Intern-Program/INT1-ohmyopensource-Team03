@@ -1,4 +1,4 @@
-package com.plog.global.exception.exceptionHandler
+package com.back.omos.global.exception.exceptionHandler
 
 /**
  * exception handler 의 처리 순서에 대한 상수 값을 정의하고 관리하는 객체입니다.

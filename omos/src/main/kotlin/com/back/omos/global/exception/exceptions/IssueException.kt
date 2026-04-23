@@ -1,7 +1,6 @@
 package com.back.omos.global.exception.exceptions
 
 import com.back.omos.global.exception.errorCode.IssueErrorCode
-import com.plog.global.exception.exceptions.BaseException
 
 /**
  * 이슈 관리 및 처리 과정에서 발생하는 예외입니다.

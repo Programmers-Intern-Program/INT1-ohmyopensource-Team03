@@ -1,6 +1,6 @@
-package com.plog.global.exception.exceptions
+package com.back.omos.global.exception.exceptions
 
-import com.plog.global.exception.errorCode.AuthErrorCode
+import com.back.omos.global.exception.errorCode.AuthErrorCode
 
 /**
  * 인증 / 인가 및 멤버 관리에서 발생하는 예외입니다.

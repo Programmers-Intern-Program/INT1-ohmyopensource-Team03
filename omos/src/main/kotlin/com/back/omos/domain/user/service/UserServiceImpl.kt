@@ -3,8 +3,8 @@ package com.back.omos.domain.user.service
 import com.back.omos.domain.user.dto.UserCreateReq
 import com.back.omos.domain.user.dto.UserInfoRes
 import com.back.omos.domain.user.repository.UserRepository
-import com.plog.global.exception.errorCode.AuthErrorCode
-import com.plog.global.exception.exceptions.AuthException
+import com.back.omos.global.exception.errorCode.AuthErrorCode
+import com.back.omos.global.exception.exceptions.AuthException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 

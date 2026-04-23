@@ -1,6 +1,6 @@
-package com.plog.global.exception.exceptions
+package com.back.omos.global.exception.exceptions
 
-import com.plog.global.exception.errorCode.ErrorCode
+import com.back.omos.global.exception.errorCode.ErrorCode
 
 /**
  * 모든 커스텀 예외 클래스의 추상 부모 클래스입니다. 자체적으로는 사용되지 않습니다.
@@ -18,7 +18,7 @@ import com.plog.global.exception.errorCode.ErrorCode
  *
  * @author jack8
  * @see RuntimeException
- * @see ErrorCode
+ * @see com.plog.global.exception.errorCode.ErrorCode
  * @since 2026-01-15
  */
 abstract class BaseException : RuntimeException {

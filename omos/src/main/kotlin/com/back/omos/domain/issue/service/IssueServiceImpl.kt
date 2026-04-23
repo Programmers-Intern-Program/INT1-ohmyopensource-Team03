@@ -10,6 +10,7 @@ import com.back.omos.global.exception.errorCode.IssueErrorCode
 import com.back.omos.global.exception.exceptions.IssueException
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 /**
  * 이슈 관련 비즈니스 로직을 처리하는 서비스 구현체입니다.
@@ -22,6 +23,7 @@ class IssueServiceImpl(
     private val issueRepository: IssueRepository
 ) : IssueService {
 
+    @Transactional
     override fun createIssue(request: CreateIssueReq): IssueInfoRes {
         if(issueRepository.existsByRepositoryIdAndIssueNumber(request.repositoryId, request.issueNumber)){
             throw IssueException(IssueErrorCode.ISSUE_ALREADY_EXIST)
@@ -31,12 +33,14 @@ class IssueServiceImpl(
         return IssueInfoRes.from(issue)
     }
 
+    @Transactional(readOnly = true)
     override fun getIssue(issueId: Long): IssueInfoRes {
         val issue = issueRepository.findByIdOrNull(issueId)
             ?: throw IssueException(IssueErrorCode.ISSUE_NOT_FOUND)
         return IssueInfoRes.from(issue)
     }
 
+    @Transactional
     override fun updateIssue(issueId: Long, request: UpdateIssueReq) {
         val issue = issueRepository.findByIdOrNull(issueId)
             ?: throw IssueException(IssueErrorCode.ISSUE_NOT_FOUND)
@@ -49,6 +53,7 @@ class IssueServiceImpl(
         val updatedIssue = issueRepository.save(issue)
     }
 
+    @Transactional
     override fun deleteIssue(issueId: Long) {
         val issue = issueRepository.findByIdOrNull(issueId)
             ?: throw IssueException(IssueErrorCode.ISSUE_NOT_FOUND)

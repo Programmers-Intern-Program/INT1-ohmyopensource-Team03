@@ -1,6 +1,5 @@
 package com.back.omos.global.exception.errorCode
 
-import com.plog.global.exception.errorCode.ErrorCode
 import org.springframework.http.HttpStatus
 
 /**
@@ -15,15 +14,15 @@ import org.springframework.http.HttpStatus
  *
  * @author 유재원
  * @see ErrorCode
- * @see RepositoryException
+ * @see RepoException
  * @since 2026-04-22
  */
-enum class RepositoryErrorCode (
+enum class RepoErrorCode (
     override val httpStatus: HttpStatus,
     override val message: String
 ) : ErrorCode {
     /**
      * 밑에 형식에 맞춰서 사용하는 에러코드를 작성해주시면 됩니다.
      */
-    Repository_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 레포지토리를 찾을 수 없습니다."),
+    REPO_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 레포지토리를 찾을 수 없습니다."),
 }
