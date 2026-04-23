@@ -1,0 +1,150 @@
+package com.back.omos.domain.analysis.service
+
+import com.back.omos.domain.analysis.dto.GuideResponseDto
+import com.back.omos.domain.analysis.dto.PseudoCodeResponseDto
+import com.back.omos.domain.analysis.entity.AnalysisResult
+import com.back.omos.domain.analysis.repository.AnalysisResultRepository
+import com.back.omos.domain.issue.entity.Issue
+import com.back.omos.domain.issue.repository.IssueRepository
+import com.back.omos.global.exception.errorCode.AnalysisErrorCode
+import com.back.omos.global.exception.exceptions.AnalysisException
+import org.springframework.stereotype.Service
+import tools.jackson.databind.ObjectMapper
+import tools.jackson.core.type.TypeReference
+
+/**
+ * Context Analyzer의 핵심 비즈니스 로직을 담당하는 서비스 구현체입니다.
+ * <p>
+ * 이슈에 대한 코드 수정 가이드 조회 요청을 처리하며,
+ * 캐시된 분석 결과가 유효하면 즉시 반환하고,
+ * 이슈가 수정되었거나 캐시가 없으면 GLM API를 호출하여 새로운 분석 결과를 생성합니다.
+ *
+ * <p><b>캐시 갱신 정책:</b><br>
+ * 이슈의 updatedAt과 분석 결과의 createdAt을 비교하여,
+ * 이슈가 분석 이후 수정된 경우에만 가이드를 재생성합니다.
+ * 기존 결과가 있으면 동일 row를 업데이트하고, 없으면 새로 생성합니다.
+ *
+ * <p><b>외부 모듈:</b><br>
+ * GitHub API — 관련 소스코드 수집 (TODO) <br>
+ * GLM API — 코드 수정 가이드 생성 (TODO)
+ *
+ * @author Jaewon Ryu
+ * @since 2026-04-22
+ * @see ContextAnalyzerService
+ * @see AnalysisResult
+ */
+@Service
+class ContextAnalyzerServiceImpl(
+    private val analysisResultRepository: AnalysisResultRepository,
+    private val issueRepository: IssueRepository,
+    private val objectMapper: ObjectMapper
+) : ContextAnalyzerService {
+
+    override fun getGuide(issueId: Long): GuideResponseDto {
+        val issue = issueRepository.findById(issueId)
+            .orElseThrow {
+                AnalysisException(
+                    AnalysisErrorCode.ISSUE_NOT_FOUND,
+                    "[ContextAnalyzerServiceImpl#getGuide] 이슈를 찾을 수 없습니다: issueId=$issueId",
+                    "해당 이슈를 찾을 수 없습니다."
+                )
+            }
+
+        // 캐시 있으면 바로 반환
+        val cached = analysisResultRepository.findByIssueId(issueId)
+        if (cached != null) {
+            return toGuideDto(cached)
+        }
+
+        // 없으면 새로 생성
+        val analysisResult = generateAnalysis(issue)
+        return toGuideDto(analysisResult)
+    }
+
+    override fun getPseudoCode(issueId: Long): PseudoCodeResponseDto {
+        val issue = issueRepository.findById(issueId)
+            .orElseThrow {
+                AnalysisException(
+                    AnalysisErrorCode.ISSUE_NOT_FOUND,
+                    "[ContextAnalyzerServiceImpl#getPseudoCode] 이슈를 찾을 수 없습니다: issueId=$issueId",
+                    "해당 이슈를 찾을 수 없습니다."
+                )
+            }
+
+        val cached = analysisResultRepository.findByIssueId(issueId)
+        if (cached != null) {
+            return toPseudoCodeDto(cached)
+        }
+
+        val analysisResult = generateAnalysis(issue)
+        return toPseudoCodeDto(analysisResult)
+    }
+    /**
+     * 이슈가 분석 이후 수정되었는지 판단합니다.
+     *
+     * issue.updatedAt이 analysisResult.createdAt보다 이후이면
+     * 이슈 내용이 변경된 것이므로 가이드를 재생성해야 합니다.
+     */
+    private fun isIssueModifiedAfterAnalysis(issue: Issue, result: AnalysisResult): Boolean {
+        return issue.updatedAt.isAfter(result.createdAt)
+    }
+
+    /**
+     * GLM API를 호출하여 새로운 분석 결과를 생성합니다.
+     *
+     * 기존 캐시가 있으면 업데이트하고, 없으면 새로 생성하여 저장합니다.
+     */
+    private fun generateAnalysis(issue: Issue): AnalysisResult {
+        // TODO: GitHub API로 관련 소스코드 가져오기
+        // TODO: GLM API로 가이드 생성 요청
+
+        val filePaths = """["src/main/java/Example.java"]"""
+        val guideline = "TODO: GLM 연동 후 실제 가이드 생성"
+        val pseudoCode = "TODO: GLM 연동 후 실제 의사 코드 생성"
+        val sideEffects = "TODO: GLM 연동 후 실제 부작용 분석"
+
+        val newResult = AnalysisResult(
+            issue = issue,
+            filePaths = filePaths,
+            guideline = guideline,
+            pseudoCode = pseudoCode,
+            sideEffects = sideEffects
+        )
+        return analysisResultRepository.save(newResult)
+    }
+
+    /**
+     * AnalysisResult를 GuideResponseDto로 변환합니다.
+     * filePaths는 JSON 문자열을 List<String>으로 파싱합니다.
+     */
+    private fun toGuideDto(result: AnalysisResult): GuideResponseDto {
+        return GuideResponseDto(
+            filePaths = parseFilePaths(result.filePaths),
+            guideline = result.guideline,
+            sideEffects = result.sideEffects
+        )
+    }
+
+    /**
+     * AnalysisResult를 PseudoCodeResponseDto로 변환합니다.
+     */
+    private fun toPseudoCodeDto(result: AnalysisResult): PseudoCodeResponseDto {
+        return PseudoCodeResponseDto(
+            filePaths = parseFilePaths(result.filePaths),
+            pseudoCode = result.pseudoCode
+        )
+    }
+
+    /**
+     * JSON 배열 문자열을 List<String>으로 파싱합니다.
+     * <p>
+     * ObjectMapper를 사용하여 안전하게 역직렬화합니다.
+     * 예: '["a.java", "b.java"]' → listOf("a.java", "b.java")
+     *
+     * @param filePaths JSON 배열 형태의 파일 경로 문자열
+     * @return 파싱된 파일 경로 목록
+     */
+    private fun parseFilePaths(filePaths: String): List<String> {
+        return objectMapper.readValue(filePaths, object : TypeReference<List<String>>() {})
+    }
+}
