@@ -15,9 +15,3 @@ spring:
       charset: UTF-8
       enabled: true
       force: true
-
-  # Jackson 직렬화 설정
-  jackson:
-    property-naming-strategy: SNAKE_CASE
-    serialization:
-      fail-on-empty-beans: false
