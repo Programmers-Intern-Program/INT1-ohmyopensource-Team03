@@ -3,7 +3,7 @@ package com.back.omos.domain.user.controller
 import com.back.omos.domain.user.dto.UserInfoRes
 import com.back.omos.domain.user.service.UserService
 import com.back.omos.global.auth.principal.OAuthPrincipal
-import com.plog.global.response.CommonResponse
+import com.back.omos.global.response.CommonResponse
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 

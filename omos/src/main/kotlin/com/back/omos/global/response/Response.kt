@@ -1,4 +1,4 @@
-package com.plog.global.response
+package com.back.omos.global.response
 
 /**
  * 응답 객체에 대한 정의 인터페이스입니다.
