@@ -1,9 +1,10 @@
 package com.back.omos.domain.user.controller
 
-import com.back.omos.domain.user.dto.UserCreateReq
 import com.back.omos.domain.user.dto.UserInfoRes
 import com.back.omos.domain.user.service.UserService
+import com.back.omos.global.auth.principal.OAuthPrincipal
 import com.plog.global.response.CommonResponse
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -23,22 +24,6 @@ import org.springframework.web.bind.annotation.*
 class UserController(
     private val userService: UserService
 ) {
-
-    /**
-     * 새로운 사용자를 등록(가입)합니다.
-     *
-     * <p>
-     * GitHub 로그인 성공 후 전달받은 고유 ID와 정보를 기반으로 계정을 생성합니다.
-     *
-     * @param request 신규 사용자 생성 요청 데이터
-     * @return 생성된 사용자 정보와 함께 성공 응답 반환
-     */
-    @PostMapping("/")
-    fun createUser(@RequestBody request: UserCreateReq): CommonResponse<UserInfoRes> {
-        val userInfo = userService.createUser(request)
-        return CommonResponse.success(userInfo, "사용자 등록에 성공하였습니다.")
-    }
-
     /**
      * 현재 로그인한 사용자의 정보를 조회합니다.
      *
@@ -49,11 +34,8 @@ class UserController(
      * @return 현재 로그인한 사용자 정보와 함께 성공 응답 반환
      */
     @GetMapping("/me")
-    fun getMyInfo(): CommonResponse<UserInfoRes> {
-        // TODO: SecurityContext에서 현재 사용자의 githubId를 가져오는 로직 추가 필요
-        // 예: val githubId = authentication.name
-        val tempGithubId = "temp-id" 
-        val userInfo = userService.getUserByGithubId(tempGithubId)
+    fun getMyInfo(@AuthenticationPrincipal principal: OAuthPrincipal): CommonResponse<UserInfoRes> {
+        val userInfo = userService.getUserByGithubId(principal.githubId)
         return CommonResponse.success(userInfo)
     }
 
@@ -80,12 +62,11 @@ class UserController(
      */
     @PatchMapping("/me")
     fun updateMyProfile(
+        @AuthenticationPrincipal principal: OAuthPrincipal,
         @RequestParam(required = false) name: String?,
         @RequestParam(required = false) email: String?
     ): CommonResponse<UserInfoRes> {
-        // TODO: SecurityContext에서 현재 사용자의 githubId를 가져오는 로직 추가 필요
-        val tempGithubId = "temp-id"
-        val updatedInfo = userService.updateProfile(tempGithubId, name, email)
+        val updatedInfo = userService.updateProfile(principal.githubId, name, email)
         return CommonResponse.success(updatedInfo, "프로필이 성공적으로 수정되었습니다.")
     }
 }
