@@ -5,8 +5,8 @@ import com.back.omos.global.auth.handler.OAuth2SuccessHandler
 import com.back.omos.global.auth.jwt.JwtAuthenticationFilter
 import com.back.omos.global.auth.jwt.JwtProvider
 import com.back.omos.global.auth.service.CustomOAuth2UserService
-import com.plog.global.exception.errorCode.AuthErrorCode
-import com.plog.global.response.CommonResponse
+import com.back.omos.global.exception.errorCode.AuthErrorCode
+import com.back.omos.global.response.CommonResponse
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
