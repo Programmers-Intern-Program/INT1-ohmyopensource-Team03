@@ -49,8 +49,9 @@ class PrDraftServiceImpl(
             .orElseThrow { RepoException(RepoErrorCode.REPO_NOT_FOUND) }
 
         val contributing = gitHubClient.fetchContributing(repo.fullName)
+        val prs = if (contributing == null) gitHubClient.fetchMergedPrs(repo.fullName) else emptyList()
 
-        val prompt = prDraftPromptBuilder.build(request, contributing)
+        val prompt = prDraftPromptBuilder.build(request, contributing, prs)
 
         // TODO: AI 호출하기
         val aiResult = aiClient.generatePrDraft(prompt)

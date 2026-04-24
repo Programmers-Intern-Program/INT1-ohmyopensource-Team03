@@ -1,6 +1,7 @@
 package com.back.omos.domain.prdraft.service
 
 import com.back.omos.domain.prdraft.dto.CreatePrReq
+import com.back.omos.domain.prdraft.github.GitHubPrRes
 import org.springframework.stereotype.Component
 
 /**
@@ -36,17 +37,20 @@ import org.springframework.stereotype.Component
 @Component
 class PrDraftPromptBuilder {
 
-    fun build(req: CreatePrReq, contributing: String?): String {
-        val contributingSection = if (contributing != null) {
-            "\n[CONTRIBUTING.md]\n$contributing\n"
-        } else {
-            ""
+    fun build(req: CreatePrReq, contributing: String?, prs: List<GitHubPrRes>): String {
+        val contextSection = when {
+            contributing != null -> "\n[CONTRIBUTING.md]\n$contributing\n"
+            prs.isNotEmpty() -> {
+                val examples = prs.joinToString("\n---\n") { "제목: ${it.title}\n본문: ${it.body}" }
+                "\n[기존 PR 예시 - 아래 PR들의 톤앤매너에 맞춰 작성하세요]\n$examples\n"
+            }
+            else -> "\n[작성 가이드가 없으므로 일반적인 오픈소스 PR 형식으로 작성하세요]\n"
         }
 
         return """
             당신은 오픈소스 프로젝트의 PR 초안 작성 도우미입니다.
             아래 diff를 바탕으로 PR 제목과 본문을 작성하세요.
-            $contributingSection
+            $contextSection
             [Diff]
             ${req.diffContent}
 
