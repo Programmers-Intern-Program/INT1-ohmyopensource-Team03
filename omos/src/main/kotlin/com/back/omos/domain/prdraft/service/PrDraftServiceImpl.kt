@@ -11,7 +11,7 @@ import com.back.omos.global.exception.errorCode.IssueErrorCode
 import com.back.omos.global.exception.errorCode.RepoErrorCode
 import com.back.omos.global.exception.exceptions.IssueException
 import com.back.omos.global.exception.exceptions.RepoException
-import jakarta.transaction.Transactional
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.stereotype.Service
 
 /**
@@ -43,17 +43,20 @@ class PrDraftServiceImpl(
 
     @Transactional
     override fun create(request: CreatePrReq): PrInfoRes {
+        // 이슈, 레포 조회
         val issue = issueRepository.findById(request.issueId)
             .orElseThrow { IssueException(IssueErrorCode.ISSUE_NOT_FOUND) }
         val repo = repoRepository.findById(request.repositoryId)
             .orElseThrow { RepoException(RepoErrorCode.REPO_NOT_FOUND) }
 
+        // prompt에게 줄 pr 형식 정보
         val contributing = gitHubClient.fetchContributing(repo.fullName)
         val prs = if (contributing == null) gitHubClient.fetchMergedPrs(repo.fullName) else emptyList()
 
+        // prompt 작성
         val prompt = prDraftPromptBuilder.build(request, contributing, prs)
 
-        // TODO: AI 호출하기
+        // AI 호출
         val aiResult = aiClient.generatePrDraft(prompt)
 
         return PrInfoRes(

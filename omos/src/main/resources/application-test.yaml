@@ -52,5 +52,5 @@ app:
     redirect-uri: http://localhost:3000/oauth/callback
 
 github:
-  token: ${GITHUB_TOKEN}
+  token: ${GITHUB_TOKEN:test-token}
 
