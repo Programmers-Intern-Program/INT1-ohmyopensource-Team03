@@ -18,7 +18,7 @@ import com.back.omos.domain.issue.entity.Issue
  * @since 2026-04-22
  */
 data class CreateIssueReq(
-    val repositoryId: Long,
+    val repoFullName: String,
     val issueNumber: Long,
     val title: String,
     val content: String? = null,
@@ -32,7 +32,7 @@ data class CreateIssueReq(
      */
     fun toEntity(): Issue {
         return Issue(
-            repositoryId = repositoryId,
+            repoFullName = repoFullName,
             issueNumber = issueNumber,
             title = title,
             content = content,
