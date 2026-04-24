@@ -6,8 +6,11 @@ import com.back.omos.domain.issue.dto.RecommendIssueRes
 import com.back.omos.domain.issue.dto.UpdateIssueReq
 import com.back.omos.domain.issue.entity.Issue
 import com.back.omos.domain.issue.repository.IssueRepository
+import com.back.omos.domain.repo.repository.RepoRepository
 import com.back.omos.global.exception.errorCode.IssueErrorCode
+import com.back.omos.global.exception.errorCode.RepoErrorCode
 import com.back.omos.global.exception.exceptions.IssueException
+import com.back.omos.global.exception.exceptions.RepoException
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -20,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional
  */
 @Service
 class IssueServiceImpl(
-    private val issueRepository: IssueRepository
+    private val issueRepository: IssueRepository,
+    private val githubClient: GithubClient,
+    private val repoRepository: RepoRepository,
 ) : IssueService {
 
     @Transactional
@@ -62,6 +67,36 @@ class IssueServiceImpl(
 
     override fun recommendIssues(userId: Long, repositoryId: Long, limit: Int): List<RecommendIssueRes> {
         TODO("추천 로직 구현 필요")
+    }
+
+    @Transactional
+    override fun crawlAndSave(repoId: Long) {
+        // 1. 레포지토리 이름(fullName)을 알아내기 위해 DB 조회
+        val repo = repoRepository.findByIdOrNull(repoId)
+            ?: throw RepoException(RepoErrorCode.REPO_NOT_FOUND, "해당 레포지토리가 존재하지 않습니다. ID: $repoId")
+
+        // "owner/repo" 문자열 분리
+        val (owner, repoName) = repo.fullName.split("/").let {
+            if (it.size < 2) throw RepoException(RepoErrorCode.REPO_NOT_FOUND, "해당 레포지토리의 이름이 잘못되었습니다. ID: $repoId")
+            it[0] to it[1]
+        }
+
+        // 2. GitHub API를 통해 이슈 목록 가져오기
+        val githubIssues = githubClient.fetchIssues(owner, repoName)
+
+        // 3. DTO를 엔티티로 변환하여 저장
+        githubIssues.forEach { dto ->
+            val issue = Issue(
+                repositoryId = repoId,
+                issueNumber = dto.number,
+                title = dto.title,
+                content = dto.body,
+                labels = dto.labels.map { it.name },
+                status = Issue.IssueStatus.OPEN,
+                issueVector = null // TODO : 임베딩은 추후에 구현 아직 Spring AI 도입 안됐음
+            )
+            issueRepository.save(issue)
+        }
     }
 
 }

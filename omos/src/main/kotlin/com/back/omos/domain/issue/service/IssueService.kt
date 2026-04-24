@@ -56,4 +56,19 @@ interface IssueService {
      * @return 추천된 이슈 목록
      */
     fun recommendIssues(userId: Long, repositoryId: Long, limit: Int): List<RecommendIssueRes>
+
+    /**
+     * 지정된 레포지토리의 GitHub 이슈를 수집하고 벡터 임베딩을 생성하여 저장합니다.
+     *
+     * GitHub REST API를 호출하여 최신 이슈 데이터를 가져오며,
+     * 수집된 텍스트 데이터(제목, 본문)는 AI 모델을 통해 고차원 벡터로 변환됩니다.
+     * * [설계 특징]
+     * 1. 도메인 간 결합도를 낮추기 위해 객체 참조 대신 [repoId]를 직접 저장합니다.
+     * 2. 중복 수집 방지를 위해 기존에 저장된 이슈 번호([issueNumber])와 비교 로직이 포함될 수 있습니다.
+     * 3. 저장된 벡터 데이터는 추후 [recommendIssues]에서 유사도 기반 추천에 활용됩니다.
+     *
+     * @param repoId 이슈를 수집할 대상 레포지토리의 고유 식별자(ID)
+     * @throws IllegalArgumentException 존재하지 않는 [repoId]이거나 API 호출에 실패한 경우 발생
+     */
+    fun crawlAndSave(repoId: Long)
 }
