@@ -1,5 +1,7 @@
 package com.back.omos.domain.prdraft.ai
 
+import org.springframework.context.annotation.Primary
+import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 
 /**
@@ -15,6 +17,8 @@ import org.springframework.stereotype.Component
  * @since 2026-04-22
  */
 @Component
+@Profile("test")
+@Primary
 class MockAiClient : AiClient {
 
     override fun generatePrDraft(prompt: String): AiPrResult {
