@@ -25,4 +25,16 @@ interface GitHubClient {
      * @return CONTRIBUTING.md 내용, 없으면 null
      */
     fun fetchContributing(fullName: String): String?
+
+    /**
+     * 레포지토리의 merged된 PR 목록을 최대 10개 가져옵니다.
+     *
+     * <p>
+     * CONTRIBUTING.md가 없는 경우 기존 PR의 톤앤매너를 분석하기 위해 사용됩니다.
+     * 본문이 있는 merged PR만 반환하며, API 호출 실패 시 빈 리스트를 반환합니다.
+     *
+     * @param fullName owner/repo 형식의 레포지토리 이름
+     * @return merged PR 목록, 없거나 실패 시 빈 리스트
+     */
+    fun fetchMergedPrs(fullName: String): List<GitHubPrRes>
 }
