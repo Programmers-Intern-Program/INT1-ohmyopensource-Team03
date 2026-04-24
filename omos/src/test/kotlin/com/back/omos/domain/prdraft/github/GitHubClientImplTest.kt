@@ -25,6 +25,15 @@ class GitHubClientImplTest {
     }
 
     @Test
+    fun `github_폴더에 있는 CONTRIBUTING_md도 가져온다`() {
+        val result = gitHubClient.fetchContributing("kubernetes/kubernetes")
+
+        assertThat(result).isNotNull()
+        println("=== .github/CONTRIBUTING.md 내용 ===")
+        println(result)
+    }
+
+    @Test
     fun `CONTRIBUTING_md가 없는 레포에서 null을 반환한다`() {
         val result = gitHubClient.fetchContributing("torvalds/linux")
 
