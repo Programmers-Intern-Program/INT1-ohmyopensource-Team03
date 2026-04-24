@@ -1,4 +1,4 @@
-package com.back.omos.domain.prdraft.service
+package com.back.omos.domain.prdraft.ai
 
 import org.springframework.stereotype.Component
 

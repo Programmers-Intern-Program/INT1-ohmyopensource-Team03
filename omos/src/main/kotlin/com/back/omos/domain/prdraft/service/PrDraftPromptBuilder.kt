@@ -36,11 +36,17 @@ import org.springframework.stereotype.Component
 @Component
 class PrDraftPromptBuilder {
 
-    fun build(req: CreatePrReq): String {
+    fun build(req: CreatePrReq, contributing: String?): String {
+        val contributingSection = if (contributing != null) {
+            "\n[CONTRIBUTING.md]\n$contributing\n"
+        } else {
+            ""
+        }
+
         return """
             당신은 오픈소스 프로젝트의 PR 초안 작성 도우미입니다.
             아래 diff를 바탕으로 PR 제목과 본문을 작성하세요.
-
+            $contributingSection
             [Diff]
             ${req.diffContent}
 

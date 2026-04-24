@@ -1,4 +1,4 @@
-package com.back.omos.domain.prdraft.service
+package com.back.omos.domain.prdraft.ai
 
 /**
  * AI가 생성한 PR 초안 결과를 담는 내부 DTO입니다.

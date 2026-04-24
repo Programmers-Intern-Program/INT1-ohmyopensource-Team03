@@ -18,3 +18,10 @@ spring:
     redis:
       host: localhost
       port: 6379
+
+github:
+  token: ${GITHUB_TOKEN}
+
+jwt:
+  secret: test-secret-key-for-jwt-testing-only
+  expiration: 86400000
