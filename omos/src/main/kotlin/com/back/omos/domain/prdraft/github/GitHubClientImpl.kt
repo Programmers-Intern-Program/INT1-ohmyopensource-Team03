@@ -42,9 +42,18 @@ class GitHubClientImpl(
      * @return CONTRIBUTING.md 내용, 없으면 null
      */
     override fun fetchContributing(fullName: String): String? {
+        val paths = listOf("CONTRIBUTING.md", ".github/CONTRIBUTING.md")
+        for (path in paths) {
+            val result = fetchFile(fullName, path)
+            if (result != null) return result
+        }
+        return null
+    }
+
+    private fun fetchFile(fullName: String, path: String): String? {
         return try {
             val response = restClient.get()
-                .uri("/repos/$fullName/contents/CONTRIBUTING.md")
+                .uri("/repos/$fullName/contents/$path")
                 .retrieve()
                 .body(GitHubContentsRes::class.java)
 
