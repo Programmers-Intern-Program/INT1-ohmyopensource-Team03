@@ -18,7 +18,7 @@ import com.back.omos.global.exception.errorCode.ErrorCode
  *
  * @author jack8
  * @see RuntimeException
- * @see ErrorCode
+ * @see com.back.omos.global.exception.errorCode.ErrorCode
  * @since 2026-01-15
  */
 abstract class BaseException : RuntimeException {

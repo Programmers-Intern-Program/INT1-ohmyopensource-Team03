@@ -3,6 +3,8 @@ package com.back.omos.domain.issue.entity
 import com.back.omos.global.jpa.converter.DoubleArrayToVectorConverter
 import com.back.omos.global.jpa.entity.BaseEntity
 import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 
 /**
  * 레포지토리의 이슈(Issue) 정보를 관리하는 핵심 엔티티 클래스입니다.
@@ -38,7 +40,7 @@ class Issue(
      * 예: GitHub의 이슈 번호(#1, #42 등)와 동일한 역할을 하며, URL 경로나 API에서 주로 사용됩니다.
      */
     @Column(name = "issue_number", nullable = false)
-    var issueNumber: Int,
+    var issueNumber: Long,
 
     /**
      * 이슈의 제목입니다.
@@ -62,8 +64,9 @@ class Issue(
      * PostgreSQL의 강력한 jsonb 타입을 사용하여 저장하며, 별도의 연관관계 테이블 없이도
      * 효율적인 검색과 인덱싱이 가능하도록 설계되었습니다.
      */
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "labels", columnDefinition = "jsonb")
-    var labels: String? = null, // JSON 처리는 라이브러리에 따라 String 또는 전용 DTO 권장
+    var labels: List<String>? = null,
 
     /**
      * 이슈 본문/제목 등의 의미(Context)를 임베딩한 벡터 데이터입니다.

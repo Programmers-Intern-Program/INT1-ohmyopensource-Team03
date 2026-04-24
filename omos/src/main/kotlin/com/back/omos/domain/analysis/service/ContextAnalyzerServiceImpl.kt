@@ -3,9 +3,11 @@ package com.back.omos.domain.analysis.service
 import com.back.omos.domain.analysis.dto.GuideResponseDto
 import com.back.omos.domain.analysis.dto.PseudoCodeResponseDto
 import com.back.omos.domain.analysis.entity.AnalysisResult
+import com.back.omos.domain.analysis.github.GitHubClient
 import com.back.omos.domain.analysis.repository.AnalysisResultRepository
 import com.back.omos.domain.issue.entity.Issue
 import com.back.omos.domain.issue.repository.IssueRepository
+import com.back.omos.domain.repo.repository.RepoRepository
 import com.back.omos.global.exception.errorCode.AnalysisErrorCode
 import com.back.omos.global.exception.exceptions.AnalysisException
 import org.springframework.stereotype.Service
@@ -38,10 +40,11 @@ import tools.jackson.core.type.TypeReference
 class ContextAnalyzerServiceImpl(
     private val analysisResultRepository: AnalysisResultRepository,
     private val issueRepository: IssueRepository,
+    private val repoRepository: RepoRepository,
+    private val gitHubClient: GitHubClient,
     private val objectMapper: ObjectMapper
 ) : ContextAnalyzerService {
 
-    @Transactional
     override fun getGuide(issueId: Long): GuideResponseDto {
         val issue = issueRepository.findById(issueId)
             .orElseThrow {
@@ -63,7 +66,6 @@ class ContextAnalyzerServiceImpl(
         return toGuideDto(analysisResult)
     }
 
-    @Transactional
     override fun getPseudoCode(issueId: Long): PseudoCodeResponseDto {
         val issue = issueRepository.findById(issueId)
             .orElseThrow {
@@ -97,11 +99,39 @@ class ContextAnalyzerServiceImpl(
      *
      * 기존 캐시가 있으면 업데이트하고, 없으면 새로 생성하여 저장합니다.
      */
+    @Transactional
     private fun generateAnalysis(issue: Issue): AnalysisResult {
-        // TODO: GitHub API로 관련 소스코드 가져오기
-        // TODO: GLM API로 가이드 생성 요청
 
-        val filePaths = """["src/main/java/Example.java"]"""
+        // 1. repositoryId로 Repo 조회 → owner/repo 파싱
+        val repo = repoRepository.findById(issue.repositoryId)
+            .orElseThrow {
+                AnalysisException(
+                    AnalysisErrorCode.GITHUB_API_FAIL,
+                    "[ContextAnalyzerServiceImpl#generateAnalysis] repositoryId=${issue.repositoryId} 레포를 찾을 수 없습니다.",
+                    "레포지토리 정보를 찾을 수 없습니다."
+                )
+            }
+        val (owner, repoName) = repo.fullName.split("/")
+
+        // 2. 이슈 정보 fetch
+        val issueInfo = gitHubClient.fetchIssue(owner, repoName, issue.issueNumber.toInt())
+
+        // 3. 이슈 제목으로 관련 파일 검색
+        val searchResult = gitHubClient.searchCode(issueInfo.title, owner, repoName)
+
+        // 4. 검색된 파일들 내용 fetch (최대 5개로 제한)
+        val fileContents = searchResult.items
+            .take(5)
+            .mapNotNull { item ->
+                val content = gitHubClient.fetchFileContent(owner, repoName, item.path)
+                if (content != null) item.path to content else null
+            }
+            .toMap()
+
+        // 5. filePaths JSON 직렬화
+        val filePaths = objectMapper.writeValueAsString(fileContents.keys.toList())
+
+        // TODO: GLM API로 가이드 생성 요청
         val guideline = "TODO: GLM 연동 후 실제 가이드 생성"
         val pseudoCode = "TODO: GLM 연동 후 실제 의사 코드 생성"
         val sideEffects = "TODO: GLM 연동 후 실제 부작용 분석"

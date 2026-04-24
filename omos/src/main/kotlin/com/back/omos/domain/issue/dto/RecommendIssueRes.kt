@@ -6,7 +6,8 @@ package com.back.omos.domain.issue.dto
  * <p>
  * AI 기반의 유사도 검색을 통해 추천된 이슈들의 목록을 반환합니다.
  *
- * @property issueId 이슈의 시스템 내부 식별자
+ * @property id 이슈의 시스템 내부 식별자
+ * @property repositoryId 레포지토리 아이디
  * @property issueNumber 레포지토리 내에서의 이슈 번호
  * @property title 이슈 제목
  * @property summary 이슈 본문의 요약본 (AI 생성)
@@ -18,8 +19,9 @@ package com.back.omos.domain.issue.dto
  * @since 2026-04-22
  */
 data class RecommendIssueRes(
-    val issueId: Long,
-    val issueNumber: Int,
+    val id: Long,
+    val repositoryId : Long,
+    val issueNumber: Long,
     val title: String,
     val summary: String,
     val score: Float,
