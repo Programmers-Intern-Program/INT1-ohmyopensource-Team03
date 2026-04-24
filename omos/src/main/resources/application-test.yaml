@@ -20,7 +20,7 @@ spring:
       port: 6379
 
 github:
-  token: ${GITHUB_TOKEN}
+  token: ${GITHUB_TOKEN:test-token}
 
 jwt:
   secret: test-secret-key-for-jwt-testing-only
