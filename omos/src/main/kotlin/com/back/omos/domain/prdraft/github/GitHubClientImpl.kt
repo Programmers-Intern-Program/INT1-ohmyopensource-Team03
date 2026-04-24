@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
-import org.springframework.web.client.RestClientResponseException
+import org.springframework.web.client.RestClientException
 import java.util.Base64
 
 /**
@@ -42,7 +42,7 @@ class GitHubClientImpl(
      * @return CONTRIBUTING.md 내용, 없으면 null
      */
     override fun fetchContributing(fullName: String): String? {
-        val paths = listOf("CONTRIBUTING.md", ".github/CONTRIBUTING.md")
+        val paths = listOf("CONTRIBUTING.md", ".github/CONTRIBUTING.md", "CONTRIBUTING.adoc", ".github/CONTRIBUTING.adoc")
         for (path in paths) {
             val result = fetchFile(fullName, path)
             if (result != null) return result
@@ -60,7 +60,7 @@ class GitHubClientImpl(
             response?.content
                 ?.replace("\n", "")
                 ?.let { Base64.getDecoder().decode(it).toString(Charsets.UTF_8) }
-        } catch (e: RestClientResponseException) {
+        } catch (e: RestClientException) {
             null
         }
     }
