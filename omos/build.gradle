@@ -46,13 +46,11 @@ dependencies {
 
 	runtimeOnly 'com.h2database:h2'
 
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
-
 	// Spring AI: GLM (OpenAI 호환 Chat)
 	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 	implementation 'io.github.microutils:kotlin-logging-jvm:3.0.5'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
 }
 
 kotlin {
