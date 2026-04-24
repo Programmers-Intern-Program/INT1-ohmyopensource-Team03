@@ -28,31 +28,26 @@ import com.fasterxml.jackson.annotation.JsonProperty
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class GithubIssueResponse(
-    // 깃허브 시스템 내부 고유 ID
     val id: Long,
-
-    // 우리가 흔히 보는 이슈 번호 (예: #102)
     val number: Long,
-
-    // 이슈 제목
     val title: String,
-
-    // 이슈 본문 (마크다운 형식, 내용이 없을 수 있어 Nullable 처리)
     val body: String?,
 
-    // 해당 이슈의 실제 깃허브 웹 주소
     @JsonProperty("html_url")
     val htmlUrl: String,
 
-    // 이슈에 달린 라벨 목록
+    /** * 이슈가 속한 레포지토리의 API URL입니다.
+     * 예: "https://api.github.com/repos/naver/fixture-monkey"
+     * 여기서 "naver/fixture-monkey"를 파싱하여 repoFullName으로 사용합니다.
+     */
+    @JsonProperty("repository_url")
+    val repositoryUrl: String,
+
     val labels: List<LabelResponse> = emptyList()
 ) {
-    /**
-     * 라벨 정보를 담는 내부 데이터 클래스
-     */
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class LabelResponse(
-        val name: String, // 라벨 이름 (예: "bug", "good first issue")
-        val color: String // 라벨 색상 코드
+        val name: String,
+        val color: String
     )
 }

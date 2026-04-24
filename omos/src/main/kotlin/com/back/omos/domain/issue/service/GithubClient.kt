@@ -1,6 +1,7 @@
 package com.back.omos.domain.issue.service
 
 import com.back.omos.domain.issue.dto.GithubIssueResponse
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
@@ -34,19 +35,25 @@ class GithubClient(
     private val webClient: WebClient,
     @Value("\${github.token}") private val token: String
 ) {
-    fun fetchIssues(owner: String, repo: String): List<GithubIssueResponse> {
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    data class GithubSearchResponse(
+        val items: List<GithubIssueResponse>
+    )
+
+    // GithubClient 내부
+    fun searchIssues(query: String): List<GithubIssueResponse> {
         return webClient.get()
             .uri { uriBuilder ->
                 uriBuilder
-                    .path("/repos/$owner/$repo/issues")
-                    .queryParam("state", "open")
-                    .queryParam("per_page", 1) // 현재 테스트용으로 1개 설정
+                    .path("/search/issues")
+                    .queryParam("q", query)
+                    .queryParam("per_page", 10)
                     .build()
             }
             .header("Authorization", "Bearer $token")
             .retrieve()
-            .bodyToFlux(GithubIssueResponse::class.java)
-            .collectList()
+            .bodyToMono(GithubSearchResponse::class.java) // 래퍼 클래스로 한 번에 받기
+            .map { it.items }
             .block() ?: emptyList()
     }
 }

@@ -30,7 +30,7 @@ class IssueServiceImpl(
 
     @Transactional
     override fun createIssue(request: CreateIssueReq): IssueInfoRes {
-        if(issueRepository.existsByRepositoryIdAndIssueNumber(request.repositoryId, request.issueNumber)){
+        if(issueRepository.existsByRepoFullNameAndIssueNumber(request.repoFullName, request.issueNumber)){
             throw IssueException(IssueErrorCode.ISSUE_ALREADY_EXIST)
         }
 
@@ -69,33 +69,26 @@ class IssueServiceImpl(
         TODO("추천 로직 구현 필요")
     }
 
+
     @Transactional
-    override fun crawlAndSave(repoId: Long) {
-        // 1. 레포지토리 이름(fullName)을 알아내기 위해 DB 조회
-        val repo = repoRepository.findByIdOrNull(repoId)
-            ?: throw RepoException(RepoErrorCode.REPO_NOT_FOUND, "해당 레포지토리가 존재하지 않습니다. ID: $repoId")
+    override fun crawlAndSaveByQuery(query: String): List<Issue> {
+        val githubIssues = githubClient.searchIssues(query)
 
-        // "owner/repo" 문자열 분리
-        val (owner, repoName) = repo.fullName.split("/").let {
-            if (it.size < 2) throw RepoException(RepoErrorCode.REPO_NOT_FOUND, "해당 레포지토리의 이름이 잘못되었습니다. ID: $repoId")
-            it[0] to it[1]
-        }
+        return githubIssues.map { dto ->
+            val fullName = dto.repositoryUrl.substringAfter("repos/")
 
-        // 2. GitHub API를 통해 이슈 목록 가져오기
-        val githubIssues = githubClient.fetchIssues(owner, repoName)
-
-        // 3. DTO를 엔티티로 변환하여 저장
-        githubIssues.forEach { dto ->
-            val issue = Issue(
-                repositoryId = repoId,
-                issueNumber = dto.number,
-                title = dto.title,
-                content = dto.body,
-                labels = dto.labels.map { it.name },
-                status = Issue.IssueStatus.OPEN,
-                issueVector = null // TODO : 임베딩은 추후에 구현 아직 Spring AI 도입 안됐음
-            )
-            issueRepository.save(issue)
+            // 1. 이미 있으면 가져오고, 없으면 새로 생성해서 저장
+            issueRepository.findByRepoFullNameAndIssueNumber(fullName, dto.number)
+                ?: issueRepository.save(
+                    Issue(
+                        repoFullName = fullName,
+                        issueNumber = dto.number,
+                        title = dto.title,
+                        content = dto.body,
+                        labels = dto.labels.map { it.name },
+                        status = Issue.IssueStatus.OPEN
+                    )
+                )
         }
     }
 

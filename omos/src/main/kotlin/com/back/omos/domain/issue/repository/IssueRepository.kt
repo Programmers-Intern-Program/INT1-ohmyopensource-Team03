@@ -15,7 +15,13 @@ import org.springframework.data.jpa.repository.JpaRepository
  */
 interface IssueRepository : JpaRepository<Issue, Long> {
     /**
-     * repositoryId와 issueNumber로 존재하는지 확인
+     * 특정 레포지토리와 이슈 번호로 존재 여부 확인
      */
-    fun existsByRepositoryIdAndIssueNumber(repositoryId : Long, issueNumber: Long) : Boolean
+    fun existsByRepoFullNameAndIssueNumber(repoFullName: String, issueNumber: Long): Boolean
+
+    /**
+     * 특정 레포지토리와 이슈 번호로 단일 이슈 조회
+     * 결과가 없을 수 있으므로 반환 타입을 Issue? (Nullable)로 설정합니다.
+     */
+    fun findByRepoFullNameAndIssueNumber(repoFullName: String, issueNumber: Long): Issue?
 }

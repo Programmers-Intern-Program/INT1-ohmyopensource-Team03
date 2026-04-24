@@ -1,10 +1,15 @@
 package com.back.omos.domain.issue.controller
 
+import com.back.omos.domain.issue.dto.RecommendIssueRes
+import com.back.omos.domain.issue.entity.Issue
+import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.issue.service.IssueService
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 /**
@@ -33,20 +38,39 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/v1/issues")
 class IssueController(
-    private val issueService: IssueService
+    private val issueService: IssueService,
+    private val issueRepository: IssueRepository
 ) {
+    /**
+     * 현재 수집한 모든 이슈를 보여줍니다.
+     * 깃허브 API 동작 확인용으로 넣었습니다.
+     */
+    @GetMapping
+    fun getAllIssues(): ResponseEntity<List<Issue>> {
+        return ResponseEntity.ok(issueRepository.findAll())
+    }
 
     /**
-     * 특정 레포지토리 ID를 입력받아 깃허브 이슈를 크롤링하고 저장합니다.
+     * 특정 언어나 라벨 조건에 맞는 깃허브 이슈를 수집하고 수집된 목록을 반환합니다.
+     * <p>
+     * 수집된 데이터는 [RecommendIssueRes] 형태로 변환되어 클라이언트에 즉시 전달됩니다.
+     *
+     * @param q 깃허브 검색 쿼리 (예: language:kotlin state:open)
+     * @return 수집된 이슈 정보 리스트
+     * @author 유재원
      */
-    @PostMapping("/crawl/{repoId}")
-    fun crawlIssues(@PathVariable repoId: Long): ResponseEntity<String> {
+    @PostMapping("/crawl/search")
+    fun crawlBySearch(@RequestParam q: String): ResponseEntity<List<RecommendIssueRes>> {
         return try {
-            issueService.crawlAndSave(repoId)
-            ResponseEntity.ok("성공적으로 레포지토리($repoId)의 이슈를 수집했습니다.")
+            val savedIssues = issueService.crawlAndSaveByQuery(q)
+
+            // 엔티티 리스트를 DTO 리스트로 변환
+            val response = savedIssues.map { RecommendIssueRes.from(it) }
+
+            ResponseEntity.ok(response)
         } catch (e: Exception) {
-            // 에러 발생 시 400 또는 500 에러와 함께 메시지 반환
-            ResponseEntity.badRequest().body("크롤링 실패: ${e.message}")
+            //ToDO 에러처리 로직 추가
+            ResponseEntity.internalServerError().build()
         }
     }
 }
