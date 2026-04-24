@@ -2,6 +2,7 @@ package com.back.omos.domain.prdraft.service
 
 import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.github.GitHubPrRes
+import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
 
 /**
@@ -37,14 +38,18 @@ import org.springframework.stereotype.Component
 @Component
 class PrDraftPromptBuilder {
 
+    private val defaultTemplate = ClassPathResource("templates/pr-default-template.md")
+        .inputStream.bufferedReader().readText()
+
+
     fun build(req: CreatePrReq, contributing: String?, prs: List<GitHubPrRes>): String {
         val contextSection = when {
             contributing != null -> "\n[CONTRIBUTING.md]\n$contributing\n"
             prs.isNotEmpty() -> {
                 val examples = prs.joinToString("\n---\n") { "제목: ${it.title}\n본문: ${it.body}" }
-                "\n[기존 PR 예시 - 아래 PR들의 톤앤매너에 맞춰 작성하세요]\n$examples\n"
+                "\n[기존 PR 예시 - PR들의 톤앤매너가 일관적이라면 이를 참고하여 작성하고, 일관적이지 않다면 아래 기본 템플릿 형식에 맞춰 작성하세요]\n$examples\n\n[기본 템플릿]\n$defaultTemplate\n"
             }
-            else -> "\n[작성 가이드가 없으므로 일반적인 오픈소스 PR 형식으로 작성하세요]\n"
+            else -> "\n[아래 기본 템플릿 형식에 맞춰 작성하세요]\n$defaultTemplate\n"
         }
 
         return """
