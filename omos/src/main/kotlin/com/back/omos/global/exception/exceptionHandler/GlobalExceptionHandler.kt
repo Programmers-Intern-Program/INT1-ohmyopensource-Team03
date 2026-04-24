@@ -206,6 +206,6 @@ class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
     override fun handleMaxUploadSizeExceededException(
         ex: MaxUploadSizeExceededException, headers: HttpHeaders, status: HttpStatusCode, request: WebRequest
     ): ResponseEntity<Any>? {
-        return fail("File size exceeds limit", HttpStatus.CONTENT_TOO_LARGE)
+        return fail("File size exceeds limit", HttpStatus.PAYLOAD_TOO_LARGE)
     }
 }
