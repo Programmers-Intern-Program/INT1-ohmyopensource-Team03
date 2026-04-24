@@ -1,11 +1,13 @@
 package com.back.omos.domain.prdraft.github
 
+import mu.KotlinLogging
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.http.client.SimpleClientHttpRequestFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
+import org.springframework.web.client.RestClientResponseException
 import java.time.Duration
 import java.util.Base64
 
@@ -41,6 +43,12 @@ import java.util.Base64
 class GitHubClientImpl(
     @Value("\${github.token}") private val token: String
 ) : GitHubClient {
+
+    private val logger = KotlinLogging.logger {}
+
+    init {
+        require(token.isNotBlank()) { "github.token이 설정되지 않았습니다." }
+    }
 
     private val restClient = RestClient.builder()
         .baseUrl("https://api.github.com")
@@ -100,7 +108,15 @@ class GitHubClientImpl(
             response?.content
                 ?.replace("\n", "")
                 ?.let { Base64.getDecoder().decode(it).toString(Charsets.UTF_8) }
+        } catch (e: RestClientResponseException) {
+            if (e.statusCode.value() == 404) {
+                null
+            } else {
+                logger.warn { "GitHub API 오류: $fullName/$path - ${e.statusCode}" }
+                null
+            }
         } catch (e: RestClientException) {
+            logger.warn { "GitHub API 네트워크 오류: $fullName/$path - ${e.message}" }
             null
         }
     }
