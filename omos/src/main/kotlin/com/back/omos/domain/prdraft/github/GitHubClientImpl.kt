@@ -84,6 +84,38 @@ class GitHubClientImpl(
     }
 
     /**
+     * 레포지토리의 merged된 PR 목록을 최대 10개 가져옵니다.
+     *
+     * <p>
+     * closed 상태의 PR 20개를 가져온 뒤, merged되고 본문이 있는 것만 필터링하여 최대 10개를 반환합니다.
+     * API 호출 실패 시 빈 리스트를 반환하며, 서비스 장애로 이어지지 않습니다.
+     *
+     * @param fullName owner/repo 형식의 레포지토리 이름
+     * @return merged PR 목록, 없거나 실패 시 빈 리스트
+     */
+    override fun fetchMergedPrs(fullName: String): List<GitHubPrRes> {
+        return try {
+            val response = restClient.get()
+                .uri("/repos/$fullName/pulls?state=closed&per_page=20")
+                .retrieve()
+                .body(Array<GitHubPrRes>::class.java)
+
+            response
+                ?.filter { !it.mergedAt.isNullOrBlank() && !it.body.isNullOrBlank() }
+                ?.take(10)
+                ?: emptyList()
+        } catch (e: RestClientResponseException) {
+            if (e.statusCode.value() != 404) {
+                logger.warn { "GitHub PR 조회 오류: $fullName - ${e.statusCode}" }
+            }
+            emptyList()
+        } catch (e: RestClientException) {
+            logger.warn { "GitHub PR 네트워크 오류: $fullName - ${e.message}" }
+            emptyList()
+        }
+    }
+
+    /**
      * GitHub Contents API로 단일 파일의 내용을 가져옵니다.
      *
      * <p>
