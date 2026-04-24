@@ -45,7 +45,6 @@ class ContextAnalyzerServiceImpl(
     private val objectMapper: ObjectMapper
 ) : ContextAnalyzerService {
 
-    @Transactional
     override fun getGuide(issueId: Long): GuideResponseDto {
         val issue = issueRepository.findById(issueId)
             .orElseThrow {
@@ -67,7 +66,6 @@ class ContextAnalyzerServiceImpl(
         return toGuideDto(analysisResult)
     }
 
-    @Transactional
     override fun getPseudoCode(issueId: Long): PseudoCodeResponseDto {
         val issue = issueRepository.findById(issueId)
             .orElseThrow {
@@ -101,6 +99,7 @@ class ContextAnalyzerServiceImpl(
      *
      * 기존 캐시가 있으면 업데이트하고, 없으면 새로 생성하여 저장합니다.
      */
+    @Transactional
     private fun generateAnalysis(issue: Issue): AnalysisResult {
 
         // 1. repositoryId로 Repo 조회 → owner/repo 파싱

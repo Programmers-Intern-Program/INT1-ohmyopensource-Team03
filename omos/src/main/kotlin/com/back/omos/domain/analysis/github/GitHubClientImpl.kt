@@ -10,6 +10,8 @@ import org.springframework.web.client.RestClientResponseException
 import java.util.Base64
 import kotlin.jvm.java
 import org.slf4j.LoggerFactory
+import org.springframework.http.client.SimpleClientHttpRequestFactory
+import java.time.Duration
 
 /**
  * GitHub REST API를 호출하여 이슈 정보 및 소스코드를 가져오는 구현체입니다.
@@ -32,13 +34,17 @@ class GitHubClientImpl(
     private val log = LoggerFactory.getLogger(GitHubClientImpl::class.java)
 
     init {
-        log.info("GitHub Token 앞 10자리: ${token.take(10)}")  // 임시 확인용
+        require(token.isNotBlank()) { "[GitHubClientImpl#init] github.token이 설정되지 않았습니다." }
     }
 
     private val restClient = RestClient.builder()
         .baseUrl("https://api.github.com")
         .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer $token")
         .defaultHeader(HttpHeaders.ACCEPT, "application/vnd.github+json")
+        .requestFactory(SimpleClientHttpRequestFactory().apply {
+            setConnectTimeout(Duration.ofSeconds(3))
+            setReadTimeout(Duration.ofSeconds(10))
+        })
         .build()
 
     /**
@@ -78,7 +84,11 @@ class GitHubClientImpl(
     override fun searchCode(keyword: String, owner: String, repo: String): GitHubCodeSearchRes {
         return try {
             restClient.get()
-                .uri("/search/code?q=$keyword+repo:$owner/$repo")
+                .uri { uriBuilder ->
+                    uriBuilder.path("/search/code")
+                        .queryParam("q", "$keyword repo:$owner/$repo")
+                        .build()
+                }
                 .retrieve()
                 .body(GitHubCodeSearchRes::class.java)
                 ?: throw AnalysisException(
@@ -112,6 +122,11 @@ class GitHubClientImpl(
                 ?.replace("\n", "")
                 ?.let { Base64.getDecoder().decode(it).toString(Charsets.UTF_8) }
         } catch (e: RestClientResponseException) {
+            if (e.statusCode.value() != 404) {
+                log.warn(
+                    "[GitHubClientImpl#fetchFileContent] HTTP ${e.statusCode}: $owner/$repo/$path"
+                )
+            }
             null
         }
     }
