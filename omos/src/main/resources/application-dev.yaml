@@ -2,6 +2,21 @@ spring:
   config:
     activate:
       on-profile: dev
+  ai:
+    openai:
+      api-key: ${GLM_API_KEY}
+      base-url: https://aigw.alpha.grepp.co/v1
+      chat:
+        completions-path: /chat/completions
+        options:
+          model: glm-4.5
+      embedding:
+        enabled: false  # 임베딩은 Gemini가 담당
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  embedding:
+    model: gemini-embedding-2
 
   # GitHub OAuth2 설정
   security:
