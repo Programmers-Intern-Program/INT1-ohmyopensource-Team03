@@ -2,6 +2,7 @@ package com.back.omos.domain.prdraft.service
 
 import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.prdraft.dto.CreatePrReq
+import com.back.omos.domain.prdraft.dto.PrHistoryRes
 import com.back.omos.domain.prdraft.dto.PrInfoRes
 import com.back.omos.domain.prdraft.ai.AiClient
 import com.back.omos.domain.prdraft.entity.PrDraft
@@ -43,6 +44,15 @@ class PrDraftServiceImpl(
     private val gitHubClient: GitHubClient
 ) : PrDraftService {
 
+    /**
+     * diff 내용과 이슈 정보를 기반으로 AI를 호출하여 PR 초안을 생성하고 저장합니다.
+     *
+     * @param githubId 요청한 사용자의 GitHub ID
+     * @param request PR 생성 요청 DTO (issueId, diffContent 포함)
+     * @return 생성된 PR 제목, 본문, GitHub URL
+     * @throws AuthException 존재하지 않는 githubId인 경우
+     * @throws IssueException 존재하지 않는 issueId인 경우
+     */
     override fun create(githubId: String, request: CreatePrReq): PrInfoRes {
         // 정보 조회
         val user = userRepository.findByGithubId(githubId)
@@ -75,6 +85,17 @@ class PrDraftServiceImpl(
             body = aiResult.body,
             githubUrl = githubUrl
         )
+    }
+
+    /**
+     * 사용자가 생성한 PR 초안 목록을 최신순으로 조회합니다.
+     *
+     * @param githubId 조회할 사용자의 GitHub ID
+     * @return PR 초안 목록 (최신순)
+     */
+    override fun getHistory(githubId: String): List<PrHistoryRes> {
+        return prDraftRepository.findAllByUserGithubIdOrderByCreatedAtDesc(githubId)
+            .map { PrHistoryRes.from(it) }
     }
 
     private fun buildGithubUrl(fullName: String, title: String, body: String): String {

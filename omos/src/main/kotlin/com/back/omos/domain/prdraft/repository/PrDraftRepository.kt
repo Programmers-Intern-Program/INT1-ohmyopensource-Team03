@@ -16,4 +16,13 @@ import org.springframework.data.jpa.repository.JpaRepository
  * @since 2026-04-21
  */
 
-interface PrDraftRepository : JpaRepository<PrDraft, Long>
+interface PrDraftRepository : JpaRepository<PrDraft, Long> {
+
+    /**
+     * 특정 사용자의 PR 초안 목록을 생성일 내림차순으로 조회합니다.
+     *
+     * @param githubId 조회할 사용자의 GitHub ID
+     * @return PR 초안 목록 (최신순)
+     */
+    fun findAllByUserGithubIdOrderByCreatedAtDesc(githubId: String): List<PrDraft>
+}

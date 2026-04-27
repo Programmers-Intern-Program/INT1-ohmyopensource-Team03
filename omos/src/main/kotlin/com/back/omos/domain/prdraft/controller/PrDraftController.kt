@@ -1,12 +1,14 @@
 package com.back.omos.domain.prdraft.controller
 
 import com.back.omos.domain.prdraft.dto.CreatePrReq
+import com.back.omos.domain.prdraft.dto.PrHistoryRes
 import com.back.omos.domain.prdraft.dto.PrInfoRes
 import com.back.omos.domain.prdraft.service.PrDraftService
 import com.back.omos.global.auth.principal.OAuthPrincipal
 import com.back.omos.global.response.CommonResponse
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -40,6 +42,13 @@ class PrDraftController(
         @Valid @RequestBody req: CreatePrReq
     ): CommonResponse<PrInfoRes> {
         return CommonResponse.success(prDraftService.create(principal.githubId, req))
+    }
+
+    @GetMapping("/history")
+    fun getHistory(
+        @AuthenticationPrincipal principal: OAuthPrincipal
+    ): CommonResponse<List<PrHistoryRes>> {
+        return CommonResponse.success(prDraftService.getHistory(principal.githubId))
     }
 
 }
