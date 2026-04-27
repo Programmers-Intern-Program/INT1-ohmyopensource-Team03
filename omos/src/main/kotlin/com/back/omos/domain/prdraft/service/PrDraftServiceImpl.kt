@@ -108,12 +108,8 @@ class PrDraftServiceImpl(
      * @throws PrDraftException 존재하지 않는 PR 초안이거나 본인 소유가 아닌 경우
      */
     override fun delete(githubId: String, prDraftId: Long) {
-        val prDraft = prDraftRepository.findById(prDraftId)
-            .orElseThrow { PrDraftException(PrDraftErrorCode.PR_DRAFT_NOT_FOUND) }
-
-        if (prDraft.user.githubId != githubId) {
-            throw PrDraftException(PrDraftErrorCode.PR_DRAFT_FORBIDDEN)
-        }
+        val prDraft = prDraftRepository.findByIdAndUserGithubId(prDraftId, githubId)
+            ?: throw PrDraftException(PrDraftErrorCode.PR_DRAFT_NOT_FOUND)
 
         prDraftRepository.delete(prDraft)
     }

@@ -21,5 +21,4 @@ enum class PrDraftErrorCode(
     override val message: String
 ) : ErrorCode {
     PR_DRAFT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 PR 초안을 찾을 수 없습니다."),
-    PR_DRAFT_FORBIDDEN(HttpStatus.FORBIDDEN, "해당 PR 초안에 대한 권한이 없습니다."),
 }

@@ -125,7 +125,7 @@ class PrDraftServiceImplTest {
         fun `본인 소유 PR 초안이면 삭제한다`() {
             val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "feat: title", prBody = "body")
             ReflectionTestUtils.setField(prDraft, "id", 1L)
-            given(prDraftRepository.findById(1L)).willReturn(Optional.of(prDraft))
+            given(prDraftRepository.findByIdAndUserGithubId(1L, githubId)).willReturn(prDraft)
 
             service.delete(githubId, 1L)
 
@@ -133,19 +133,8 @@ class PrDraftServiceImplTest {
         }
 
         @Test
-        fun `존재하지 않는 PR 초안이면 PrDraftException을 던진다`() {
-            given(prDraftRepository.findById(1L)).willReturn(Optional.empty())
-
-            assertThatThrownBy { service.delete(githubId, 1L) }
-                .isInstanceOf(PrDraftException::class.java)
-        }
-
-        @Test
-        fun `본인 소유가 아닌 PR 초안이면 PrDraftException을 던진다`() {
-            val otherUser = User(githubId = "otherUser")
-            val prDraft = PrDraft(user = otherUser, issue = issue, diffContent = "diff", prTitle = "title", prBody = "body")
-            ReflectionTestUtils.setField(prDraft, "id", 1L)
-            given(prDraftRepository.findById(1L)).willReturn(Optional.of(prDraft))
+        fun `존재하지 않거나 본인 소유가 아닌 PR 초안이면 PrDraftException을 던진다`() {
+            given(prDraftRepository.findByIdAndUserGithubId(1L, githubId)).willReturn(null)
 
             assertThatThrownBy { service.delete(githubId, 1L) }
                 .isInstanceOf(PrDraftException::class.java)
