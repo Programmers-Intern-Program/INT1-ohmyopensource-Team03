@@ -7,8 +7,8 @@ import java.io.File
 
 class GitHubClientImplTest {
 
-    private val token = File(".env").readLines()
-        .firstOrNull { it.startsWith("GITHUB_TOKEN=") }
+    private val token = File(".env").takeIf { it.exists() }?.readLines()
+        ?.firstOrNull { it.startsWith("GITHUB_TOKEN=") }
         ?.removePrefix("GITHUB_TOKEN=")
         ?.trim()
         ?: System.getenv("GITHUB_TOKEN")
