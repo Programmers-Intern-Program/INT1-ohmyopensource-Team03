@@ -1,22 +1,27 @@
 package com.back.omos.domain.prdraft.controller
 
 import com.back.omos.domain.prdraft.dto.CreatePrReq
+import com.back.omos.domain.prdraft.dto.PrHistoryRes
 import com.back.omos.domain.prdraft.dto.PrInfoRes
 import com.back.omos.domain.prdraft.service.PrDraftService
 import com.back.omos.global.auth.principal.OAuthPrincipal
 import com.back.omos.global.response.CommonResponse
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * PR 생성 요청을 처리하는 Controller입니다.
+ * PR 초안 생성, 목록 조회, 삭제 요청을 처리하는 Controller입니다.
  *
  * <p>
- * diff 내용과 이슈 정보를 받아 AI 기반 PR 초안을 생성하는 엔드포인트를 제공합니다.
+ * diff 내용과 이슈 정보를 받아 AI 기반 PR 초안을 생성하고,
+ * 생성된 초안의 목록 조회 및 삭제 기능을 제공합니다.
  * </p>
  *
  * <p><b>상속 정보:</b><br>
@@ -40,6 +45,22 @@ class PrDraftController(
         @Valid @RequestBody req: CreatePrReq
     ): CommonResponse<PrInfoRes> {
         return CommonResponse.success(prDraftService.create(principal.githubId, req))
+    }
+
+    @GetMapping("/history")
+    fun getHistory(
+        @AuthenticationPrincipal principal: OAuthPrincipal
+    ): CommonResponse<List<PrHistoryRes>> {
+        return CommonResponse.success(prDraftService.getHistory(principal.githubId))
+    }
+
+    @DeleteMapping("/{id}")
+    fun delete(
+        @AuthenticationPrincipal principal: OAuthPrincipal,
+        @PathVariable id: Long
+    ): CommonResponse<Void?> {
+        prDraftService.delete(principal.githubId, id)
+        return CommonResponse.success(null)
     }
 
 }
