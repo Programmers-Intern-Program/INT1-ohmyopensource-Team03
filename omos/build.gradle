@@ -26,33 +26,50 @@ dependencyManagement {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
-	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
-	implementation 'org.jetbrains.kotlin:kotlin-reflect'
-	implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
-	developmentOnly 'org.springframework.boot:spring-boot-devtools'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.jetbrains.kotlin:kotlin-test-junit5'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // Kotlin
+    implementation 'org.jetbrains.kotlin:kotlin-reflect'
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
 
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'com.pgvector:pgvector:0.1.6'
+    // Spring Boot Web
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux' // WebClient 사용
 
-	runtimeOnly 'org.postgresql:postgresql'
+    // Spring Security / OAuth2 / JWT
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-	runtimeOnly 'com.h2database:h2'
+    // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
-    // WebClient 사용
-    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    // Database / JPA
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'com.h2database:h2'
 
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
+    // Vector DB
+    implementation 'com.pgvector:pgvector:0.1.6'
 
-	// Spring AI: GLM (OpenAI 호환 Chat)
-	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+    // Spring AI
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai' // GLM 등 OpenAI 호환 Chat 모델 사용
+
+    // API Docs
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
+
+    // Logging
+    implementation 'io.github.microutils:kotlin-logging-jvm:3.0.5'
+
+    // Development
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.mockito.kotlin:mockito-kotlin:5.4.0'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test-junit5'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 kotlin {

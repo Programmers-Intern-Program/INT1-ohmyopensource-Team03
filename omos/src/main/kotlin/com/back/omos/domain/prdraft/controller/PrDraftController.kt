@@ -3,7 +3,10 @@ package com.back.omos.domain.prdraft.controller
 import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrInfoRes
 import com.back.omos.domain.prdraft.service.PrDraftService
-import org.springframework.http.ResponseEntity
+import com.back.omos.global.auth.principal.OAuthPrincipal
+import com.back.omos.global.response.CommonResponse
+import jakarta.validation.Valid
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -13,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController
  * PR 생성 요청을 처리하는 Controller입니다.
  *
  * <p>
+ * diff 내용과 이슈 정보를 받아 AI 기반 PR 초안을 생성하는 엔드포인트를 제공합니다.
+ * </p>
  *
  * <p><b>상속 정보:</b><br>
  * 별도의 상속 없이 REST API 엔드포인트를 제공하는 Controller입니다.
@@ -27,7 +32,14 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/v1/pr")
 class PrDraftController(
-
+    private val prDraftService: PrDraftService
 ) {
+    @PostMapping
+    fun create(
+        @AuthenticationPrincipal principal: OAuthPrincipal,
+        @Valid @RequestBody req: CreatePrReq
+    ): CommonResponse<PrInfoRes> {
+        return CommonResponse.success(prDraftService.create(principal.githubId, req))
+    }
 
 }
