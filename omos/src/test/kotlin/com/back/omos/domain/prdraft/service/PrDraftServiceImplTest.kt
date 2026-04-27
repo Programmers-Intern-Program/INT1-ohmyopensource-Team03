@@ -13,6 +13,7 @@ import com.back.omos.domain.user.entity.User
 import com.back.omos.domain.user.repository.UserRepository
 import com.back.omos.global.exception.exceptions.AuthException
 import com.back.omos.global.exception.exceptions.IssueException
+import com.back.omos.global.exception.exceptions.PrDraftException
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
@@ -114,6 +115,40 @@ class PrDraftServiceImplTest {
             val result = service.getHistory(githubId)
 
             assertThat(result).isEmpty()
+        }
+    }
+
+    @Nested
+    inner class DeleteTest {
+
+        @Test
+        fun `본인 소유 PR 초안이면 삭제한다`() {
+            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "feat: title", prBody = "body")
+            ReflectionTestUtils.setField(prDraft, "id", 1L)
+            given(prDraftRepository.findById(1L)).willReturn(Optional.of(prDraft))
+
+            service.delete(githubId, 1L)
+
+            verify(prDraftRepository).delete(prDraft)
+        }
+
+        @Test
+        fun `존재하지 않는 PR 초안이면 PrDraftException을 던진다`() {
+            given(prDraftRepository.findById(1L)).willReturn(Optional.empty())
+
+            assertThatThrownBy { service.delete(githubId, 1L) }
+                .isInstanceOf(PrDraftException::class.java)
+        }
+
+        @Test
+        fun `본인 소유가 아닌 PR 초안이면 PrDraftException을 던진다`() {
+            val otherUser = User(githubId = "otherUser")
+            val prDraft = PrDraft(user = otherUser, issue = issue, diffContent = "diff", prTitle = "title", prBody = "body")
+            ReflectionTestUtils.setField(prDraft, "id", 1L)
+            given(prDraftRepository.findById(1L)).willReturn(Optional.of(prDraft))
+
+            assertThatThrownBy { service.delete(githubId, 1L) }
+                .isInstanceOf(PrDraftException::class.java)
         }
     }
 

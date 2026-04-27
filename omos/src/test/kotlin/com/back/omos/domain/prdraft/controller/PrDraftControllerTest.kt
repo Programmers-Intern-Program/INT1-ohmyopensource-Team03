@@ -22,6 +22,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -92,6 +93,26 @@ class PrDraftControllerTest {
         @Test
         fun `인증 없이 목록 조회하면 401을 반환한다`() {
             mockMvc.perform(get("/api/v1/pr/history"))
+                .andExpect(status().isUnauthorized)
+        }
+    }
+
+    @Nested
+    inner class DeleteTest {
+
+        @Test
+        fun `삭제 정상 요청이면 200을 반환한다`() {
+            mockMvc.perform(
+                delete("/api/v1/pr/1")
+                    .with(authentication(mockAuth()))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.status").value("success"))
+        }
+
+        @Test
+        fun `인증 없이 삭제 요청하면 401을 반환한다`() {
+            mockMvc.perform(delete("/api/v1/pr/1"))
                 .andExpect(status().isUnauthorized)
         }
     }
