@@ -5,7 +5,9 @@ import com.back.omos.domain.issue.dto.IssueInfoRes
 import com.back.omos.domain.issue.dto.RecommendIssueRes
 import com.back.omos.domain.issue.dto.UpdateIssueReq
 import com.back.omos.domain.issue.entity.Issue
+import com.back.omos.domain.issue.github.GithubClient
 import com.back.omos.domain.issue.repository.IssueRepository
+import com.back.omos.domain.repo.repository.RepoRepository
 import com.back.omos.global.exception.errorCode.IssueErrorCode
 import com.back.omos.global.exception.exceptions.IssueException
 import org.springframework.data.repository.findByIdOrNull
@@ -20,12 +22,14 @@ import org.springframework.transaction.annotation.Transactional
  */
 @Service
 class IssueServiceImpl(
-    private val issueRepository: IssueRepository
+    private val issueRepository: IssueRepository,
+    private val githubClient: GithubClient,
+    private val repoRepository: RepoRepository,
 ) : IssueService {
 
     @Transactional
     override fun createIssue(request: CreateIssueReq): IssueInfoRes {
-        if(issueRepository.existsByRepositoryIdAndIssueNumber(request.repositoryId, request.issueNumber)){
+        if(issueRepository.existsByRepoFullNameAndIssueNumber(request.repoFullName, request.issueNumber)){
             throw IssueException(IssueErrorCode.ISSUE_ALREADY_EXIST)
         }
 
@@ -62,6 +66,29 @@ class IssueServiceImpl(
 
     override fun recommendIssues(userId: Long, repositoryId: Long, limit: Int): List<RecommendIssueRes> {
         TODO("추천 로직 구현 필요")
+    }
+
+
+    @Transactional
+    override fun crawlAndSaveByQuery(query: String): List<Issue> {
+        val githubIssues = githubClient.searchIssues(query)
+
+        return githubIssues.map { dto ->
+            val fullName = dto.repositoryUrl.substringAfter("repos/")
+
+            // 1. 이미 있으면 가져오고, 없으면 새로 생성해서 저장
+            issueRepository.findByRepoFullNameAndIssueNumber(fullName, dto.number)
+                ?: issueRepository.save(
+                    Issue(
+                        repoFullName = fullName,
+                        issueNumber = dto.number,
+                        title = dto.title,
+                        content = dto.body,
+                        labels = dto.labels.map { it.name },
+                        status = Issue.IssueStatus.OPEN
+                    )
+                )
+        }
     }
 
 }

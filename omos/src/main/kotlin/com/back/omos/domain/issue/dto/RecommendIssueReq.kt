@@ -15,6 +15,6 @@ package com.back.omos.domain.issue.dto
  */
 data class RecommendIssueReq(
     val userId: Long,
-    val repositoryId: Long,
+    val repoFullName: String,
     val limit: Int = 5
 )

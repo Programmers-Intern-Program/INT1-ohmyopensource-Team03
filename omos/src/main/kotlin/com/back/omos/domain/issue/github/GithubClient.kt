@@ -1,0 +1,61 @@
+package com.back.omos.domain.issue.github
+
+import com.back.omos.domain.issue.dto.GithubIssueResponse
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Component
+import org.springframework.web.reactive.function.client.WebClient
+
+/**
+ * GitHub REST API와 직접 통신하여 리포지토리 데이터를 수집하는 클라이언트 클래스입니다.
+ * <p>
+ * 비차단(Non-blocking) I/O 모델인 [org.springframework.web.reactive.function.client.WebClient]를 사용하여 GitHub 서버에 HTTP 요청을 전송하며,
+ * 전달받은 JSON 응답을 [com.back.omos.domain.issue.dto.GithubIssueResponse] DTO 리스트로 변환하는 역할을 수행합니다.
+ *
+ * <p><b>상속 정보:</b><br>
+ * 해당 사항 없음
+ *
+ * <p><b>주요 생성자:</b><br>
+ * {@code GithubClient(webClient, token)} <br>
+ * HTTP 요청을 위한 [org.springframework.web.reactive.function.client.WebClient]와 GitHub API 호출 시 인증에 필요한 Personal Access Token을 주입받습니다.
+ *
+ * <p><b>빈 관리:</b><br>
+ * Spring Container에 의해 Singleton 빈으로 관리됩니다. (@Component)
+ *
+ * <p><b>외부 모듈:</b><br>
+ * Spring WebFlux의 WebClient를 사용하여 비동기 통신 아키텍처를 구성합니다.
+ *
+ * @author 유재원
+ * @since 2026-04-24
+ * @see <a href="https://docs.github.com/en/rest">GitHub REST API Documentation</a>
+ */
+@Component
+class GithubClient(
+    private val webClient: WebClient,
+    @Value("\${github.token}") private val token: String
+) {
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    data class GithubSearchResponse(
+        val items: List<GithubIssueResponse>
+    )
+
+    // GithubClient 내부
+    fun searchIssues(query: String): List<GithubIssueResponse> {
+        // 쿼리에 is:issue is:open추가 , pr오는걸 방지 + open된 이슈만 가져오게
+        val normalizedQuery = "$query is:issue is:open"
+
+        return webClient.get()
+            .uri { uriBuilder ->
+                uriBuilder
+                    .path("/search/issues")
+                    .queryParam("q", normalizedQuery)
+                    .queryParam("per_page", 10)
+                    .build()
+            }
+            .header("Authorization", "Bearer $token")
+            .retrieve()
+            .bodyToMono(GithubSearchResponse::class.java) // 래퍼 클래스로 한 번에 받기
+            .map { it.items }
+            .block() ?: emptyList()
+    }
+}

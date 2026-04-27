@@ -1,5 +1,7 @@
 package com.back.omos.domain.issue.dto
 
+import com.back.omos.domain.issue.entity.Issue
+
 /**
  * 추천된 이슈 정보를 응답으로 전달하는 DTO입니다.
  *
@@ -20,11 +22,26 @@ package com.back.omos.domain.issue.dto
  */
 data class RecommendIssueRes(
     val id: Long,
-    val repositoryId : Long,
+    val repoFullName: String,
     val issueNumber: Long,
     val title: String,
     val summary: String,
     val score: Float,
     val labels: List<String>?,
-    val status: String  // "OPEN" or "CLOSED"
-)
+    val status: String
+) {
+    companion object {
+        fun from(issue: Issue): RecommendIssueRes {
+            return RecommendIssueRes(
+                id = issue.id ?: 0L,
+                repoFullName = issue.repoFullName,
+                issueNumber = issue.issueNumber,
+                title = issue.title,
+                summary = issue.content?.take(100) ?: "요약 정보 없음", // 임시 요약
+                score = 0.0f, // 수집 단계이므로 기본값
+                labels = issue.labels,
+                status = issue.status.name
+            )
+        }
+    }
+}

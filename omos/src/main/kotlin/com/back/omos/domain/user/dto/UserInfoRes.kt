@@ -13,6 +13,7 @@ import java.time.LocalDateTime
  * @property githubId GitHub 고유 ID
  * @property name 사용자 이름
  * @property email 사용자 이메일
+ * @property primaryLanguages GitHub 레포지토리에서 집계된 주요 사용 언어 목록
  * @property vectorUpdatedAt 벡터 데이터 마지막 갱신 일시
  *
  * @author MintyU
@@ -23,6 +24,7 @@ data class UserInfoRes(
     val githubId: String,
     val name: String?,
     val email: String?,
+    val primaryLanguages: List<String>?,
     val vectorUpdatedAt: LocalDateTime?
 ) {
     companion object {
@@ -38,6 +40,7 @@ data class UserInfoRes(
                 githubId = user.githubId,
                 name = user.name,
                 email = user.email,
+                primaryLanguages = user.primaryLanguages,
                 vectorUpdatedAt = user.vectorUpdatedAt
             )
         }

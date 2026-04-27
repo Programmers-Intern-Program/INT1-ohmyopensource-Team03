@@ -18,3 +18,7 @@ spring:
       charset: UTF-8
       enabled: true
       force: true
+
+#깃허브 토큰
+github:
+  token: ${GITHUB_TOKEN}

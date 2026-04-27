@@ -13,7 +13,6 @@ spring:
       embedding:
         enabled: false  # 임베딩은 Gemini가 담당
 
-
   # GitHub OAuth2 설정
   security:
     oauth2:
@@ -47,6 +46,10 @@ gemini:
   api-key: ${GEMINI_API_KEY}
   embedding:
     model: gemini-embedding-2
+
+# GitHub API 설정
+github:
+  token: ${GITHUB_TOKEN}
 
 # JWT 설정
 jwt:

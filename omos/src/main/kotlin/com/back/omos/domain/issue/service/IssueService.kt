@@ -4,6 +4,7 @@ import com.back.omos.domain.issue.dto.CreateIssueReq
 import com.back.omos.domain.issue.dto.IssueInfoRes
 import com.back.omos.domain.issue.dto.RecommendIssueRes
 import com.back.omos.domain.issue.dto.UpdateIssueReq
+import com.back.omos.domain.issue.entity.Issue
 
 /**
  * 이슈 관련 비즈니스 로직을 처리하는 서비스 인터페이스입니다.
@@ -56,4 +57,10 @@ interface IssueService {
      * @return 추천된 이슈 목록
      */
     fun recommendIssues(userId: Long, repositoryId: Long, limit: Int): List<RecommendIssueRes>
+
+    /**
+     * 검색 쿼리를 기반으로 이슈를 전역적으로 수집하고 저장합니다.
+     * @param query 예: "language:kotlin state:open label:\"good first issue\""
+     */
+    fun crawlAndSaveByQuery(query: String): List<Issue>
 }

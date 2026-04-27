@@ -26,13 +26,10 @@ import org.hibernate.type.SqlTypes
 class Issue(
 
     /**
-     * 이 이슈가 속한 레포지토리의 고유 식별자(ID)입니다.
-     *
-     * 데이터베이스 상에서 외래 키(FK) 역할을 하며, 객체 참조 대신 ID 값만 유지하여
-     * 도메인 간의 결합도를 낮추는 구조로 설계되었습니다.
+     * 이 이슈가 속한 레포지토리의 full name
      */
-    @Column(name = "repository_id", nullable = false)
-    var repositoryId: Long,
+    @Column(name = "repo_full_name", nullable = false)
+    var repoFullName: String,
 
     /**
      * 레포지토리 내에서 해당 이슈를 식별하는 고유 번호입니다.

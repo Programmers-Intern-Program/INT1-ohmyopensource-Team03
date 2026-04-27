@@ -1,7 +1,20 @@
 package com.back.omos.domain.prdraft.service
 
+import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrInfoRes
+import com.back.omos.domain.prdraft.ai.AiClient
+import com.back.omos.domain.prdraft.entity.PrDraft
+import com.back.omos.domain.prdraft.github.GitHubClient
+import com.back.omos.domain.prdraft.repository.PrDraftRepository
+import com.back.omos.domain.user.repository.UserRepository
+import com.back.omos.global.exception.errorCode.AuthErrorCode
+import com.back.omos.global.exception.errorCode.IssueErrorCode
+import com.back.omos.global.exception.exceptions.AuthException
+import com.back.omos.global.exception.exceptions.IssueException
+import org.springframework.stereotype.Service
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 /**
  * PR 생성 기능의 구현체입니다.
@@ -20,13 +33,53 @@ import com.back.omos.domain.prdraft.dto.PrInfoRes
  * @since 2026-04-22
  * @see PrDraftService
  */
-class PrDraftServiceImpl : PrDraftService {
-    override fun createPr(request: CreatePrReq): PrInfoRes {
-        TODO("AI 연동(GLM)")
+@Service
+class PrDraftServiceImpl(
+    private val prDraftRepository: PrDraftRepository,
+    private val userRepository: UserRepository,
+    private val issueRepository: IssueRepository,
+    private val prDraftPromptBuilder: PrDraftPromptBuilder,
+    private val aiClient: AiClient,
+    private val gitHubClient: GitHubClient
+) : PrDraftService {
+
+    override fun create(githubId: String, request: CreatePrReq): PrInfoRes {
+        // 정보 조회
+        val user = userRepository.findByGithubId(githubId)
+            .orElseThrow { AuthException(AuthErrorCode.USER_NOT_FOUND) }
+        val issue = issueRepository.findById(request.issueId)
+            .orElseThrow { IssueException(IssueErrorCode.ISSUE_NOT_FOUND) }
+
+        // prompt에게 줄 pr 형식 정보
+        val contributing = gitHubClient.fetchContributing(issue.repoFullName)
+        val prs = if (contributing == null) gitHubClient.fetchMergedPrs(issue.repoFullName) else emptyList()
+
+        // prompt 작성
+        val prompt = prDraftPromptBuilder.build(request, contributing, prs)
+
+        // AI 호출
+        val aiResult = aiClient.generatePrDraft(prompt)
+
+        val githubUrl = buildGithubUrl(issue.repoFullName, aiResult.title, aiResult.body)
+
+        prDraftRepository.save(PrDraft(
+            user = user,
+            issue = issue,
+            diffContent = request.diffContent,
+            prTitle = aiResult.title,
+            prBody = aiResult.body
+        ))
 
         return PrInfoRes(
-            title = "feat: 임시 제목",
-            body = "임시 PR 본문."
+            title = aiResult.title,
+            body = aiResult.body,
+            githubUrl = githubUrl
         )
+    }
+
+    private fun buildGithubUrl(fullName: String, title: String, body: String): String {
+        val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8).replace("+", "%20")
+        val encodedBody = URLEncoder.encode(body, StandardCharsets.UTF_8).replace("+", "%20")
+        return "https://github.com/$fullName/compare?quick_pull=1&title=$encodedTitle&body=$encodedBody"
     }
 }
