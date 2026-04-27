@@ -24,6 +24,7 @@ import org.mockito.BDDMockito.given
 import org.mockito.BDDMockito.verify
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.test.util.ReflectionTestUtils
 import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
@@ -85,6 +86,34 @@ class PrDraftServiceImplTest {
             service.create(githubId, req)
 
             verify(gitHubClient).fetchMergedPrs("owner/repo")
+        }
+    }
+
+    @Nested
+    inner class GetHistoryTest {
+
+        @Test
+        fun `PR 초안 목록을 최신순으로 반환한다`() {
+            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "feat: title", prBody = "body")
+            ReflectionTestUtils.setField(prDraft, "id", 1L)
+            given(prDraftRepository.findAllWithIssueByUserGithubId(githubId)).willReturn(listOf(prDraft))
+
+            val result = service.getHistory(githubId)
+
+            assertThat(result).hasSize(1)
+            assertThat(result[0].id).isEqualTo(1L)
+            assertThat(result[0].repoFullName).isEqualTo("owner/repo")
+            assertThat(result[0].issueTitle).isEqualTo("test issue")
+            assertThat(result[0].title).isEqualTo("feat: title")
+        }
+
+        @Test
+        fun `PR 초안이 없으면 빈 목록을 반환한다`() {
+            given(prDraftRepository.findAllWithIssueByUserGithubId(githubId)).willReturn(emptyList())
+
+            val result = service.getHistory(githubId)
+
+            assertThat(result).isEmpty()
         }
     }
 
