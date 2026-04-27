@@ -8,7 +8,9 @@ import com.back.omos.global.auth.principal.OAuthPrincipal
 import com.back.omos.global.response.CommonResponse
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -49,6 +51,15 @@ class PrDraftController(
         @AuthenticationPrincipal principal: OAuthPrincipal
     ): CommonResponse<List<PrHistoryRes>> {
         return CommonResponse.success(prDraftService.getHistory(principal.githubId))
+    }
+
+    @DeleteMapping("/{id}")
+    fun delete(
+        @AuthenticationPrincipal principal: OAuthPrincipal,
+        @PathVariable id: Long
+    ): CommonResponse<Unit> {
+        prDraftService.delete(principal.githubId, id)
+        return CommonResponse.success(Unit)
     }
 
 }

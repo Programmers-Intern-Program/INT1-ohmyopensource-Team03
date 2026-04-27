@@ -34,4 +34,13 @@ interface PrDraftService {
      * @return PR 초안 목록 (최신순)
      */
     fun getHistory(githubId: String): List<PrHistoryRes>
+
+    /**
+     * PR 초안을 삭제합니다.
+     *
+     * @param githubId 요청한 사용자의 GitHub ID
+     * @param prDraftId 삭제할 PR 초안 ID
+     * @throws PrDraftException 존재하지 않는 PR 초안이거나 본인 소유가 아닌 경우
+     */
+    fun delete(githubId: String, prDraftId: Long)
 }

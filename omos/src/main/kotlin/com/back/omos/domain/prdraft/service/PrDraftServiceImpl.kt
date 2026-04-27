@@ -11,8 +11,10 @@ import com.back.omos.domain.prdraft.repository.PrDraftRepository
 import com.back.omos.domain.user.repository.UserRepository
 import com.back.omos.global.exception.errorCode.AuthErrorCode
 import com.back.omos.global.exception.errorCode.IssueErrorCode
+import com.back.omos.global.exception.errorCode.PrDraftErrorCode
 import com.back.omos.global.exception.exceptions.AuthException
 import com.back.omos.global.exception.exceptions.IssueException
+import com.back.omos.global.exception.exceptions.PrDraftException
 import org.springframework.stereotype.Service
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -96,6 +98,24 @@ class PrDraftServiceImpl(
     override fun getHistory(githubId: String): List<PrHistoryRes> {
         return prDraftRepository.findAllWithIssueByUserGithubId(githubId)
             .map { PrHistoryRes.from(it) }
+    }
+
+    /**
+     * PR 초안을 삭제합니다.
+     *
+     * @param githubId 요청한 사용자의 GitHub ID
+     * @param prDraftId 삭제할 PR 초안 ID
+     * @throws PrDraftException 존재하지 않는 PR 초안이거나 본인 소유가 아닌 경우
+     */
+    override fun delete(githubId: String, prDraftId: Long) {
+        val prDraft = prDraftRepository.findById(prDraftId)
+            .orElseThrow { PrDraftException(PrDraftErrorCode.PR_DRAFT_NOT_FOUND) }
+
+        if (prDraft.user.githubId != githubId) {
+            throw PrDraftException(PrDraftErrorCode.PR_DRAFT_FORBIDDEN)
+        }
+
+        prDraftRepository.delete(prDraft)
     }
 
     private fun buildGithubUrl(fullName: String, title: String, body: String): String {
