@@ -4,7 +4,7 @@ import com.back.omos.global.exception.errorCode.AnalysisErrorCode
 import com.back.omos.global.exception.exceptions.AnalysisException
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
-import org.springframework.ai.chat.client.ChatClient
+import org.springframework.ai.chat.model.ChatModel
 import org.springframework.stereotype.Component
 
 /**
@@ -23,10 +23,9 @@ import org.springframework.stereotype.Component
  */
 @Component
 class GlmClientImpl(
-    chatClientBuilder: ChatClient.Builder,
+    private val chatModel: ChatModel,
     private val objectMapper: ObjectMapper
 ) : GlmClient {
-    private val chatClient = chatClientBuilder.build()
 
 
     private val log = LoggerFactory.getLogger(GlmClientImpl::class.java)
@@ -45,10 +44,7 @@ class GlmClientImpl(
         val prompt = buildPrompt(issueTitle, issueBody, labels, fileContents)
 
         return try {
-            val response = chatClient.prompt()
-                .user(prompt)
-                .call()
-                .content()
+            val response = chatModel.call(prompt)  // 여기 변경
                 ?: throw AnalysisException(
                     AnalysisErrorCode.GLM_API_FAIL,
                     "[GlmClientImpl#analyze] GLM 응답이 null입니다.",
@@ -57,6 +53,8 @@ class GlmClientImpl(
 
             parseResponse(response)
 
+        } catch (e: AnalysisException) {
+            throw e
         } catch (e: Exception) {
             log.error("[GlmClientImpl#analyze] GLM API 호출 실패: ${e.message}")
             throw AnalysisException(
