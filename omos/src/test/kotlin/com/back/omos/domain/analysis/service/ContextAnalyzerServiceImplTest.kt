@@ -73,13 +73,8 @@ class ContextAnalyzerServiceImplTest {
     // 테스트용 픽스처 (공통으로 쓰는 더미 데이터)
     // ──────────────────────────────────────────
 
-    private val mockRepo = Repo(
-        fullName = "spring-projects/spring-boot",
-        url = "https://github.com/spring-projects/spring-boot"
-    )
-
     private val mockIssue = Issue(
-        repositoryId = 1L,
+        repoFullName = "spring-projects/spring-boot",
         issueNumber = 42L,
         title = "Fix NullPointerException",
         content = "이슈 본문",
@@ -145,7 +140,6 @@ class ContextAnalyzerServiceImplTest {
             // given
             given(issueRepository.findById(1L)).willReturn(Optional.of(mockIssue))
             given(analysisResultRepository.findByIssueId(1L)).willReturn(null)
-            given(repoRepository.findById(1L)).willReturn(Optional.of(mockRepo))
             given(gitHubClient.fetchIssue("spring-projects", "spring-boot", 42))
                 .willReturn(mockIssueInfo)
             given(gitHubClient.searchCode("Fix NullPointerException", "spring-projects", "spring-boot"))
