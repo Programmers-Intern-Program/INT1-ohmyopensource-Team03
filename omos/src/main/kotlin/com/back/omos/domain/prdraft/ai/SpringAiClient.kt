@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import mu.KotlinLogging
 import org.springframework.ai.chat.model.ChatModel
 import org.springframework.stereotype.Component
+import java.security.MessageDigest
 
 /**
  * Spring AI를 사용하여 GLM 모델을 호출하는 실제 AI 구현체입니다.
@@ -41,16 +42,26 @@ class SpringAiClient(
     private fun parseResponse(response: String): AiPrResult {
         val json = extractJson(response)
             ?: run {
-                logger.warn { "AI 응답에서 JSON을 찾을 수 없습니다: $response" }
-                throw AiException(AiErrorCode.AI_RESPONSE_PARSE_FAILED, response)
+                val safe = safeLog(response)
+                logger.warn { "AI 응답에서 JSON을 찾을 수 없습니다 ($safe)" }
+                throw AiException(AiErrorCode.AI_RESPONSE_PARSE_FAILED, safe)
             }
 
         return try {
             objectMapper.readValue(json, AiPrResult::class.java)
         } catch (e: Exception) {
-            logger.warn { "AI 응답 JSON 파싱 실패: $json" }
-            throw AiException(AiErrorCode.AI_RESPONSE_PARSE_FAILED, json)
+            val safe = safeLog(json)
+            logger.warn { "AI 응답 JSON 파싱 실패 ($safe)" }
+            throw AiException(AiErrorCode.AI_RESPONSE_PARSE_FAILED, safe)
         }
+    }
+
+    private fun safeLog(value: String): String {
+        val hash = MessageDigest.getInstance("SHA-256")
+            .digest(value.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+            .take(16)
+        return "len=${value.length}, sha256=$hash"
     }
 
     private fun extractJson(response: String): String? {
