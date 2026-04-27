@@ -12,8 +12,8 @@ import com.back.omos.global.exception.errorCode.AnalysisErrorCode
 import com.back.omos.global.exception.exceptions.AnalysisException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import tools.jackson.databind.ObjectMapper
-import tools.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.core.type.TypeReference
 
 /**
  * Context Analyzer의 핵심 비즈니스 로직을 담당하는 서비스 구현체입니다.
@@ -44,7 +44,7 @@ class ContextAnalyzerServiceImpl(
     private val gitHubClient: GitHubClient,
     private val objectMapper: ObjectMapper
 ) : ContextAnalyzerService {
-
+    @Transactional
     override fun getGuide(issueId: Long): GuideResponseDto {
         val issue = issueRepository.findById(issueId)
             .orElseThrow {
@@ -65,7 +65,7 @@ class ContextAnalyzerServiceImpl(
         val analysisResult = generateAnalysis(issue)
         return toGuideDto(analysisResult)
     }
-
+    @Transactional
     override fun getPseudoCode(issueId: Long): PseudoCodeResponseDto {
         val issue = issueRepository.findById(issueId)
             .orElseThrow {
@@ -99,7 +99,7 @@ class ContextAnalyzerServiceImpl(
      *
      * 기존 캐시가 있으면 업데이트하고, 없으면 새로 생성하여 저장합니다.
      */
-    @Transactional
+
     private fun generateAnalysis(issue: Issue): AnalysisResult {
 
         // 1. repositoryId로 Repo 조회 → owner/repo 파싱
