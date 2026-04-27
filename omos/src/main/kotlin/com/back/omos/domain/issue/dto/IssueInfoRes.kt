@@ -21,7 +21,7 @@ import com.back.omos.domain.issue.entity.Issue
  */
 data class IssueInfoRes(
     val id: Long,
-    val repositoryId: Long,
+    val repoFullName: String,
     val issueNumber: Long,
     val title: String,
     val content: String?,
@@ -38,7 +38,7 @@ data class IssueInfoRes(
         fun from(issue: Issue): IssueInfoRes {
             return IssueInfoRes(
                 id = issue.id!!,
-                repositoryId = issue.repositoryId,
+                repoFullName = issue.repoFullName,
                 issueNumber = issue.issueNumber,
                 title = issue.title,
                 content = issue.content,
