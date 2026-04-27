@@ -27,3 +27,6 @@ replay_pid*
 .kotlin/
 
 .idea
+
+# Claude Code (개인 설정, 공유 불필요)
+.claude/

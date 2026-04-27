@@ -3,18 +3,50 @@ spring:
     activate:
       on-profile: test
 
-  # 테스트용 인메모리 DB (H2 사용 시)
+  # 테스트용 인메모리 DB
   datasource:
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL
     driver-class-name: org.h2.Driver
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: none  # H2는 vector 타입 미지원 → 스키마 생성 생략
     show-sql: false
 
-  # 테스트 시 실제 Redis 대신 Mock 등을 사용할 경우 설정
-  data:
-    redis:
-      host: localhost
-      port: 6379
+  # 테스트용 GitHub OAuth2 더미값 (실제 인증 불필요)
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: test-client-id
+            client-secret: test-client-secret
+            scope:
+              - user:email
+              - read:user
+
+  ai:
+    openai:
+      api-key: ${GLM_API_KEY}
+      base-url: https://aigw.alpha.grepp.co/v1
+      chat:
+        completions-path: /chat/completions
+        options:
+          model: glm-4.5
+      embedding:
+        enabled: false
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  embedding:
+    model: gemini-embedding-2
+
+# JWT (테스트용 더미값)
+jwt:
+  secret: test-secret-key-for-integration-test-minimum-32-bytes
+  expiration: 86400000
+
+# OAuth2 리다이렉트 URI (테스트용 더미값)
+app:
+  oauth2:
+    redirect-uri: http://localhost:3000/oauth/callback
