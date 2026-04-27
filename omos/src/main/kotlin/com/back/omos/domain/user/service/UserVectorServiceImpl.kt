@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional
  * <ol>
  *   <li>[GitHubApiClient]를 통해 사용자의 공개 프로필과 레포지토리 목록을 수집합니다.</li>
  *   <li>수집된 정보(주요 언어, 레포지토리 설명, 기술 토픽, 소개)를 구조화된 텍스트로 변환합니다.</li>
- *   <li>[EmbeddingModel]을 통해 텍스트를 1536차원 벡터로 임베딩합니다.</li>
+ *   <li>[EmbeddingModel]을 통해 텍스트를 3072차원 벡터로 임베딩합니다.</li>
  *   <li>User 엔티티의 [com.back.omos.domain.user.entity.User.profileVector]를 갱신하고 저장합니다.</li>
  * </ol>
  *
