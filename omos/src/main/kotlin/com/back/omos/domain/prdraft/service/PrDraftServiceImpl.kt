@@ -4,11 +4,15 @@ import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrInfoRes
 import com.back.omos.domain.prdraft.ai.AiClient
+import com.back.omos.domain.prdraft.entity.PrDraft
 import com.back.omos.domain.prdraft.github.GitHubClient
 import com.back.omos.domain.prdraft.repository.PrDraftRepository
 import com.back.omos.domain.repo.repository.RepoRepository
+import com.back.omos.domain.user.repository.UserRepository
+import com.back.omos.global.exception.errorCode.AuthErrorCode
 import com.back.omos.global.exception.errorCode.IssueErrorCode
 import com.back.omos.global.exception.errorCode.RepoErrorCode
+import com.back.omos.global.exception.exceptions.AuthException
 import com.back.omos.global.exception.exceptions.IssueException
 import com.back.omos.global.exception.exceptions.RepoException
 import org.springframework.stereotype.Service
@@ -35,6 +39,7 @@ import java.nio.charset.StandardCharsets
 @Service
 class PrDraftServiceImpl(
     private val prDraftRepository: PrDraftRepository,
+    private val userRepository: UserRepository,
     private val issueRepository: IssueRepository,
     private val repoRepository: RepoRepository,
     private val prDraftPromptBuilder: PrDraftPromptBuilder,
@@ -42,8 +47,10 @@ class PrDraftServiceImpl(
     private val gitHubClient: GitHubClient
 ) : PrDraftService {
 
-    override fun create(request: CreatePrReq): PrInfoRes {
-        // 이슈, 레포 조회
+    override fun create(githubId: String, request: CreatePrReq): PrInfoRes {
+        // 정보 조회
+        val user = userRepository.findByGithubId(githubId)
+            .orElseThrow { AuthException(AuthErrorCode.USER_NOT_FOUND) }
         val issue = issueRepository.findById(request.issueId)
             .orElseThrow { IssueException(IssueErrorCode.ISSUE_NOT_FOUND) }
         val repo = repoRepository.findById(request.repositoryId)
@@ -60,6 +67,14 @@ class PrDraftServiceImpl(
         val aiResult = aiClient.generatePrDraft(prompt)
 
         val githubUrl = buildGithubUrl(repo.fullName, aiResult.title, aiResult.body)
+
+        prDraftRepository.save(PrDraft(
+            user = user,
+            issue = issue,
+            diffContent = request.diffContent,
+            prTitle = aiResult.title,
+            prBody = aiResult.body
+        ))
 
         return PrInfoRes(
             title = aiResult.title,

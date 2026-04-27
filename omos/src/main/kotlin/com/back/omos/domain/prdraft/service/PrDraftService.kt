@@ -16,5 +16,5 @@ import com.back.omos.domain.prdraft.dto.PrInfoRes
  * @since 2026-04-22
  */
 interface PrDraftService {
-    fun create(request: CreatePrReq): PrInfoRes
+    fun create(githubId: String, request: CreatePrReq): PrInfoRes
 }

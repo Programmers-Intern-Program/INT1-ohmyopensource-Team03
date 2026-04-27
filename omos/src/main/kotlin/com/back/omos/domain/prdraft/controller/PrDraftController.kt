@@ -3,8 +3,10 @@ package com.back.omos.domain.prdraft.controller
 import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrInfoRes
 import com.back.omos.domain.prdraft.service.PrDraftService
+import com.back.omos.global.auth.principal.OAuthPrincipal
 import com.back.omos.global.response.CommonResponse
 import jakarta.validation.Valid
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -31,8 +33,11 @@ class PrDraftController(
     private val prDraftService: PrDraftService
 ) {
     @PostMapping
-    fun create(@Valid @RequestBody req: CreatePrReq): CommonResponse<PrInfoRes> {
-        return CommonResponse.success(prDraftService.create(req))
+    fun create(
+        @AuthenticationPrincipal principal: OAuthPrincipal,
+        @Valid @RequestBody req: CreatePrReq
+    ): CommonResponse<PrInfoRes> {
+        return CommonResponse.success(prDraftService.create(principal.githubId, req))
     }
 
 }
