@@ -27,7 +27,7 @@ import java.time.Duration
  * @since 2026-04-24
  * @see GitHubClient
  */
-@Component
+@Component("analysisGitHubClientImpl")
 class GitHubClientImpl(
     @Value("\${github.token}") private val token: String
 ) : GitHubClient {

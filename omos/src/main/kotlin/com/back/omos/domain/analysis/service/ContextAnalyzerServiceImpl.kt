@@ -8,11 +8,11 @@ import com.back.omos.domain.analysis.github.GitHubClient
 import com.back.omos.domain.analysis.repository.AnalysisResultRepository
 import com.back.omos.domain.issue.entity.Issue
 import com.back.omos.domain.issue.repository.IssueRepository
-import com.back.omos.domain.repo.repository.RepoRepository
 import com.back.omos.global.exception.errorCode.AnalysisErrorCode
 import com.back.omos.global.exception.exceptions.AnalysisException
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -41,7 +41,7 @@ import org.springframework.transaction.annotation.Transactional
 class ContextAnalyzerServiceImpl(
     private val analysisResultRepository: AnalysisResultRepository,
     private val issueRepository: IssueRepository,
-    private val repoRepository: RepoRepository,
+    @Qualifier(("analysisGitHubClientImpl"))
     private val gitHubClient: GitHubClient,
     private val glmClient: GlmClient,
     private val objectMapper: ObjectMapper
@@ -100,15 +100,15 @@ class ContextAnalyzerServiceImpl(
     private fun generateAnalysis(issue: Issue): AnalysisResult {
 
         // 1. repositoryId로 Repo 조회 → owner/repo 파싱
-        val repo = repoRepository.findById(issue.repositoryId)
-            .orElseThrow {
-                AnalysisException(
-                    AnalysisErrorCode.GITHUB_API_FAIL,
-                    "[ContextAnalyzerServiceImpl#generateAnalysis] repositoryId=${issue.repositoryId} 레포를 찾을 수 없습니다.",
-                    "레포지토리 정보를 찾을 수 없습니다."
-                )
-            }
-        val (owner, repoName) = repo.fullName.split("/")
+        val parts = issue.repoFullName.split("/")
+        if (parts.size != 2) {
+            throw AnalysisException(
+                AnalysisErrorCode.GITHUB_API_FAIL,
+                "[ContextAnalyzerServiceImpl#generateAnalysis] repoFullName 형식이 올바르지 않습니다: ${issue.repoFullName}",
+                "레포지토리 정보가 올바르지 않습니다."
+            )
+        }
+        val (owner, repoName) = parts
 
         // 2. 이슈 정보 fetch
         val issueInfo = gitHubClient.fetchIssue(owner, repoName, issue.issueNumber.toInt())

@@ -51,9 +51,6 @@ class ContextAnalyzerServiceImplTest {
     private lateinit var issueRepository: IssueRepository
 
     @Mock
-    private lateinit var repoRepository: RepoRepository
-
-    @Mock
     private lateinit var gitHubClient: GitHubClient
 
     @Mock
@@ -66,7 +63,6 @@ class ContextAnalyzerServiceImplTest {
         contextAnalyzerService = ContextAnalyzerServiceImpl(
             analysisResultRepository = analysisResultRepository,
             issueRepository = issueRepository,
-            repoRepository = repoRepository,
             gitHubClient = gitHubClient,
             glmClient = glmClient,
             objectMapper = ObjectMapper()
