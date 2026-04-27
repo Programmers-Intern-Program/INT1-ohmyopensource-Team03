@@ -67,6 +67,7 @@ class SpringAiClient(
     private fun extractJson(response: String): String? {
         val fenceMatch = Regex("""```(?:json)?\s*([\s\S]*?)```""").find(response)
         if (fenceMatch != null) return fenceMatch.groupValues[1].trim()
-        return Regex("""\{[\s\S]*\}""").find(response)?.value
+        val candidate = Regex("""\{[\s\S]*?\}""").find(response)?.value ?: return null
+        return runCatching { objectMapper.readTree(candidate); candidate }.getOrNull()
     }
 }
