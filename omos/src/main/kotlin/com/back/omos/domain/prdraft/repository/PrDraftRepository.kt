@@ -2,6 +2,8 @@ package com.back.omos.domain.prdraft.repository
 
 import com.back.omos.domain.prdraft.entity.PrDraft
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 
 /**
  * PR 초안(PrDraft) 엔티티의 데이터 접근을 담당하는 Repository입니다.
@@ -19,10 +21,14 @@ import org.springframework.data.jpa.repository.JpaRepository
 interface PrDraftRepository : JpaRepository<PrDraft, Long> {
 
     /**
-     * 특정 사용자의 PR 초안 목록을 생성일 내림차순으로 조회합니다.
+     * 특정 사용자의 PR 초안 목록을 이슈 정보와 함께 생성일 내림차순으로 조회합니다.
+     *
+     * <p>
+     * fetch join을 사용하여 issue를 한 번의 쿼리로 함께 조회합니다.
      *
      * @param githubId 조회할 사용자의 GitHub ID
-     * @return PR 초안 목록 (최신순)
+     * @return PR 초안 목록 (최신순, issue 포함)
      */
-    fun findAllByUserGithubIdOrderByCreatedAtDesc(githubId: String): List<PrDraft>
+    @Query("SELECT pd FROM PrDraft pd JOIN FETCH pd.issue WHERE pd.user.githubId = :githubId ORDER BY pd.createdAt DESC")
+    fun findAllWithIssueByUserGithubId(@Param("githubId") githubId: String): List<PrDraft>
 }

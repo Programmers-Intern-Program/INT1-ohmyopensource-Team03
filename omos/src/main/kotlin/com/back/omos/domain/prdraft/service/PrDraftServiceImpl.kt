@@ -94,7 +94,7 @@ class PrDraftServiceImpl(
      * @return PR 초안 목록 (최신순)
      */
     override fun getHistory(githubId: String): List<PrHistoryRes> {
-        return prDraftRepository.findAllByUserGithubIdOrderByCreatedAtDesc(githubId)
+        return prDraftRepository.findAllWithIssueByUserGithubId(githubId)
             .map { PrHistoryRes.from(it) }
     }
 
