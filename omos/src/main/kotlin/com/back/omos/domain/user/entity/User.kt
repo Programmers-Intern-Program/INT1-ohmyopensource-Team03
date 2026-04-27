@@ -3,6 +3,8 @@ package com.back.omos.domain.user.entity
 import com.back.omos.global.jpa.converter.DoubleArrayToVectorConverter
 import com.back.omos.global.jpa.entity.BaseEntity
 import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import java.time.LocalDateTime
 
 /**
@@ -54,12 +56,23 @@ class User(
      * PostgreSQL의 `pgvector` 확장을 사용하여 벡터 유사도 검색(Cosine Similarity 등)에 활용됩니다.
      *
      * - **매핑 타입**: [DoubleArray] (DB의 `vector` 타입과 호환)
-     * - **차원 설정**: 현재 `1536`차원으로 설정되어 있으며, 이는 OpenAI `text-embedding-3-small` 등의 모델과 호환됩니다.
+     * - **차원 설정**: `gemini-embedding-2` 모델의 기본 출력 차원인 `3072`로 설정되어 있습니다.
      * - **컨버터**: [DoubleArrayToVectorConverter]를 통해 DB 입출력 시 직렬화됩니다.
      */
     @Convert(converter = DoubleArrayToVectorConverter::class)
-    @Column(name = "profile_vector", columnDefinition = "vector(1536)")
+    @Column(name = "profile_vector", columnDefinition = "vector(3072)")
     var profileVector: DoubleArray? = null,
+
+    /**
+     * 사용자의 주요 사용 언어 목록입니다.
+     *
+     * GitHub 공개 레포지토리를 분석하여 빈도 순으로 저장됩니다. (예: ["Kotlin", "Java", "Python"])
+     * Good First Issue 크롤링 시 언어 필터링에 직접 활용되며,
+     * [updateVector] 호출 시 프로필 벡터와 함께 동기화됩니다.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "primary_languages", columnDefinition = "jsonb")
+    var primaryLanguages: List<String>? = null,
 
     /**
      * 프로필 벡터 데이터가 마지막으로 갱신된 일시입니다.
@@ -85,12 +98,16 @@ class User(
     }
 
     /**
-     * 사용자의 프로필 벡터를 갱신하고 갱신 시점을 기록합니다.
+     * 사용자의 프로필 벡터와 주요 사용 언어를 함께 갱신하고 갱신 시점을 기록합니다.
+     *
+     * 벡터 임베딩과 언어 정보는 같은 GitHub API 호출에서 수집되므로 항상 동기화됩니다.
      *
      * @param newVector 갱신할 새로운 벡터 데이터
+     * @param languages GitHub 레포지토리에서 집계된 주요 사용 언어 목록 (빈도 내림차순)
      */
-    fun updateVector(newVector: DoubleArray?) {
+    fun updateVector(newVector: DoubleArray?, languages: List<String>) {
         this.profileVector = newVector
+        this.primaryLanguages = languages
         this.vectorUpdatedAt = LocalDateTime.now()
     }
 }
