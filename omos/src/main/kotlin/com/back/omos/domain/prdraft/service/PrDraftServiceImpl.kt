@@ -7,14 +7,11 @@ import com.back.omos.domain.prdraft.ai.AiClient
 import com.back.omos.domain.prdraft.entity.PrDraft
 import com.back.omos.domain.prdraft.github.GitHubClient
 import com.back.omos.domain.prdraft.repository.PrDraftRepository
-import com.back.omos.domain.repo.repository.RepoRepository
 import com.back.omos.domain.user.repository.UserRepository
 import com.back.omos.global.exception.errorCode.AuthErrorCode
 import com.back.omos.global.exception.errorCode.IssueErrorCode
-import com.back.omos.global.exception.errorCode.RepoErrorCode
 import com.back.omos.global.exception.exceptions.AuthException
 import com.back.omos.global.exception.exceptions.IssueException
-import com.back.omos.global.exception.exceptions.RepoException
 import org.springframework.stereotype.Service
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -41,7 +38,6 @@ class PrDraftServiceImpl(
     private val prDraftRepository: PrDraftRepository,
     private val userRepository: UserRepository,
     private val issueRepository: IssueRepository,
-    private val repoRepository: RepoRepository,
     private val prDraftPromptBuilder: PrDraftPromptBuilder,
     private val aiClient: AiClient,
     private val gitHubClient: GitHubClient
@@ -53,12 +49,10 @@ class PrDraftServiceImpl(
             .orElseThrow { AuthException(AuthErrorCode.USER_NOT_FOUND) }
         val issue = issueRepository.findById(request.issueId)
             .orElseThrow { IssueException(IssueErrorCode.ISSUE_NOT_FOUND) }
-        val repo = repoRepository.findById(request.repositoryId)
-            .orElseThrow { RepoException(RepoErrorCode.REPO_NOT_FOUND) }
 
         // prompt에게 줄 pr 형식 정보
-        val contributing = gitHubClient.fetchContributing(repo.fullName)
-        val prs = if (contributing == null) gitHubClient.fetchMergedPrs(repo.fullName) else emptyList()
+        val contributing = gitHubClient.fetchContributing(issue.repoFullName)
+        val prs = if (contributing == null) gitHubClient.fetchMergedPrs(issue.repoFullName) else emptyList()
 
         // prompt 작성
         val prompt = prDraftPromptBuilder.build(request, contributing, prs)
@@ -66,7 +60,7 @@ class PrDraftServiceImpl(
         // AI 호출
         val aiResult = aiClient.generatePrDraft(prompt)
 
-        val githubUrl = buildGithubUrl(repo.fullName, aiResult.title, aiResult.body)
+        val githubUrl = buildGithubUrl(issue.repoFullName, aiResult.title, aiResult.body)
 
         prDraftRepository.save(PrDraft(
             user = user,
