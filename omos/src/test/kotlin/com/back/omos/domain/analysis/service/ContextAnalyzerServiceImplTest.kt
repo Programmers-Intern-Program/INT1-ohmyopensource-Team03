@@ -1,5 +1,7 @@
 package com.back.omos.domain.analysis.service
 
+import com.back.omos.domain.analysis.ai.GlmClient
+import com.back.omos.domain.analysis.ai.GlmAnalysisRes
 import com.back.omos.domain.analysis.dto.GuideResponseDto
 import com.back.omos.domain.analysis.dto.PseudoCodeResponseDto
 import com.back.omos.domain.analysis.entity.AnalysisResult
@@ -19,10 +21,14 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.BDDMockito.*
-import tools.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.BDDMockito.given
+import org.mockito.BDDMockito.then
+import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
+import org.springframework.test.context.ActiveProfiles
 import java.util.Optional
 
 /**
@@ -35,6 +41,7 @@ import java.util.Optional
  * @since 2026-04-24
  */
 @ExtendWith(MockitoExtension::class)
+@ActiveProfiles("test")
 class ContextAnalyzerServiceImplTest {
 
     @Mock
@@ -49,6 +56,9 @@ class ContextAnalyzerServiceImplTest {
     @Mock
     private lateinit var gitHubClient: GitHubClient
 
+    @Mock
+    private lateinit var glmClient: GlmClient
+
     private lateinit var contextAnalyzerService: ContextAnalyzerServiceImpl
 
     @BeforeEach
@@ -58,7 +68,8 @@ class ContextAnalyzerServiceImplTest {
             issueRepository = issueRepository,
             repoRepository = repoRepository,
             gitHubClient = gitHubClient,
-            objectMapper = ObjectMapper()  // 실제 인스턴스 직접 넘김
+            glmClient = glmClient,
+            objectMapper = ObjectMapper()
         )
     }
 
@@ -146,6 +157,12 @@ class ContextAnalyzerServiceImplTest {
             given(gitHubClient.fetchFileContent("spring-projects", "spring-boot", "src/main/kotlin/com/example/UserService.kt"))
                 .willReturn("fun userService() { ... }")
             given(analysisResultRepository.save(any())).willReturn(mockAnalysisResult)
+            given(glmClient.analyze(any(), anyOrNull(), any(), any()))
+                .willReturn(GlmAnalysisRes(
+                    guideline = "가이드라인",
+                    pseudoCode = "의사코드",
+                    sideEffects = "부작용"
+                ))
 
             // when
             val result = contextAnalyzerService.getGuide(1L)
@@ -184,7 +201,7 @@ class ContextAnalyzerServiceImplTest {
         fun `캐시 HIT시 즉시 반환`() {
             // given
             given(issueRepository.findById(1L)).willReturn(Optional.of(mockIssue))
-            given(analysisResultRepository.findByIssueId(1L)).willReturn(mockAnalysisResult)
+            given(analysisResultRepository.findByIssueId(1L)).willReturn(mockAnalysisResult)  // 추가!
 
             // when
             val result = contextAnalyzerService.getPseudoCode(1L)
