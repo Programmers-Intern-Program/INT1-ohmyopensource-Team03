@@ -69,12 +69,12 @@ class Issue(
      * 이슈 본문/제목 등의 의미(Context)를 임베딩한 벡터 데이터입니다.
      *
      * AI 기반의 유사도 검색이나 추천 기능 등에 사용됩니다.
-     * PostgreSQL의 pgvector 확장을 사용하며, 1536 차원의 벡터 공간을 가집니다.
+     * `gemini-embedding-2` 모델의 기본 출력 차원인 `3072`로 설정되어 있습니다.
      *
      * - **컨버터**: [DoubleArrayToVectorConverter]를 사용하여 DB 입출력을 처리합니다.
      */
     @Convert(converter = DoubleArrayToVectorConverter::class)
-    @Column(name = "issue_vector", columnDefinition = "vector(1536)")
+    @Column(name = "issue_vector", columnDefinition = "vector(3072)")
     var issueVector: DoubleArray? = null,
 
     /**

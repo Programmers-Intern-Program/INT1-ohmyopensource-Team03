@@ -4,6 +4,7 @@ import com.back.omos.domain.issue.dto.RecommendIssueRes
 import com.back.omos.domain.issue.entity.Issue
 import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.issue.service.IssueService
+import com.back.omos.global.response.CommonResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -46,8 +47,9 @@ class IssueController(
      * 깃허브 API 동작 확인용으로 넣었습니다.
      */
     @GetMapping
-    fun getAllIssues(): ResponseEntity<List<Issue>> {
-        return ResponseEntity.ok(issueRepository.findAll())
+    fun getAllIssues(): CommonResponse<List<Issue>> {
+        val issues = issueRepository.findAll()
+        return CommonResponse.success(issues)
     }
 
     /**
@@ -60,17 +62,17 @@ class IssueController(
      * @author 유재원
      */
     @PostMapping("/crawl/search")
-    fun crawlBySearch(@RequestParam q: String): ResponseEntity<List<RecommendIssueRes>> {
+    fun crawlBySearch(@RequestParam q: String): CommonResponse<List<RecommendIssueRes>> {
         return try {
             val savedIssues = issueService.crawlAndSaveByQuery(q)
 
             // 엔티티 리스트를 DTO 리스트로 변환
             val response = savedIssues.map { RecommendIssueRes.from(it) }
 
-            ResponseEntity.ok(response)
+            CommonResponse.success(response)
         } catch (e: Exception) {
-            //ToDO 에러처리 로직 추가
-            ResponseEntity.internalServerError().build()
+            //TODO 에러 로직 수정
+            CommonResponse.fail(e.message)
         }
     }
 }

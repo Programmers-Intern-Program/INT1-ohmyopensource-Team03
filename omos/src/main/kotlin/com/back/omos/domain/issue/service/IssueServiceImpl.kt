@@ -7,12 +7,13 @@ import com.back.omos.domain.issue.dto.UpdateIssueReq
 import com.back.omos.domain.issue.entity.Issue
 import com.back.omos.domain.issue.github.GithubClient
 import com.back.omos.domain.issue.repository.IssueRepository
-import com.back.omos.domain.repo.repository.RepoRepository
+import com.back.omos.global.ai.GeminiEmbeddingModel
 import com.back.omos.global.exception.errorCode.IssueErrorCode
 import com.back.omos.global.exception.exceptions.IssueException
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.ai.document.Document
 
 /**
  * 이슈 관련 비즈니스 로직을 처리하는 서비스 구현체입니다.
@@ -24,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional
 class IssueServiceImpl(
     private val issueRepository: IssueRepository,
     private val githubClient: GithubClient,
-    private val repoRepository: RepoRepository,
+    private val embeddingModel: GeminiEmbeddingModel
 ) : IssueService {
 
     @Transactional
@@ -76,18 +77,46 @@ class IssueServiceImpl(
         return githubIssues.map { dto ->
             val fullName = dto.repositoryUrl.substringAfter("repos/")
 
-            // 1. 이미 있으면 가져오고, 없으면 새로 생성해서 저장
-            issueRepository.findByRepoFullNameAndIssueNumber(fullName, dto.number)
-                ?: issueRepository.save(
+            // 이미 존재하는 이슈인지 확인
+            val existingIssue = issueRepository.findByRepoFullNameAndIssueNumber(fullName, dto.number)
+
+            if (existingIssue != null) {
+                existingIssue // 이미 있다면 그대로 반환
+            } else {
+                //  신규 이슈라면 임베딩용 텍스트 조립
+                val textToEmbed = buildString {
+                    appendLine("GitHub Issue Information")
+                    appendLine("Title: ${dto.title}")
+                    appendLine("Labels: ${dto.labels.joinToString { it.name }}")
+                    if (!dto.body.isNullOrBlank()) {
+                        // 본문 1000자 제한
+                        appendLine("Content: ${dto.body.take(1000)}")
+                    }
+                }
+
+                // AI 임베딩 모델 호출
+                val floatArray = embeddingModel.embed(Document(textToEmbed))
+
+                // FloatArray -> DoubleArray 변환
+                val vector = if (floatArray.isNotEmpty()) {
+                    floatArray.map { it.toDouble() }.toDoubleArray()
+                } else {
+                    null
+                }
+
+                // DB 저장
+                issueRepository.save(
                     Issue(
                         repoFullName = fullName,
                         issueNumber = dto.number,
                         title = dto.title,
                         content = dto.body,
                         labels = dto.labels.map { it.name },
+                        issueVector = vector,
                         status = Issue.IssueStatus.OPEN
                     )
                 )
+            }
         }
     }
 
