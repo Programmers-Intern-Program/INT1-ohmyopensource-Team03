@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController
  * PR 생성 요청을 처리하는 Controller입니다.
  *
  * <p>
+ * diff 내용과 이슈 정보를 받아 AI 기반 PR 초안을 생성하는 엔드포인트를 제공합니다.
+ * </p>
  *
  * <p><b>상속 정보:</b><br>
  * 별도의 상속 없이 REST API 엔드포인트를 제공하는 Controller입니다.
