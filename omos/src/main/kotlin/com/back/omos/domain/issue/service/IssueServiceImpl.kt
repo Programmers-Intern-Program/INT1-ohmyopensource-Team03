@@ -5,12 +5,11 @@ import com.back.omos.domain.issue.dto.IssueInfoRes
 import com.back.omos.domain.issue.dto.RecommendIssueRes
 import com.back.omos.domain.issue.dto.UpdateIssueReq
 import com.back.omos.domain.issue.entity.Issue
+import com.back.omos.domain.issue.github.GithubClient
 import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.repo.repository.RepoRepository
 import com.back.omos.global.exception.errorCode.IssueErrorCode
-import com.back.omos.global.exception.errorCode.RepoErrorCode
 import com.back.omos.global.exception.exceptions.IssueException
-import com.back.omos.global.exception.exceptions.RepoException
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
