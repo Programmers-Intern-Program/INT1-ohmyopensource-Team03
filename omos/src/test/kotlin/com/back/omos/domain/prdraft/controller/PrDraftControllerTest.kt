@@ -108,6 +108,7 @@ class PrDraftControllerTest {
             )
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data").doesNotExist())
         }
 
         @Test

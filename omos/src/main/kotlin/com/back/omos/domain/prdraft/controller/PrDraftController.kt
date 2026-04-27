@@ -17,10 +17,11 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * PR 생성 요청을 처리하는 Controller입니다.
+ * PR 초안 생성, 목록 조회, 삭제 요청을 처리하는 Controller입니다.
  *
  * <p>
- * diff 내용과 이슈 정보를 받아 AI 기반 PR 초안을 생성하는 엔드포인트를 제공합니다.
+ * diff 내용과 이슈 정보를 받아 AI 기반 PR 초안을 생성하고,
+ * 생성된 초안의 목록 조회 및 삭제 기능을 제공합니다.
  * </p>
  *
  * <p><b>상속 정보:</b><br>
@@ -57,9 +58,9 @@ class PrDraftController(
     fun delete(
         @AuthenticationPrincipal principal: OAuthPrincipal,
         @PathVariable id: Long
-    ): CommonResponse<Unit> {
+    ): CommonResponse<Void?> {
         prDraftService.delete(principal.githubId, id)
-        return CommonResponse.success(Unit)
+        return CommonResponse.success(null)
     }
 
 }

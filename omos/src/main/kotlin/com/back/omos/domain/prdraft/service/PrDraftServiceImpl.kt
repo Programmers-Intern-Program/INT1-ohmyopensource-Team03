@@ -20,11 +20,11 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 /**
- * PR 생성 기능의 구현체입니다.
+ * PR 초안 생성, 목록 조회, 삭제 기능의 구현체입니다.
  *
  * <p>
- * diffContent와 Issue 정보를 기반으로 AI를 호출하여
- * PR 제목과 본문을 생성하는 로직을 담당합니다.
+ * diffContent와 Issue 정보를 기반으로 AI를 호출하여 PR 제목과 본문을 생성하고,
+ * 생성된 초안의 목록 조회 및 삭제 로직을 담당합니다.
  *
  * <p><b>상속 정보:</b><br>
  * {@link PrDraftService}를 구현합니다.
