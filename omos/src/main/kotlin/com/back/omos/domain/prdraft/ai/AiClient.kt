@@ -9,7 +9,7 @@ package com.back.omos.domain.prdraft.ai
  * </p>
  *
  * <p>
- * 지금은 Mock 구현체로 테스트할 수 있고습니다.
+ * 지금은 Mock 구현체로 테스트할 수 있습니다.
  * 이후 실제 OpenAI 연동 구현체로 교체할 수 있도록 확장성을 고려한 구조입니다.
  * </p>
  *

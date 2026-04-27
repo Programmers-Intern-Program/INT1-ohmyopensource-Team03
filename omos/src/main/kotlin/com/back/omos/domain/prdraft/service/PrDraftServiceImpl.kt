@@ -11,7 +11,6 @@ import com.back.omos.global.exception.errorCode.IssueErrorCode
 import com.back.omos.global.exception.errorCode.RepoErrorCode
 import com.back.omos.global.exception.exceptions.IssueException
 import com.back.omos.global.exception.exceptions.RepoException
-import org.springframework.transaction.annotation.Transactional
 import org.springframework.stereotype.Service
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -43,7 +42,6 @@ class PrDraftServiceImpl(
     private val gitHubClient: GitHubClient
 ) : PrDraftService {
 
-    @Transactional
     override fun create(request: CreatePrReq): PrInfoRes {
         // 이슈, 레포 조회
         val issue = issueRepository.findById(request.issueId)
@@ -71,8 +69,8 @@ class PrDraftServiceImpl(
     }
 
     private fun buildGithubUrl(fullName: String, title: String, body: String): String {
-        val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8)
-        val encodedBody = URLEncoder.encode(body, StandardCharsets.UTF_8)
+        val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8).replace("+", "%20")
+        val encodedBody = URLEncoder.encode(body, StandardCharsets.UTF_8).replace("+", "%20")
         return "https://github.com/$fullName/compare?quick_pull=1&title=$encodedTitle&body=$encodedBody"
     }
 }

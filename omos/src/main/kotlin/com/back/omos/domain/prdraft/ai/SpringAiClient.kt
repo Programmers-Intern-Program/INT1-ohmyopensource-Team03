@@ -53,8 +53,9 @@ class SpringAiClient(
         }
     }
 
-    // AI 응답에서 JSON 객체 부분만 추출 (마크다운 코드블록 등 감싸진 경우 대응)
     private fun extractJson(response: String): String? {
+        val fenceMatch = Regex("""```(?:json)?\s*([\s\S]*?)```""").find(response)
+        if (fenceMatch != null) return fenceMatch.groupValues[1].trim()
         return Regex("""\{[\s\S]*\}""").find(response)?.value
     }
 }
