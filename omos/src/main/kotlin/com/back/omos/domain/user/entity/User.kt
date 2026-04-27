@@ -56,11 +56,11 @@ class User(
      * PostgreSQL의 `pgvector` 확장을 사용하여 벡터 유사도 검색(Cosine Similarity 등)에 활용됩니다.
      *
      * - **매핑 타입**: [DoubleArray] (DB의 `vector` 타입과 호환)
-     * - **차원 설정**: 현재 `1536`차원으로 설정되어 있으며, 이는 OpenAI `text-embedding-3-small` 등의 모델과 호환됩니다.
+     * - **차원 설정**: `gemini-embedding-2` 모델의 기본 출력 차원인 `3072`로 설정되어 있습니다.
      * - **컨버터**: [DoubleArrayToVectorConverter]를 통해 DB 입출력 시 직렬화됩니다.
      */
     @Convert(converter = DoubleArrayToVectorConverter::class)
-    @Column(name = "profile_vector", columnDefinition = "vector(1536)")
+    @Column(name = "profile_vector", columnDefinition = "vector(3072)")
     var profileVector: DoubleArray? = null,
 
     /**
