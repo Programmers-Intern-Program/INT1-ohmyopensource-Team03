@@ -4,8 +4,11 @@ import com.back.omos.domain.issue.dto.RecommendIssueRes
 import com.back.omos.domain.issue.entity.Issue
 import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.issue.service.IssueService
+import com.back.omos.domain.issue.service.RecommendService
+import com.back.omos.global.auth.principal.OAuthPrincipal
 import com.back.omos.global.response.CommonResponse
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -40,7 +43,8 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/v1/issues")
 class IssueController(
     private val issueService: IssueService,
-    private val issueRepository: IssueRepository
+    private val issueRepository: IssueRepository,
+    private val recommendService: RecommendService
 ) {
     /**
      * 현재 수집한 모든 이슈를 보여줍니다.
@@ -74,5 +78,23 @@ class IssueController(
             //TODO 에러 로직 수정
             CommonResponse.fail(e.message)
         }
+    }
+
+    /**
+     * 로그인된 사용자의 기술 스택과 관심사를 분석하여 맞춤형 이슈를 추천합니다.
+     * <p>
+     * 인증된 사용자의 GitHub ID를 기반으로 프로필 벡터를 조회하며,
+     * 벡터 유사도 검색과 AI 분석(RAG)을 거쳐 최적의 이슈 3개를 선정해 반환합니다.
+     *
+     * @param principal 인증된 사용자의 세션 정보 ([OAuthPrincipal])
+     * @return AI가 생성한 상세 추천 사유를 포함한 [RecommendIssueRes]
+     * @author 유재원
+     */
+    @GetMapping("/recommend")
+    fun getRecommendation(
+        @AuthenticationPrincipal principal: OAuthPrincipal
+    ): CommonResponse<List<RecommendIssueRes>> {
+        val responses = recommendService.getPersonalizedRecommendation(principal.githubId)
+        return CommonResponse.success(responses)
     }
 }

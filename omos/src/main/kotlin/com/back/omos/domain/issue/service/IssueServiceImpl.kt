@@ -65,10 +65,6 @@ class IssueServiceImpl(
         issueRepository.delete(issue);
     }
 
-    override fun recommendIssues(userId: Long, repositoryId: Long, limit: Int): List<RecommendIssueRes> {
-        TODO("추천 로직 구현 필요")
-    }
-
 
     @Transactional
     override fun crawlAndSaveByQuery(query: String): List<Issue> {

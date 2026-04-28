@@ -27,6 +27,7 @@ enum class AuthErrorCode(
     USER_UPDATE_FAIL(HttpStatus.BAD_REQUEST, "사용자 정보 수정에 실패하였습니다."),
     USER_DELETE_FAIL(HttpStatus.BAD_REQUEST, "사용자 삭제에 실패하였습니다."),
     USER_VECTOR_UPDATE_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "프로필 벡터 업데이트에 실패하였습니다."),
+    USER_VECTOR_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "사용자 프로필 벡터를 찾을 수 없습니다."),
 
     // 회원가입 및 로그인
     SIGNUP_FAIL(HttpStatus.BAD_REQUEST, "회원가입에 실패하였습니다."),
