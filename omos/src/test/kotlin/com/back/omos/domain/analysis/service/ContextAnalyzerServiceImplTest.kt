@@ -142,29 +142,30 @@ class ContextAnalyzerServiceImplTest {
             given(analysisResultRepository.findByIssueId(1L)).willReturn(null)
             given(gitHubClient.fetchIssue("spring-projects", "spring-boot", 42))
                 .willReturn(mockIssueInfo)
-            given(gitHubClient.searchCode("Fix NullPointerException", "spring-projects", "spring-boot"))
-                .willReturn(mockSearchResult)
+            given(gitHubClient.fetchTree("spring-projects", "spring-boot"))
+                .willReturn(listOf("src/main/kotlin/com/example/UserService.kt"))
+            given(glmClient.selectFiles(any(), anyOrNull(), any()))
+                .willReturn(listOf("src/main/kotlin/com/example/UserService.kt"))
             given(gitHubClient.fetchFileContent("spring-projects", "spring-boot", "src/main/kotlin/com/example/UserService.kt"))
                 .willReturn("fun userService() { ... }")
-            given(analysisResultRepository.save(any())).willReturn(mockAnalysisResult)
             given(glmClient.analyze(any(), anyOrNull(), any(), any()))
                 .willReturn(GlmAnalysisRes(
                     guideline = "가이드라인",
                     pseudoCode = "의사코드",
                     sideEffects = "부작용"
                 ))
+            given(analysisResultRepository.save(any())).willReturn(mockAnalysisResult)
 
             // when
             val result = contextAnalyzerService.getGuide(1L)
 
             // then
             assertNotNull(result)
-            // GitHub API 호출됐는지 검증
             then(gitHubClient).should().fetchIssue("spring-projects", "spring-boot", 42)
-            then(gitHubClient).should().searchCode("Fix NullPointerException", "spring-projects", "spring-boot")
+            then(gitHubClient).should().fetchTree("spring-projects", "spring-boot")
+            then(glmClient).should().selectFiles(any(), anyOrNull(), any())
             then(analysisResultRepository).should().save(any())
         }
-
         @Test
         @DisplayName("이슈가 없으면 AnalysisException을 던진다")
         fun `이슈 없으면 예외 던짐`() {
