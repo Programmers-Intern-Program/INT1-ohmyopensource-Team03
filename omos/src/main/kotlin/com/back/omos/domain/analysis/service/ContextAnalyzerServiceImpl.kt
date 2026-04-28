@@ -152,12 +152,18 @@ class ContextAnalyzerServiceImpl(
             .take(MAX_CANDIDATE_FILES)
             .ifEmpty { allFilePaths.take(MAX_CANDIDATE_FILES) }
 
-        // 3단계: 좁혀진 후보 내에서 GLM이 최종 선별
+// 3단계: 좁혀진 후보 내에서 GLM이 최종 선별 + 결과 검증
+        val candidatePathsSet = candidatePaths.toSet()
         val selectedPaths = glmClient.selectFiles(
             issueTitle = issueInfo.title,
             issueBody = issueInfo.body,
             filePaths = candidatePaths
         )
+            .asSequence()
+            .filter { it in candidatePathsSet }  // 후보 외 경로 제거
+            .distinct()                           // 중복 제거
+            .take(MAX_SELECT_FILES)               // 최대 5개 강제 제한
+            .toList()
 
         val fileContents = selectedPaths
             .mapNotNull { path ->
@@ -188,6 +194,7 @@ class ContextAnalyzerServiceImpl(
 
     companion object {
         private const val MAX_CANDIDATE_FILES = 30  // GLM에 넘기는 후보 파일 최대 개수
+        private const val MAX_SELECT_FILES = 5       // GLM이 최종 선별하는 파일 최대 개수
     }
 
     private fun toGuideDto(result: AnalysisResult): GuideResponseDto {
