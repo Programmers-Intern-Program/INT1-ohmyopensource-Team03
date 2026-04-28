@@ -91,6 +91,34 @@ class PrDraftServiceImplTest {
     }
 
     @Nested
+    inner class GetOneTest {
+
+        @Test
+        fun `본인 소유 PR 초안이면 상세 정보를 반환한다`() {
+            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "feat: title", prBody = "body")
+            ReflectionTestUtils.setField(prDraft, "id", 1L)
+            given(prDraftRepository.findByIdWithIssueAndUserGithubId(1L, githubId)).willReturn(prDraft)
+
+            val result = service.getOne(githubId, 1L)
+
+            assertThat(result.id).isEqualTo(1L)
+            assertThat(result.repoFullName).isEqualTo("owner/repo")
+            assertThat(result.issueTitle).isEqualTo("test issue")
+            assertThat(result.title).isEqualTo("feat: title")
+            assertThat(result.body).isEqualTo("body")
+            assertThat(result.diffContent).isEqualTo("diff")
+        }
+
+        @Test
+        fun `존재하지 않거나 본인 소유가 아닌 PR 초안이면 PrDraftException을 던진다`() {
+            given(prDraftRepository.findByIdWithIssueAndUserGithubId(1L, githubId)).willReturn(null)
+
+            assertThatThrownBy { service.getOne(githubId, 1L) }
+                .isInstanceOf(PrDraftException::class.java)
+        }
+    }
+
+    @Nested
     inner class GetHistoryTest {
 
         @Test
