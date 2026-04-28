@@ -144,7 +144,8 @@ class PrDraftServiceImpl(
         val prDraft = prDraftRepository.findByIdWithIssueAndUserGithubId(prDraftId, githubId)
             ?: throw PrDraftException(PrDraftErrorCode.PR_DRAFT_NOT_FOUND)
 
-        // TODO: AI로 제목/본문 영어 번역
+        // AI로 제목/본문 영어 번역
+        val translated = aiClient.translate(prDraft.prTitle, prDraft.prBody)
 
         // TODO: GitHub URL 빌드
 

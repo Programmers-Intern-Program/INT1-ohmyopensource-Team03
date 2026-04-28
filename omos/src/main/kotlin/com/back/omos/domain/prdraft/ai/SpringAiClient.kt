@@ -39,6 +39,29 @@ class SpringAiClient(
         return parseResponse(response)
     }
 
+    override fun translate(title: String, body: String): AiPrResult {
+        val prompt = """
+            Translate the following Korean PR title and body into natural English.
+            Return only the JSON below with no extra text.
+            {
+              "title": "translated title",
+              "body": "translated body"
+            }
+
+            [Korean Title]
+            $title
+
+            [Korean Body]
+            $body
+        """.trimIndent()
+
+        val response = chatModel.call(prompt)
+            .takeIf { it.isNotBlank() }
+            ?: throw AiException(AiErrorCode.AI_RESPONSE_EMPTY)
+
+        return parseResponse(response)
+    }
+
     private fun parseResponse(response: String): AiPrResult {
         val json = extractJson(response)
             ?: run {

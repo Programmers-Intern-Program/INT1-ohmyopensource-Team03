@@ -1,7 +1,7 @@
 package com.back.omos.domain.prdraft.ai
 
 /**
- * PR 초안 생성을 위한 AI 호출 기능을 추상화한 인터페이스입니다.
+ * PR 초안 생성 및 번역을 위한 AI 호출 기능을 추상화한 인터페이스입니다.
  *
  * <p>
  * 서비스 계층은 이 인터페이스를 통해 AI 모델에 프롬프트를 전달하고,
@@ -25,4 +25,13 @@ interface AiClient {
      * @return AI가 생성한 PR 제목 및 본문
      */
     fun generatePrDraft(prompt: String): AiPrResult
+
+    /**
+     * 한국어 PR 제목과 본문을 영어로 번역합니다.
+     *
+     * @param title 번역할 PR 제목 (한국어)
+     * @param body 번역할 PR 본문 (한국어)
+     * @return 영어로 번역된 PR 제목 및 본문
+     */
+    fun translate(title: String, body: String): AiPrResult
 }
