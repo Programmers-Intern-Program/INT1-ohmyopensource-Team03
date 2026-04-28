@@ -63,6 +63,7 @@ class PrDraftPromptBuilder {
         return """
             당신은 오픈소스 프로젝트의 PR 초안 작성 도우미입니다.
             아래 diff를 바탕으로 PR 제목과 본문을 작성하세요.
+            반드시 제목과 본문 모두 한국어로 작성하세요.
             $contextSection
             [Diff]
             ${req.diffContent}
