@@ -5,6 +5,9 @@ spring:
       dev: "dev"
       prod: "prod"
       test: "test"
+  output:
+    ansi:
+      enabled: always
 
   application:
     name: omos
