@@ -43,4 +43,18 @@ interface PrDraftRepository : JpaRepository<PrDraft, Long> {
      * @return PR 초안 (없거나 소유자 불일치 시 null)
      */
     fun findByIdAndUserGithubId(id: Long, githubId: String): PrDraft?
+
+    /**
+     * PR 초안 ID와 사용자 GitHub ID로 PR 초안을 이슈 정보와 함께 조회합니다.
+     *
+     * <p>
+     * fetch join을 사용하여 issue를 한 번의 쿼리로 함께 조회하며,
+     * 소유자 확인을 DB 쿼리 레벨에서 수행하여 존재 여부 노출을 방지합니다.
+     *
+     * @param id PR 초안 ID
+     * @param githubId 조회할 사용자의 GitHub ID
+     * @return PR 초안 (없거나 소유자 불일치 시 null, issue 포함)
+     */
+    @Query("SELECT pd FROM PrDraft pd JOIN FETCH pd.issue WHERE pd.id = :id AND pd.user.githubId = :githubId")
+    fun findByIdWithIssueAndUserGithubId(@Param("id") id: Long, @Param("githubId") githubId: String): PrDraft?
 }

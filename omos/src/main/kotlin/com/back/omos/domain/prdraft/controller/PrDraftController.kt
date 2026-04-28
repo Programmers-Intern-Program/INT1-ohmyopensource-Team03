@@ -1,6 +1,7 @@
 package com.back.omos.domain.prdraft.controller
 
 import com.back.omos.domain.prdraft.dto.CreatePrReq
+import com.back.omos.domain.prdraft.dto.PrDetailRes
 import com.back.omos.domain.prdraft.dto.PrHistoryRes
 import com.back.omos.domain.prdraft.dto.PrInfoRes
 import com.back.omos.domain.prdraft.service.PrDraftService
@@ -17,11 +18,11 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * PR 초안 생성, 목록 조회, 삭제 요청을 처리하는 Controller입니다.
+ * PR 초안 생성, 조회, 삭제 요청을 처리하는 Controller입니다.
  *
  * <p>
  * diff 내용과 이슈 정보를 받아 AI 기반 PR 초안을 생성하고,
- * 생성된 초안의 목록 조회 및 삭제 기능을 제공합니다.
+ * 생성된 초안의 단건/목록 조회 및 삭제 기능을 제공합니다.
  * </p>
  *
  * <p><b>상속 정보:</b><br>
@@ -45,6 +46,14 @@ class PrDraftController(
         @Valid @RequestBody req: CreatePrReq
     ): CommonResponse<PrInfoRes> {
         return CommonResponse.success(prDraftService.create(principal.githubId, req))
+    }
+
+    @GetMapping("/{id}")
+    fun getOne(
+        @AuthenticationPrincipal principal: OAuthPrincipal,
+        @PathVariable id: Long
+    ): CommonResponse<PrDetailRes> {
+        return CommonResponse.success(prDraftService.getOne(principal.githubId, id))
     }
 
     @GetMapping("/history")
