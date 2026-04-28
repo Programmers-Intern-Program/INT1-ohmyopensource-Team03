@@ -132,7 +132,7 @@ class PrDraftServiceImpl(
         prDraft.prTitle = request.title ?: prDraft.prTitle
         prDraft.prBody = request.body ?: prDraft.prBody
 
-        return PrDetailRes.from(prDraft)
+        return PrDetailRes.from(prDraftRepository.save(prDraft))
     }
 
     /**
