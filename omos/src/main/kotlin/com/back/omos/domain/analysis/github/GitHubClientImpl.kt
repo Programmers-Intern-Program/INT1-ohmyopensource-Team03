@@ -130,4 +130,38 @@ class GitHubClientImpl(
             null
         }
     }
+    override fun fetchTree(owner: String, repo: String): List<String> {
+        return try {
+            val response = restClient.get()
+                .uri("/repos/$owner/$repo/git/trees/HEAD?recursive=1")
+                .retrieve()
+                .body(GitHubTreeRes::class.java)
+                ?: throw AnalysisException(
+                    AnalysisErrorCode.GITHUB_API_FAIL,
+                    "[GitHubClientImpl#fetchTree] 응답이 null입니다: $owner/$repo",
+                    "레포지토리 파일 목록을 가져오는 데 실패했습니다."
+                )
+
+            // truncated=true면 대형 레포로 판단, 부분 목록으로 분석 진행 시 오탐 가능성 있음
+            if (response.truncated) {
+                throw AnalysisException(
+                    AnalysisErrorCode.GITHUB_API_FAIL,
+                    "[GitHubClientImpl#fetchTree] 트리 결과가 잘렸습니다: $owner/$repo",
+                    "레포지토리가 너무 커서 전체 파일 목록을 가져올 수 없습니다."
+                )
+            }
+
+            response.tree
+                .filter { it.type == "blob" }
+                .map { it.path }
+        } catch (e: AnalysisException) {
+            throw e
+        } catch (e: RestClientResponseException) {
+            throw AnalysisException(
+                AnalysisErrorCode.GITHUB_API_FAIL,
+                "[GitHubClientImpl#fetchTree] HTTP ${e.statusCode}: $owner/$repo",
+                "레포지토리 파일 목록을 가져오는 데 실패했습니다."
+            )
+        }
+    }
 }
