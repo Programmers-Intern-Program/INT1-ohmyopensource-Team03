@@ -25,6 +25,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -123,6 +124,38 @@ class PrDraftControllerTest {
         @Test
         fun `인증 없이 목록 조회하면 401을 반환한다`() {
             mockMvc.perform(get("/api/v1/pr/history"))
+                .andExpect(status().isUnauthorized)
+        }
+    }
+
+    @Nested
+    inner class UpdateTest {
+
+        @Test
+        fun `수정 정상 요청이면 200과 수정된 데이터를 반환한다`() {
+            given(prDraftService.update(any(), any(), any())).willReturn(
+                PrDetailRes(1L, "owner/repo", "test issue", "updated title", "updated body", "diff content", LocalDateTime.now())
+            )
+
+            mockMvc.perform(
+                patch("/api/v1/pr/1")
+                    .with(authentication(mockAuth()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"title": "updated title", "body": "updated body"}""")
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data.title").value("updated title"))
+                .andExpect(jsonPath("$.data.body").value("updated body"))
+        }
+
+        @Test
+        fun `인증 없이 수정 요청하면 401을 반환한다`() {
+            mockMvc.perform(
+                patch("/api/v1/pr/1")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"title": "updated title", "body": "updated body"}""")
+            )
                 .andExpect(status().isUnauthorized)
         }
     }

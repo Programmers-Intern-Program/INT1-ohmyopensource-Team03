@@ -5,6 +5,7 @@ import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.prdraft.ai.AiClient
 import com.back.omos.domain.prdraft.ai.AiPrResult
 import com.back.omos.domain.prdraft.dto.CreatePrReq
+import com.back.omos.domain.prdraft.dto.UpdatePrReq
 import com.back.omos.domain.prdraft.entity.PrDraft
 import com.back.omos.domain.prdraft.github.GitHubClient
 import com.back.omos.domain.prdraft.github.GitHubPrRes
@@ -143,6 +144,54 @@ class PrDraftServiceImplTest {
             val result = service.getHistory(githubId)
 
             assertThat(result).isEmpty()
+        }
+    }
+
+    @Nested
+    inner class UpdateTest {
+
+        @Test
+        fun `title과 body를 모두 전달하면 둘 다 수정된다`() {
+            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "old title", prBody = "old body")
+            ReflectionTestUtils.setField(prDraft, "id", 1L)
+            given(prDraftRepository.findByIdWithIssueAndUserGithubId(1L, githubId)).willReturn(prDraft)
+
+            val result = service.update(githubId, 1L, UpdatePrReq("new title", "new body"))
+
+            assertThat(result.title).isEqualTo("new title")
+            assertThat(result.body).isEqualTo("new body")
+        }
+
+        @Test
+        fun `title이 null이면 기존 title을 유지한다`() {
+            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "old title", prBody = "old body")
+            ReflectionTestUtils.setField(prDraft, "id", 1L)
+            given(prDraftRepository.findByIdWithIssueAndUserGithubId(1L, githubId)).willReturn(prDraft)
+
+            val result = service.update(githubId, 1L, UpdatePrReq(null, "new body"))
+
+            assertThat(result.title).isEqualTo("old title")
+            assertThat(result.body).isEqualTo("new body")
+        }
+
+        @Test
+        fun `body가 null이면 기존 body를 유지한다`() {
+            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "old title", prBody = "old body")
+            ReflectionTestUtils.setField(prDraft, "id", 1L)
+            given(prDraftRepository.findByIdWithIssueAndUserGithubId(1L, githubId)).willReturn(prDraft)
+
+            val result = service.update(githubId, 1L, UpdatePrReq("new title", null))
+
+            assertThat(result.title).isEqualTo("new title")
+            assertThat(result.body).isEqualTo("old body")
+        }
+
+        @Test
+        fun `존재하지 않거나 본인 소유가 아닌 PR 초안이면 PrDraftException을 던진다`() {
+            given(prDraftRepository.findByIdWithIssueAndUserGithubId(1L, githubId)).willReturn(null)
+
+            assertThatThrownBy { service.update(githubId, 1L, UpdatePrReq("new title", "new body")) }
+                .isInstanceOf(PrDraftException::class.java)
         }
     }
 
