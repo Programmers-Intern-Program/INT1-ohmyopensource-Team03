@@ -18,8 +18,6 @@ import com.back.omos.global.exception.exceptions.AuthException
 import com.back.omos.global.exception.exceptions.IssueException
 import com.back.omos.global.exception.exceptions.PrDraftException
 import org.springframework.stereotype.Service
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 
 /**
  * PR 초안 생성, 조회, 수정, 삭제 기능의 구현체입니다.
@@ -53,7 +51,7 @@ class PrDraftServiceImpl(
      *
      * @param githubId 요청한 사용자의 GitHub ID
      * @param request PR 생성 요청 DTO (issueId, diffContent 포함)
-     * @return 생성된 PR 제목, 본문, GitHub URL
+     * @return 생성된 PR 제목, 본문
      * @throws AuthException 존재하지 않는 githubId인 경우
      * @throws IssueException 존재하지 않는 issueId인 경우
      */
@@ -74,8 +72,6 @@ class PrDraftServiceImpl(
         // AI 호출
         val aiResult = aiClient.generatePrDraft(prompt)
 
-        val githubUrl = buildGithubUrl(issue.repoFullName, aiResult.title, aiResult.body)
-
         prDraftRepository.save(PrDraft(
             user = user,
             issue = issue,
@@ -86,8 +82,7 @@ class PrDraftServiceImpl(
 
         return PrInfoRes(
             title = aiResult.title,
-            body = aiResult.body,
-            githubUrl = githubUrl
+            body = aiResult.body
         )
     }
 
@@ -149,9 +144,4 @@ class PrDraftServiceImpl(
         prDraftRepository.delete(prDraft)
     }
 
-    private fun buildGithubUrl(fullName: String, title: String, body: String): String {
-        val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8).replace("+", "%20")
-        val encodedBody = URLEncoder.encode(body, StandardCharsets.UTF_8).replace("+", "%20")
-        return "https://github.com/$fullName/compare?quick_pull=1&title=$encodedTitle&body=$encodedBody"
-    }
 }

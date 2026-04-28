@@ -57,7 +57,7 @@ class PrDraftControllerTest {
         @Test
         fun `정상 요청이면 200과 success 응답을 반환한다`() {
             given(prDraftService.create(any(), any())).willReturn(
-                PrInfoRes("feat: title", "body", "https://github.com/owner/repo/compare")
+                PrInfoRes("feat: title", "body")
             )
 
             mockMvc.perform(

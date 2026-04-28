@@ -70,7 +70,6 @@ class PrDraftServiceImplTest {
 
             assertThat(result.title).isEqualTo("feat: title")
             assertThat(result.body).isEqualTo("body")
-            assertThat(result.githubUrl).contains("owner/repo")
             verify(prDraftRepository).save(any(PrDraft::class.java))
         }
 

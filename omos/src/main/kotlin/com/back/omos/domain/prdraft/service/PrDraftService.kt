@@ -25,7 +25,7 @@ interface PrDraftService {
      *
      * @param githubId 요청한 사용자의 GitHub ID
      * @param request PR 생성 요청 DTO (issueId, diffContent 포함)
-     * @return 생성된 PR 제목, 본문, GitHub URL
+     * @return 생성된 PR 제목, 본문
      */
     fun create(githubId: String, request: CreatePrReq): PrInfoRes
 
