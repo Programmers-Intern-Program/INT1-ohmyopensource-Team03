@@ -49,7 +49,7 @@ class GithubClient(
                 uriBuilder
                     .path("/search/issues")
                     .queryParam("q", normalizedQuery)
-                    .queryParam("per_page", 10)
+                    .queryParam("per_page", 3) // ToDo 한번에 가져올 갯수 정하기
                     .build()
             }
             .header("Authorization", "Bearer $token")

@@ -48,15 +48,6 @@ interface IssueService {
      */
     fun deleteIssue(issueId: Long)
 
-    /**
-     * 사용자 맞춤 이슈 추천 목록을 반환합니다.
-     *
-     * @param userId 사용자 고유 식별자
-     * @param repositoryId 이슈를 추천받을 레포지토리 ID
-     * @param limit 추천받을 이슈 개수
-     * @return 추천된 이슈 목록
-     */
-    fun recommendIssues(userId: Long, repositoryId: Long, limit: Int): List<RecommendIssueRes>
 
     /**
      * 검색 쿼리를 기반으로 이슈를 전역적으로 수집하고 저장합니다.
