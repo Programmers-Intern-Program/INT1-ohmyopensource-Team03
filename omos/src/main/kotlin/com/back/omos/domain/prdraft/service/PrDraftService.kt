@@ -4,13 +4,14 @@ import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrDetailRes
 import com.back.omos.domain.prdraft.dto.PrHistoryRes
 import com.back.omos.domain.prdraft.dto.PrInfoRes
+import com.back.omos.domain.prdraft.dto.PrTranslateRes
 import com.back.omos.domain.prdraft.dto.UpdatePrReq
 
 /**
- * PR 초안 생성, 조회, 수정, 삭제 기능을 제공하는 Service 인터페이스입니다.
+ * PR 초안 생성, 조회, 수정, 삭제, 번역 기능을 제공하는 Service 인터페이스입니다.
  *
  * <p>
- * 사용자의 코드 변경 내용(diff)을 기반으로 PR 제목과 본문을 생성하고, 단건/목록 조회, 수정 및 삭제 기능을 정의합니다.
+ * 사용자의 코드 변경 내용(diff)을 기반으로 PR 제목과 본문을 생성하고, 단건/목록 조회, 수정, 삭제 및 영어 번역 기능을 정의합니다.
  *
  * <p><b>상속 정보:</b><br>
  * 별도의 상속 없이 Service 역할을 정의하는 인터페이스입니다.
@@ -57,6 +58,16 @@ interface PrDraftService {
      * @throws PrDraftException 존재하지 않는 PR 초안이거나 본인 소유가 아닌 경우
      */
     fun update(githubId: String, prDraftId: Long, request: UpdatePrReq): PrDetailRes
+
+    /**
+     * PR 초안의 제목과 본문을 영어로 번역하고 GitHub PR 작성 URL을 반환합니다.
+     *
+     * @param githubId 요청한 사용자의 GitHub ID
+     * @param prDraftId 번역할 PR 초안 ID
+     * @return 영어 제목, 본문, GitHub URL
+     * @throws PrDraftException 존재하지 않는 PR 초안이거나 본인 소유가 아닌 경우
+     */
+    fun translate(githubId: String, prDraftId: Long): PrTranslateRes
 
     /**
      * PR 초안을 삭제합니다.

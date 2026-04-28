@@ -5,6 +5,7 @@ import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrDetailRes
 import com.back.omos.domain.prdraft.dto.PrHistoryRes
 import com.back.omos.domain.prdraft.dto.PrInfoRes
+import com.back.omos.domain.prdraft.dto.PrTranslateRes
 import com.back.omos.domain.prdraft.dto.UpdatePrReq
 import com.back.omos.domain.prdraft.ai.AiClient
 import com.back.omos.domain.prdraft.entity.PrDraft
@@ -128,6 +129,27 @@ class PrDraftServiceImpl(
         prDraft.prBody = request.body ?: prDraft.prBody
 
         return PrDetailRes.from(prDraftRepository.save(prDraft))
+    }
+
+    /**
+     * PR 초안의 제목과 본문을 영어로 번역하고 GitHub PR 작성 URL을 반환합니다.
+     *
+     * @param githubId 요청한 사용자의 GitHub ID
+     * @param prDraftId 번역할 PR 초안 ID
+     * @return 영어 제목, 본문, GitHub URL
+     * @throws PrDraftException 존재하지 않는 PR 초안이거나 본인 소유가 아닌 경우
+     */
+    override fun translate(githubId: String, prDraftId: Long): PrTranslateRes {
+        // PR 초안 조회 (소유권 확인)
+        val prDraft = prDraftRepository.findByIdWithIssueAndUserGithubId(prDraftId, githubId)
+            ?: throw PrDraftException(PrDraftErrorCode.PR_DRAFT_NOT_FOUND)
+
+        // TODO: AI로 제목/본문 영어 번역
+
+        // TODO: GitHub URL 빌드
+
+        // TODO: PrTranslateRes 반환
+        TODO()
     }
 
     /**
