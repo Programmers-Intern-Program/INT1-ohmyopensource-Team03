@@ -2,8 +2,10 @@ package com.back.omos.domain.prdraft.service
 
 import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.prdraft.dto.CreatePrReq
+import com.back.omos.domain.prdraft.dto.PrDetailRes
 import com.back.omos.domain.prdraft.dto.PrHistoryRes
 import com.back.omos.domain.prdraft.dto.PrInfoRes
+import com.back.omos.domain.prdraft.dto.UpdatePrReq
 import com.back.omos.domain.prdraft.ai.AiClient
 import com.back.omos.domain.prdraft.entity.PrDraft
 import com.back.omos.domain.prdraft.github.GitHubClient
@@ -20,11 +22,11 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 /**
- * PR 초안 생성, 목록 조회, 삭제 기능의 구현체입니다.
+ * PR 초안 생성, 조회, 수정, 삭제 기능의 구현체입니다.
  *
  * <p>
  * diffContent와 Issue 정보를 기반으로 AI를 호출하여 PR 제목과 본문을 생성하고,
- * 생성된 초안의 목록 조회 및 삭제 로직을 담당합니다.
+ * 생성된 초안의 단건/목록 조회, 수정 및 삭제 로직을 담당합니다.
  *
  * <p><b>상속 정보:</b><br>
  * {@link PrDraftService}를 구현합니다.
@@ -90,6 +92,20 @@ class PrDraftServiceImpl(
     }
 
     /**
+     * PR 초안 단건을 조회합니다.
+     *
+     * @param githubId 요청한 사용자의 GitHub ID
+     * @param prDraftId 조회할 PR 초안 ID
+     * @return PR 초안 상세 정보 (diffContent 포함)
+     * @throws PrDraftException 존재하지 않는 PR 초안이거나 본인 소유가 아닌 경우
+     */
+    override fun getOne(githubId: String, prDraftId: Long): PrDetailRes {
+        val prDraft = prDraftRepository.findByIdWithIssueAndUserGithubId(prDraftId, githubId)
+            ?: throw PrDraftException(PrDraftErrorCode.PR_DRAFT_NOT_FOUND)
+        return PrDetailRes.from(prDraft)
+    }
+
+    /**
      * 사용자가 생성한 PR 초안 목록을 최신순으로 조회합니다.
      *
      * @param githubId 조회할 사용자의 GitHub ID
@@ -98,6 +114,25 @@ class PrDraftServiceImpl(
     override fun getHistory(githubId: String): List<PrHistoryRes> {
         return prDraftRepository.findAllWithIssueByUserGithubId(githubId)
             .map { PrHistoryRes.from(it) }
+    }
+
+    /**
+     * PR 초안의 제목과 본문을 수정합니다.
+     *
+     * @param githubId 요청한 사용자의 GitHub ID
+     * @param prDraftId 수정할 PR 초안 ID
+     * @param request 수정할 제목과 본문 (null인 필드는 기존 값 유지)
+     * @return 수정된 PR 초안 상세 정보
+     * @throws PrDraftException 존재하지 않는 PR 초안이거나 본인 소유가 아닌 경우
+     */
+    override fun update(githubId: String, prDraftId: Long, request: UpdatePrReq): PrDetailRes {
+        val prDraft = prDraftRepository.findByIdWithIssueAndUserGithubId(prDraftId, githubId)
+            ?: throw PrDraftException(PrDraftErrorCode.PR_DRAFT_NOT_FOUND)
+
+        prDraft.prTitle = request.title ?: prDraft.prTitle
+        prDraft.prBody = request.body ?: prDraft.prBody
+
+        return PrDetailRes.from(prDraftRepository.save(prDraft))
     }
 
     /**

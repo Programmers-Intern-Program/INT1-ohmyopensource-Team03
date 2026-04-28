@@ -1,5 +1,6 @@
 package com.back.omos.domain.prdraft.controller
 
+import com.back.omos.domain.prdraft.dto.PrDetailRes
 import com.back.omos.domain.prdraft.dto.PrHistoryRes
 import com.back.omos.domain.prdraft.dto.PrInfoRes
 import com.back.omos.domain.prdraft.service.PrDraftService
@@ -24,6 +25,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -71,12 +73,41 @@ class PrDraftControllerTest {
     }
 
     @Nested
+    inner class GetOneTest {
+
+        @Test
+        fun `단건 조회 정상 요청이면 200과 상세 정보를 반환한다`() {
+            given(prDraftService.getOne(any(), any())).willReturn(
+                PrDetailRes(1L, "owner/repo", "test issue", "feat: title", "body", "diff content", LocalDateTime.now())
+            )
+
+            mockMvc.perform(
+                get("/api/v1/pr/1")
+                    .with(authentication(mockAuth()))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data.id").value(1L))
+                .andExpect(jsonPath("$.data.repoFullName").value("owner/repo"))
+                .andExpect(jsonPath("$.data.issueTitle").value("test issue"))
+                .andExpect(jsonPath("$.data.title").value("feat: title"))
+                .andExpect(jsonPath("$.data.diffContent").value("diff content"))
+        }
+
+        @Test
+        fun `인증 없이 단건 조회하면 401을 반환한다`() {
+            mockMvc.perform(get("/api/v1/pr/1"))
+                .andExpect(status().isUnauthorized)
+        }
+    }
+
+    @Nested
     inner class GetHistoryTest {
 
         @Test
         fun `목록 조회 정상 요청이면 200과 목록을 반환한다`() {
             given(prDraftService.getHistory(any())).willReturn(
-                listOf(PrHistoryRes(1L, "owner/repo", "test issue", "feat: title", "body", LocalDateTime.now()))
+                listOf(PrHistoryRes(1L, "owner/repo", "test issue", "feat: title", LocalDateTime.now()))
             )
 
             mockMvc.perform(
@@ -93,6 +124,38 @@ class PrDraftControllerTest {
         @Test
         fun `인증 없이 목록 조회하면 401을 반환한다`() {
             mockMvc.perform(get("/api/v1/pr/history"))
+                .andExpect(status().isUnauthorized)
+        }
+    }
+
+    @Nested
+    inner class UpdateTest {
+
+        @Test
+        fun `수정 정상 요청이면 200과 수정된 데이터를 반환한다`() {
+            given(prDraftService.update(any(), any(), any())).willReturn(
+                PrDetailRes(1L, "owner/repo", "test issue", "updated title", "updated body", "diff content", LocalDateTime.now())
+            )
+
+            mockMvc.perform(
+                patch("/api/v1/pr/1")
+                    .with(authentication(mockAuth()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"title": "updated title", "body": "updated body"}""")
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data.title").value("updated title"))
+                .andExpect(jsonPath("$.data.body").value("updated body"))
+        }
+
+        @Test
+        fun `인증 없이 수정 요청하면 401을 반환한다`() {
+            mockMvc.perform(
+                patch("/api/v1/pr/1")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"title": "updated title", "body": "updated body"}""")
+            )
                 .andExpect(status().isUnauthorized)
         }
     }
