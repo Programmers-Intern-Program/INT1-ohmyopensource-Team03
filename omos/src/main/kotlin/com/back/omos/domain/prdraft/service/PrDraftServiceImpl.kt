@@ -19,6 +19,8 @@ import com.back.omos.global.exception.exceptions.AuthException
 import com.back.omos.global.exception.exceptions.IssueException
 import com.back.omos.global.exception.exceptions.PrDraftException
 import org.springframework.stereotype.Service
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 /**
  * PR 초안 생성, 조회, 수정, 삭제 기능의 구현체입니다.
@@ -147,10 +149,28 @@ class PrDraftServiceImpl(
         // AI로 제목/본문 영어 번역
         val translated = aiClient.translate(prDraft.prTitle, prDraft.prBody)
 
-        // TODO: GitHub URL 빌드
+        // GitHub URL 빌드
+        val githubUrl = buildGithubUrl(prDraft.issue.repoFullName, translated.title, translated.body)
 
-        // TODO: PrTranslateRes 반환
-        TODO()
+        return PrTranslateRes(
+            titleEn = translated.title,
+            bodyEn = translated.body,
+            githubUrl = githubUrl
+        )
+    }
+
+    /**
+     * 번역된 제목과 본문을 GitHub PR 작성 페이지 URL로 조합합니다.
+     *
+     * @param fullName 레포지토리 전체 이름 (예: owner/repo)
+     * @param title URL에 삽입할 PR 제목
+     * @param body URL에 삽입할 PR 본문
+     * @return pre-fill된 GitHub PR 생성 URL
+     */
+    private fun buildGithubUrl(fullName: String, title: String, body: String): String {
+        val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8).replace("+", "%20")
+        val encodedBody = URLEncoder.encode(body, StandardCharsets.UTF_8).replace("+", "%20")
+        return "https://github.com/$fullName/compare?quick_pull=1&title=$encodedTitle&body=$encodedBody"
     }
 
     /**
