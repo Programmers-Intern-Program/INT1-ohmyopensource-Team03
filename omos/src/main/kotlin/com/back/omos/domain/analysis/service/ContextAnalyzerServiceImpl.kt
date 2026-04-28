@@ -120,8 +120,6 @@ class ContextAnalyzerServiceImpl(
      *                           또는 GitHub/GLM API 호출에 실패하는 경우
      */
     private fun generateAnalysis(issue: Issue): AnalysisResult {
-
-        // 1. repoFullName에서 owner/repo 파싱
         val parts = issue.repoFullName.split("/")
         if (parts.size != 2) {
             throw AnalysisException(
@@ -132,10 +130,9 @@ class ContextAnalyzerServiceImpl(
         }
         val (owner, repoName) = parts
 
-        // 2. 이슈 정보 fetch
         val issueInfo = gitHubClient.fetchIssue(owner, repoName, issue.issueNumber.toInt())
 
-        // 3. 레포 전체 파일 트리 fetch 후 지원 확장자(.ts/.js/.kt/.java/.py/.go/.rs/.cpp)로 필터링
+        // 1단계: 확장자 필터링
         val allFilePaths = gitHubClient.fetchTree(owner, repoName)
             .filter { path ->
                 path.endsWith(".ts") || path.endsWith(".js") ||
@@ -144,18 +141,24 @@ class ContextAnalyzerServiceImpl(
                         path.endsWith(".rs") || path.endsWith(".cpp")
             }
 
+        // 2단계: 키워드 프리필터링으로 GLM에 넘길 후보를 MAX_CANDIDATE_FILES 이하로 제한
         val keywords = issueInfo.title
             .lowercase()
             .split(" ", "-", "_", ".")
             .filter { it.length > 3 }
 
-        // 4. 키워드 매칭 파일 우선 선별, 매칭 결과 없으면 상위 5개로 폴백
-        val selectedPaths = allFilePaths
+        val candidatePaths = allFilePaths
             .filter { path -> keywords.any { keyword -> path.lowercase().contains(keyword) } }
-            .take(5)
-            .ifEmpty { allFilePaths.take(5) }
+            .take(MAX_CANDIDATE_FILES)
+            .ifEmpty { allFilePaths.take(MAX_CANDIDATE_FILES) }
 
-        // 5. 선택된 파일 내용 fetch (fetch 실패 시 해당 파일 제외)
+        // 3단계: 좁혀진 후보 내에서 GLM이 최종 선별
+        val selectedPaths = glmClient.selectFiles(
+            issueTitle = issueInfo.title,
+            issueBody = issueInfo.body,
+            filePaths = candidatePaths
+        )
+
         val fileContents = selectedPaths
             .mapNotNull { path ->
                 val content = gitHubClient.fetchFileContent(owner, repoName, path)
@@ -163,10 +166,7 @@ class ContextAnalyzerServiceImpl(
             }
             .toMap()
 
-        // 6. filePaths JSON 직렬화
         val filePaths = objectMapper.writeValueAsString(fileContents.keys.toList())
-
-        // 7. GLM API로 가이드 생성
         val labels = issueInfo.labels.map { it.name }
         val glmResult = glmClient.analyze(
             issueTitle = issueInfo.title,
@@ -175,14 +175,19 @@ class ContextAnalyzerServiceImpl(
             fileContents = fileContents
         )
 
-        val newResult = AnalysisResult(
-            issue = issue,
-            filePaths = filePaths,
-            guideline = glmResult.guideline,
-            pseudoCode = glmResult.pseudoCode,
-            sideEffects = glmResult.sideEffects
+        return analysisResultRepository.save(
+            AnalysisResult(
+                issue = issue,
+                filePaths = filePaths,
+                guideline = glmResult.guideline,
+                pseudoCode = glmResult.pseudoCode,
+                sideEffects = glmResult.sideEffects
+            )
         )
-        return analysisResultRepository.save(newResult)
+    }
+
+    companion object {
+        private const val MAX_CANDIDATE_FILES = 30  // GLM에 넘기는 후보 파일 최대 개수
     }
 
     private fun toGuideDto(result: AnalysisResult): GuideResponseDto {
