@@ -36,4 +36,20 @@ class MockAiClient : AiClient {
             """.trimIndent()
         )
     }
+
+    override fun translate(title: String, body: String): AiPrResult {
+        return AiPrResult(
+            title = "fix: mock PR title",
+            body = """
+                ## Changes
+                - Generated PR draft based on diff content.
+
+                ## How to Test
+                - Verified the related feature directly.
+
+                ## Related Issue
+                - close #123
+            """.trimIndent()
+        )
+    }
 }

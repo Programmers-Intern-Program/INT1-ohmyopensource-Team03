@@ -5,6 +5,7 @@ import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrDetailRes
 import com.back.omos.domain.prdraft.dto.PrHistoryRes
 import com.back.omos.domain.prdraft.dto.PrInfoRes
+import com.back.omos.domain.prdraft.dto.PrTranslateRes
 import com.back.omos.domain.prdraft.dto.UpdatePrReq
 import com.back.omos.domain.prdraft.ai.AiClient
 import com.back.omos.domain.prdraft.entity.PrDraft
@@ -53,7 +54,7 @@ class PrDraftServiceImpl(
      *
      * @param githubId 요청한 사용자의 GitHub ID
      * @param request PR 생성 요청 DTO (issueId, diffContent 포함)
-     * @return 생성된 PR 제목, 본문, GitHub URL
+     * @return 생성된 PR 제목, 본문
      * @throws AuthException 존재하지 않는 githubId인 경우
      * @throws IssueException 존재하지 않는 issueId인 경우
      */
@@ -74,9 +75,7 @@ class PrDraftServiceImpl(
         // AI 호출
         val aiResult = aiClient.generatePrDraft(prompt)
 
-        val githubUrl = buildGithubUrl(issue.repoFullName, aiResult.title, aiResult.body)
-
-        prDraftRepository.save(PrDraft(
+        val saved = prDraftRepository.save(PrDraft(
             user = user,
             issue = issue,
             diffContent = request.diffContent,
@@ -85,9 +84,9 @@ class PrDraftServiceImpl(
         ))
 
         return PrInfoRes(
+            id = saved.id!!,
             title = aiResult.title,
-            body = aiResult.body,
-            githubUrl = githubUrl
+            body = aiResult.body
         )
     }
 
@@ -136,6 +135,46 @@ class PrDraftServiceImpl(
     }
 
     /**
+     * PR 초안의 제목과 본문을 영어로 번역하고 GitHub PR 작성 URL을 반환합니다.
+     *
+     * @param githubId 요청한 사용자의 GitHub ID
+     * @param prDraftId 번역할 PR 초안 ID
+     * @return 영어 제목, 본문, GitHub URL
+     * @throws PrDraftException 존재하지 않는 PR 초안이거나 본인 소유가 아닌 경우
+     */
+    override fun translate(githubId: String, prDraftId: Long): PrTranslateRes {
+        // PR 초안 조회 (소유권 확인)
+        val prDraft = prDraftRepository.findByIdWithIssueAndUserGithubId(prDraftId, githubId)
+            ?: throw PrDraftException(PrDraftErrorCode.PR_DRAFT_NOT_FOUND)
+
+        // AI로 제목/본문 영어 번역
+        val translated = aiClient.translate(prDraft.prTitle, prDraft.prBody)
+
+        // GitHub URL 빌드
+        val githubUrl = buildGithubUrl(prDraft.issue.repoFullName, translated.title, translated.body)
+
+        return PrTranslateRes(
+            titleEn = translated.title,
+            bodyEn = translated.body,
+            githubUrl = githubUrl
+        )
+    }
+
+    /**
+     * 번역된 제목과 본문을 GitHub PR 작성 페이지 URL로 조합합니다.
+     *
+     * @param fullName 레포지토리 전체 이름 (예: owner/repo)
+     * @param title URL에 삽입할 PR 제목
+     * @param body URL에 삽입할 PR 본문
+     * @return pre-fill된 GitHub PR 생성 URL
+     */
+    private fun buildGithubUrl(fullName: String, title: String, body: String): String {
+        val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8).replace("+", "%20")
+        val encodedBody = URLEncoder.encode(body, StandardCharsets.UTF_8).replace("+", "%20")
+        return "https://github.com/$fullName/compare?quick_pull=1&title=$encodedTitle&body=$encodedBody"
+    }
+
+    /**
      * PR 초안을 삭제합니다.
      *
      * @param githubId 요청한 사용자의 GitHub ID
@@ -149,9 +188,4 @@ class PrDraftServiceImpl(
         prDraftRepository.delete(prDraft)
     }
 
-    private fun buildGithubUrl(fullName: String, title: String, body: String): String {
-        val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8).replace("+", "%20")
-        val encodedBody = URLEncoder.encode(body, StandardCharsets.UTF_8).replace("+", "%20")
-        return "https://github.com/$fullName/compare?quick_pull=1&title=$encodedTitle&body=$encodedBody"
-    }
 }
