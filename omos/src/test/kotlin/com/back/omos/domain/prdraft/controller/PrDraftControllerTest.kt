@@ -3,6 +3,7 @@ package com.back.omos.domain.prdraft.controller
 import com.back.omos.domain.prdraft.dto.PrDetailRes
 import com.back.omos.domain.prdraft.dto.PrHistoryRes
 import com.back.omos.domain.prdraft.dto.PrInfoRes
+import com.back.omos.domain.prdraft.dto.PrTranslateRes
 import com.back.omos.domain.prdraft.service.PrDraftService
 import com.back.omos.global.auth.handler.OAuth2FailureHandler
 import com.back.omos.global.auth.handler.OAuth2SuccessHandler
@@ -157,6 +158,33 @@ class PrDraftControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"title": "updated title", "body": "updated body"}""")
             )
+                .andExpect(status().isUnauthorized)
+        }
+    }
+
+    @Nested
+    inner class TranslateTest {
+
+        @Test
+        fun `번역 정상 요청이면 200과 번역 결과를 반환한다`() {
+            given(prDraftService.translate(any(), any())).willReturn(
+                PrTranslateRes("fix: mock PR title", "## Changes\n- Generated PR draft.", "https://github.com/owner/repo/compare?quick_pull=1&title=fix%3A%20mock%20PR%20title&body=...")
+            )
+
+            mockMvc.perform(
+                post("/api/v1/pr/1/translate")
+                    .with(authentication(mockAuth()))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data.titleEn").value("fix: mock PR title"))
+                .andExpect(jsonPath("$.data.bodyEn").exists())
+                .andExpect(jsonPath("$.data.githubUrl").exists())
+        }
+
+        @Test
+        fun `인증 없이 번역 요청하면 401을 반환한다`() {
+            mockMvc.perform(post("/api/v1/pr/1/translate"))
                 .andExpect(status().isUnauthorized)
         }
     }
