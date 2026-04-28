@@ -89,6 +89,11 @@ class GlmClientImpl(
 
         return try {
             val response = chatModel.call(prompt)
+                ?: throw AnalysisException(
+                    AnalysisErrorCode.GLM_API_FAIL,
+                    "[GlmClientImpl#selectFiles] GLM 응답이 null입니다.",
+                    "관련 파일 탐색에 실패했습니다."
+                )
             parseFileList(response)
         } catch (e: AnalysisException) {
             throw e
@@ -153,7 +158,15 @@ class GlmClientImpl(
                 .replace(Regex("```\\s*"), "")
                 .trim()
             val node = objectMapper.readTree(cleaned)
-            node.get("files").map { it.asText() }
+            val filesNode = node.get("files")
+                ?: throw AnalysisException(
+                    AnalysisErrorCode.GLM_API_FAIL,
+                    "[GlmClientImpl#parseFileList] 'files' 키가 없습니다.",
+                    "관련 파일 탐색 결과를 처리하는 데 실패했습니다."
+                )
+            filesNode.map { it.asText() }
+        } catch (e: AnalysisException) {  // 추가!
+            throw e
         } catch (e: Exception) {
             log.error("[GlmClientImpl#parseFileList] JSON 파싱 실패: $response")
             throw AnalysisException(
