@@ -193,8 +193,10 @@ class ContextAnalyzerServiceImpl(
     }
 
     companion object {
-        private const val MAX_CANDIDATE_FILES = 30  // GLM에 넘기는 후보 파일 최대 개수
-        private const val MAX_SELECT_FILES = 5       // GLM이 최종 선별하는 파일 최대 개수
+        /** GLM에 넘기는 후보 파일 최대 개수. 테스트 결과 30개 초과 시 GLM 응답 품질 저하 및 토큰 초과 가능성이 있어 설정. */
+        private const val MAX_CANDIDATE_FILES = 30
+        /** GLM이 최종 선별하는 파일 최대 개수. 5개 초과 시 fetchFileContent 호출 증가로 응답 지연 발생. */
+        private const val MAX_SELECT_FILES = 5
     }
 
     private fun toGuideDto(result: AnalysisResult): GuideResponseDto {
