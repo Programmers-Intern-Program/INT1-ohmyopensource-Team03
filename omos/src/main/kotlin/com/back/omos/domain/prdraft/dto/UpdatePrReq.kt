@@ -1,5 +1,7 @@
 package com.back.omos.domain.prdraft.dto
 
+import jakarta.validation.constraints.Size
+
 /**
  * PR 초안 수정 요청 정보를 담는 DTO입니다.
  *
@@ -7,13 +9,14 @@ package com.back.omos.domain.prdraft.dto
  * 사용자가 직접 수정할 PR 제목과 본문을 전달할 때 사용됩니다.
  * null인 필드는 기존 값을 유지합니다.
  *
- * @property title 수정할 PR 제목 (null이면 기존 값 유지)
+ * @property title 수정할 PR 제목 (null이면 기존 값 유지, 최대 255자)
  * @property body 수정할 PR 본문 (null이면 기존 값 유지)
  *
  * @author 5h6vm
  * @since 2026-04-28
  */
 data class UpdatePrReq(
+    @field:Size(max = 255, message = "title은 255자를 초과할 수 없습니다.")
     val title: String?,
     val body: String?
 )

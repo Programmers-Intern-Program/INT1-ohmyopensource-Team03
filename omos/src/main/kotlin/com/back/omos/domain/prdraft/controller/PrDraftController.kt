@@ -69,7 +69,7 @@ class PrDraftController(
     fun update(
         @AuthenticationPrincipal principal: OAuthPrincipal,
         @PathVariable id: Long,
-        @RequestBody req: UpdatePrReq
+        @Valid @RequestBody req: UpdatePrReq
     ): CommonResponse<PrDetailRes> {
         return CommonResponse.success(prDraftService.update(principal.githubId, id, req))
     }
