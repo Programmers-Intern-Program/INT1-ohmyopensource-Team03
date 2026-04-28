@@ -1,4 +1,4 @@
-# Compiled class file
+# ==================== Java / Kotlin ====================
 *.class
 
 # Log file
@@ -23,10 +23,46 @@
 hs_err_pid*
 replay_pid*
 
-# Kotlin Gradle plugin data, see https://kotlinlang.org/docs/whatsnew20.html#new-directory-for-kotlin-data-in-gradle-projects
+# ==================== Gradle ====================
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Kotlin Gradle plugin cache
 .kotlin/
 
-.idea
+# ==================== Log ====================
+*.log
+logs/
 
-# Claude Code (개인 설정, 공유 불필요)
+# ==================== IDE ====================
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# ==================== Frontend (Next.js) ====================
+front/node_modules/
+front/.next/
+front/out/
+front/dist/
+front/.env*.local
+
+# ==================== Environment / Secrets ====================
+.env
+.env.local
+.env.*.local
+application-secret.yml
+application-prod.yml
+
+# ==================== OS ====================
+.DS_Store
+Thumbs.db
+
+# ==================== Claude Code ====================
 .claude/
