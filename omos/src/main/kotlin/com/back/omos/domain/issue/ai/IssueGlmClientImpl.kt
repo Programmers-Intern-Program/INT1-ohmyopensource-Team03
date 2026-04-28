@@ -2,9 +2,11 @@ package com.back.omos.domain.issue.ai
 
 import com.back.omos.domain.issue.dto.AIRecommendationResult
 import com.back.omos.domain.issue.entity.Issue
+import com.back.omos.global.exception.errorCode.AiErrorCode
+import com.back.omos.global.exception.exceptions.AiException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.core.type.TypeReference
-import org.springframework.ai.chat.client.ChatClient
+import org.springframework.ai.chat.model.ChatModel
 import org.springframework.stereotype.Component
 
 /**
@@ -32,29 +34,27 @@ import org.springframework.stereotype.Component
  */
 @Component
 class IssueGlmClientImpl(
-    chatClientBuilder: ChatClient.Builder,
+    private val chatModel: ChatModel,
     private val objectMapper: ObjectMapper
 ) : IssueGlmClient {
 
-    private val chatClient = chatClientBuilder.build()
 
     override fun generateRecommendationReasons(
         userProfile: String,
         candidateIssues: List<Issue>
     ): List<AIRecommendationResult> {
-        val prompt = buildRecommendPrompt(userProfile, candidateIssues)
+        val promptText = buildRecommendPrompt(userProfile, candidateIssues)
 
-        val responseContent = chatClient.prompt()
-            .user(prompt)
-            .call()
-            .content() ?: throw RuntimeException("AI 응답 생성 실패")
+        val responseContent = try {
+            chatModel.call(promptText) ?: throw AiException(AiErrorCode.AI_RESPONSE_EMPTY);
+        } catch (e: Exception) {
+            throw AiException(AiErrorCode.AI_RESPONSE_PARSE_FAILED);
+        }
 
-        // 문자열로 온 JSON을 List<AiRecommendationResult>로 변환
         return try {
             objectMapper.readValue(responseContent, object : TypeReference<List<AIRecommendationResult>>() {})
         } catch (e: Exception) {
-            // 파싱 실패 시 예외 처리 (로그 출력 등)
-            emptyList()
+            throw AiException(AiErrorCode.AI_RESPONSE_PARSE_FAILED);
         }
     }
 

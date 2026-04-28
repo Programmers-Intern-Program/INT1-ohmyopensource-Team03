@@ -53,13 +53,20 @@ class RecommendServiceImpl(
         )
 
         // 6. 결과 반환
-        return aiRecommendationReasons.map { aiResult ->
-            // AI가 추천한 제목과 일치하는 원본 이슈 엔티티를 찾음
-            val matchedIssue = topIssues.find { it.title == aiResult.title } ?: topIssues[0]
+        return aiRecommendationReasons.mapNotNull { aiResult ->
+            // 제목과 레포지토리 이름이 모두 일치하는 이슈를 찾음
+            val matchedIssue = topIssues.find {
+                it.title == aiResult.title && it.repoFullName == aiResult.repoName
+            }
 
+            // 매칭되는 이슈를 못 찾으면 null처리
+            if (matchedIssue == null) {
+                return@mapNotNull null
+            }
+
+            // DTO로 변환
             RecommendIssueRes.from(matchedIssue).copy(
                 summary = aiResult.reason
-                // TODO: 유사도 점수계산 로직 추가
             )
         }
     }

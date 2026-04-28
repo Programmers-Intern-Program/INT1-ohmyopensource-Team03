@@ -6,6 +6,8 @@ import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.issue.service.IssueService
 import com.back.omos.domain.issue.service.RecommendService
 import com.back.omos.global.auth.principal.OAuthPrincipal
+import com.back.omos.global.exception.errorCode.IssueErrorCode
+import com.back.omos.global.exception.exceptions.IssueException
 import com.back.omos.global.response.CommonResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -75,8 +77,7 @@ class IssueController(
 
             CommonResponse.success(response)
         } catch (e: Exception) {
-            //TODO 에러 로직 수정
-            CommonResponse.fail(e.message)
+            throw IssueException(IssueErrorCode.ISSUE_CRAWLING_FAIL);
         }
     }
 

@@ -39,9 +39,11 @@ interface IssueRepository : JpaRepository<Issue, Long> {
     @Query(
         value = """
             SELECT * FROM issues 
+            WHERE issue_vector IS NOT NULL 
             ORDER BY issue_vector <=> CAST(:userVector AS vector) 
             LIMIT :limit
-        """, nativeQuery = true
+        """,
+        nativeQuery = true
     )
     fun findBySimilarity(
         @Param("userVector") userVector: DoubleArray,
