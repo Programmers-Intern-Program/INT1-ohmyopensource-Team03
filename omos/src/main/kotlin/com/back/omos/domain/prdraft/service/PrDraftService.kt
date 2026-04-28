@@ -52,7 +52,7 @@ interface PrDraftService {
      *
      * @param githubId 요청한 사용자의 GitHub ID
      * @param prDraftId 수정할 PR 초안 ID
-     * @param request 수정할 제목과 본문
+     * @param request 수정할 제목과 본문 (null인 필드는 기존 값 유지)
      * @return 수정된 PR 초안 상세 정보
      * @throws PrDraftException 존재하지 않는 PR 초안이거나 본인 소유가 아닌 경우
      */

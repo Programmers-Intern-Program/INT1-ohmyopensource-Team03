@@ -26,7 +26,7 @@ import java.nio.charset.StandardCharsets
  *
  * <p>
  * diffContent와 Issue 정보를 기반으로 AI를 호출하여 PR 제목과 본문을 생성하고,
- * 생성된 초안의 목록 조회 및 삭제 로직을 담당합니다.
+ * 생성된 초안의 단건/목록 조회, 수정 및 삭제 로직을 담당합니다.
  *
  * <p><b>상속 정보:</b><br>
  * {@link PrDraftService}를 구현합니다.
@@ -121,7 +121,7 @@ class PrDraftServiceImpl(
      *
      * @param githubId 요청한 사용자의 GitHub ID
      * @param prDraftId 수정할 PR 초안 ID
-     * @param request 수정할 제목과 본문
+     * @param request 수정할 제목과 본문 (null인 필드는 기존 값 유지)
      * @return 수정된 PR 초안 상세 정보
      * @throws PrDraftException 존재하지 않는 PR 초안이거나 본인 소유가 아닌 경우
      */
