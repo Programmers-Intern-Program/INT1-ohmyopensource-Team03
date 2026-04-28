@@ -75,7 +75,7 @@ class PrDraftServiceImpl(
         // AI 호출
         val aiResult = aiClient.generatePrDraft(prompt)
 
-        prDraftRepository.save(PrDraft(
+        val saved = prDraftRepository.save(PrDraft(
             user = user,
             issue = issue,
             diffContent = request.diffContent,
@@ -84,6 +84,7 @@ class PrDraftServiceImpl(
         ))
 
         return PrInfoRes(
+            id = saved.id!!,
             title = aiResult.title,
             body = aiResult.body
         )

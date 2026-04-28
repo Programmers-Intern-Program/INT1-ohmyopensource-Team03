@@ -57,7 +57,7 @@ class PrDraftControllerTest {
         @Test
         fun `정상 요청이면 200과 success 응답을 반환한다`() {
             given(prDraftService.create(any(), any())).willReturn(
-                PrInfoRes("feat: title", "body")
+                PrInfoRes(1L, "feat: title", "body")
             )
 
             mockMvc.perform(
@@ -68,6 +68,7 @@ class PrDraftControllerTest {
             )
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data.id").value(1L))
                 .andExpect(jsonPath("$.data.title").value("feat: title"))
         }
     }

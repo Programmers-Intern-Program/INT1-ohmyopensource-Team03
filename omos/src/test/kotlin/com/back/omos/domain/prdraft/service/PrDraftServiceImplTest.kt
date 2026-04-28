@@ -64,10 +64,15 @@ class PrDraftServiceImplTest {
             given(gitHubClient.fetchContributing("owner/repo")).willReturn("contributing content")
             given(prDraftPromptBuilder.build(req, "contributing content", emptyList())).willReturn("prompt")
             given(aiClient.generatePrDraft("prompt")).willReturn(AiPrResult("feat: title", "body"))
-            given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer { it.arguments[0] }
+            given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer {
+                val prDraft = it.arguments[0] as PrDraft
+                ReflectionTestUtils.setField(prDraft, "id", 1L)
+                prDraft
+            }
 
             val result = service.create(githubId, req)
 
+            assertThat(result.id).isEqualTo(1L)
             assertThat(result.title).isEqualTo("feat: title")
             assertThat(result.body).isEqualTo("body")
             verify(prDraftRepository).save(any(PrDraft::class.java))
@@ -82,7 +87,11 @@ class PrDraftServiceImplTest {
             given(gitHubClient.fetchMergedPrs("owner/repo")).willReturn(prs)
             given(prDraftPromptBuilder.build(req, null, prs)).willReturn("prompt")
             given(aiClient.generatePrDraft("prompt")).willReturn(AiPrResult("title", "body"))
-            given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer { it.arguments[0] }
+            given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer {
+                val prDraft = it.arguments[0] as PrDraft
+                ReflectionTestUtils.setField(prDraft, "id", 1L)
+                prDraft
+            }
 
             service.create(githubId, req)
 
