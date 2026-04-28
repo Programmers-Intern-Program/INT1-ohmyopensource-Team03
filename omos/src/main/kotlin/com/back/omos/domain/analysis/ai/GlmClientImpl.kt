@@ -202,7 +202,9 @@ class GlmClientImpl(
         [출력 형식]
         {
             "guideline": "수정 방향 설명 (한국어)",
-            "pseudoCode": "Before:\\n[수정 전 코드]\\n\\nAfter:\\n[수정 후 코드] 형태의 문자열로 줘",
+            "pseudoCode": "수정이 필요한 파일과 위치, 변경 방향만 간략히 알려줘. 
+               완전한 코드를 작성하지 말고, 어느 함수/클래스의 어느 부분을 
+               어떤 방향으로 바꿔야 하는지만 설명해줘.",
             "sideEffects": "수정 시 발생할 수 있는 부작용 (한국어)"
         }
         """.trimIndent()
