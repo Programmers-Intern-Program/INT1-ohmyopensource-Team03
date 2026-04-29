@@ -107,7 +107,7 @@ class PrDraftServiceImplTest {
 
         @Test
         fun `본인 소유 PR 초안이면 상세 정보를 반환한다`() {
-            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "feat: title", prBody = "body")
+            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "feat: title", prBody = "body", baseBranch = "main", headBranch = "fix/issue-123", forkOwner = "testUser")
             ReflectionTestUtils.setField(prDraft, "id", 1L)
             given(prDraftRepository.findByIdWithIssueAndUserGithubId(1L, githubId)).willReturn(prDraft)
 
@@ -135,7 +135,7 @@ class PrDraftServiceImplTest {
 
         @Test
         fun `PR 초안 목록을 최신순으로 반환한다`() {
-            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "feat: title", prBody = "body")
+            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "feat: title", prBody = "body", baseBranch = "main", headBranch = "fix/issue-123", forkOwner = "testUser")
             ReflectionTestUtils.setField(prDraft, "id", 1L)
             given(prDraftRepository.findAllWithIssueByUserGithubId(githubId)).willReturn(listOf(prDraft))
 
@@ -163,7 +163,7 @@ class PrDraftServiceImplTest {
 
         @Test
         fun `title과 body를 모두 전달하면 둘 다 수정된다`() {
-            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "old title", prBody = "old body")
+            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "old title", prBody = "old body", baseBranch = "main", headBranch = "fix/issue-123", forkOwner = "testUser")
             ReflectionTestUtils.setField(prDraft, "id", 1L)
             given(prDraftRepository.findByIdWithIssueAndUserGithubId(1L, githubId)).willReturn(prDraft)
             given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer { it.arguments[0] }
@@ -176,7 +176,7 @@ class PrDraftServiceImplTest {
 
         @Test
         fun `title이 null이면 기존 title을 유지한다`() {
-            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "old title", prBody = "old body")
+            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "old title", prBody = "old body", baseBranch = "main", headBranch = "fix/issue-123", forkOwner = "testUser")
             ReflectionTestUtils.setField(prDraft, "id", 1L)
             given(prDraftRepository.findByIdWithIssueAndUserGithubId(1L, githubId)).willReturn(prDraft)
             given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer { it.arguments[0] }
@@ -189,7 +189,7 @@ class PrDraftServiceImplTest {
 
         @Test
         fun `body가 null이면 기존 body를 유지한다`() {
-            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "old title", prBody = "old body")
+            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "old title", prBody = "old body", baseBranch = "main", headBranch = "fix/issue-123", forkOwner = "testUser")
             ReflectionTestUtils.setField(prDraft, "id", 1L)
             given(prDraftRepository.findByIdWithIssueAndUserGithubId(1L, githubId)).willReturn(prDraft)
             given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer { it.arguments[0] }
@@ -214,7 +214,7 @@ class PrDraftServiceImplTest {
 
         @Test
         fun `본인 소유 PR 초안이면 번역 결과와 GitHub URL을 반환한다`() {
-            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "feat: 제목", prBody = "본문")
+            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "feat: 제목", prBody = "본문", baseBranch = "main", headBranch = "fix/issue-123", forkOwner = "testUser")
             ReflectionTestUtils.setField(prDraft, "id", 1L)
             given(prDraftRepository.findByIdWithIssueAndUserGithubId(1L, githubId)).willReturn(prDraft)
             given(aiClient.translate("feat: 제목", "본문")).willReturn(AiPrResult("feat: title", "body"))
@@ -224,6 +224,7 @@ class PrDraftServiceImplTest {
             assertThat(result.titleEn).isEqualTo("feat: title")
             assertThat(result.bodyEn).isEqualTo("body")
             assertThat(result.githubUrl).contains("owner/repo")
+            assertThat(result.githubUrl).contains("main...testUser:fix/issue-123")
             assertThat(result.githubUrl).contains("quick_pull=1")
         }
 
@@ -241,7 +242,7 @@ class PrDraftServiceImplTest {
 
         @Test
         fun `본인 소유 PR 초안이면 삭제한다`() {
-            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "feat: title", prBody = "body")
+            val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "feat: title", prBody = "body", baseBranch = "main", headBranch = "fix/issue-123", forkOwner = "testUser")
             ReflectionTestUtils.setField(prDraft, "id", 1L)
             given(prDraftRepository.findByIdAndUserGithubId(1L, githubId)).willReturn(prDraft)
 

@@ -66,7 +66,16 @@ class PrDraft(
      * diff 내용을 기반으로 AI가 생성한 설명(변경 사항, 테스트 방법 등)을 포함합니다.
      */
     @Column(name = "pr_body", nullable = false, columnDefinition = "TEXT")
-    var prBody: String
+    var prBody: String,
+
+    @Column(name = "base_branch", nullable = false)
+    var baseBranch: String,
+
+    @Column(name = "head_branch", nullable = false)
+    var headBranch: String,
+
+    @Column(name = "fork_owner", nullable = false)
+    var forkOwner: String
 
 ) : BaseEntity() {
 

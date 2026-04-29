@@ -87,7 +87,10 @@ class PrDraftServiceImpl(
             issue = issue,
             diffContent = diffContent,
             prTitle = aiResult.title,
-            prBody = aiResult.body
+            prBody = aiResult.body,
+            baseBranch = request.baseBranch,
+            headBranch = request.headBranch,
+            forkOwner = forkOwner
         ))
 
         return PrInfoRes(
@@ -158,7 +161,7 @@ class PrDraftServiceImpl(
         val translated = aiClient.translate(prDraft.prTitle, prDraft.prBody)
 
         // GitHub URL 빌드
-        val githubUrl = buildGithubUrl(prDraft.issue.repoFullName, translated.title, translated.body)
+        val githubUrl = buildGithubUrl(prDraft.issue.repoFullName, prDraft.baseBranch, prDraft.forkOwner, prDraft.headBranch, translated.title, translated.body)
 
         return PrTranslateRes(
             titleEn = translated.title,
@@ -175,10 +178,10 @@ class PrDraftServiceImpl(
      * @param body URL에 삽입할 PR 본문
      * @return pre-fill된 GitHub PR 생성 URL
      */
-    private fun buildGithubUrl(fullName: String, title: String, body: String): String {
+    private fun buildGithubUrl(fullName: String, baseBranch: String, forkOwner: String, headBranch: String, title: String, body: String): String {
         val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8).replace("+", "%20")
         val encodedBody = URLEncoder.encode(body, StandardCharsets.UTF_8).replace("+", "%20")
-        return "https://github.com/$fullName/compare?quick_pull=1&title=$encodedTitle&body=$encodedBody"
+        return "https://github.com/$fullName/compare/$baseBranch...$forkOwner:$headBranch?quick_pull=1&title=$encodedTitle&body=$encodedBody"
     }
 
     /**
