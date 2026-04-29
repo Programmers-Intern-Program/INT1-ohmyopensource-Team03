@@ -62,15 +62,18 @@ class PrDraftServiceImpl(
         // 정보 조회
         val user = userRepository.findByGithubId(githubId)
             .orElseThrow { AuthException(AuthErrorCode.USER_NOT_FOUND) }
-        val issue = issueRepository.findById(request.issueId)
-            .orElseThrow { IssueException(IssueErrorCode.ISSUE_NOT_FOUND) }
+        val issue = issueRepository.findByRepoFullNameAndIssueNumber(request.upstreamRepo, request.githubIssueNumber)
+            ?: throw IssueException(IssueErrorCode.ISSUE_NOT_FOUND)
+
+        // GitHub Compare API로 diff 가져오기
+        val diffContent = gitHubClient.fetchDiff(request.upstreamRepo, request.baseBranch, githubId, request.headBranch)
 
         // prompt에게 줄 pr 형식 정보
-        val contributing = gitHubClient.fetchContributing(issue.repoFullName)
-        val prs = if (contributing == null) gitHubClient.fetchMergedPrs(issue.repoFullName) else emptyList()
+        val contributing = gitHubClient.fetchContributing(request.upstreamRepo)
+        val prs = if (contributing == null) gitHubClient.fetchMergedPrs(request.upstreamRepo) else emptyList()
 
         // prompt 작성
-        val prompt = prDraftPromptBuilder.build(request, contributing, prs)
+        val prompt = prDraftPromptBuilder.build(request, diffContent, contributing, prs)
 
         // AI 호출
         val aiResult = aiClient.generatePrDraft(prompt)
@@ -78,7 +81,7 @@ class PrDraftServiceImpl(
         val saved = prDraftRepository.save(PrDraft(
             user = user,
             issue = issue,
-            diffContent = request.diffContent,
+            diffContent = diffContent,
             prTitle = aiResult.title,
             prBody = aiResult.body
         ))

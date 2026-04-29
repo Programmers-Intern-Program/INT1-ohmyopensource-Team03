@@ -45,12 +45,13 @@ class PrDraftPromptBuilder {
     /**
      * PR 초안 생성을 위한 프롬프트 문자열을 구성합니다.
      *
-     * @param req PR 생성 요청 DTO (diff 내용 포함)
+     * @param req PR 생성 요청 DTO
+     * @param diffContent GitHub Compare API로 가져온 diff 내용
      * @param contributing CONTRIBUTING.md 내용 (없으면 null)
      * @param prs 참고용 기존 병합 PR 목록
      * @return AI에 전달할 프롬프트 문자열
      */
-    fun build(req: CreatePrReq, contributing: String?, prs: List<GitHubPrRes>): String {
+    fun build(req: CreatePrReq, diffContent: String, contributing: String?, prs: List<GitHubPrRes>): String {
         val contextSection = when {
             contributing != null -> "\n[CONTRIBUTING.md]\n$contributing\n"
             prs.isNotEmpty() -> {
@@ -66,7 +67,7 @@ class PrDraftPromptBuilder {
             반드시 제목과 본문 모두 한국어로 작성하세요.
             $contextSection
             [Diff]
-            ${req.diffContent}
+            $diffContent
 
             반드시 아래 JSON 형식으로만 응답하세요.
             {
