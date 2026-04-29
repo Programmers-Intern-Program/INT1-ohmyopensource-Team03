@@ -38,7 +38,7 @@ interface UserAnalysisRequestRepository : JpaRepository<UserAnalysisRequest, Lon
      * @param issueId 조회할 이슈의 ID
      * @return 완료된 분석 요청, 없으면 null
      */
-    fun findByUserIdAndAnalysisResultIssueId(userId: Long, issueId: Long): UserAnalysisRequest?
+    fun findFirstByUserIdAndAnalysisResultIssueId(userId: Long, issueId: Long): UserAnalysisRequest?
 
     /**
      * 특정 사용자가 분석을 요청한 이슈 ID 목록을 기반으로 완료된 요청 목록을 조회합니다.

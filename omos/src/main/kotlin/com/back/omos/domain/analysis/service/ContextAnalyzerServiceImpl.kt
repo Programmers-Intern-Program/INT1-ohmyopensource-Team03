@@ -95,7 +95,7 @@ class ContextAnalyzerServiceImpl(
             }
 
         // 해당 이슈에 대해 사용자가 이미 완료된 요청을 가지고 있으면 즉시 반환 (횟수 미차감)
-        val existingRequest = userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(user.id!!, issueId)
+        val existingRequest = userAnalysisRequestRepository.findFirstByUserIdAndAnalysisResultIssueId(user.id!!, issueId)
         if (existingRequest != null) {
             return existingRequest.analysisResult!!
         }

@@ -7,6 +7,7 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 
 /**
  * 사용자의 분석 요청을 저장하는 엔티티입니다.
@@ -30,7 +31,13 @@ import jakarta.persistence.Table
  * @see User
  */
 @Entity
-@Table(name = "user_analysis_requests")
+@Table(
+    name = "user_analysis_requests",
+    uniqueConstraints = [UniqueConstraint(
+        name = "uk_user_analysis_request_user_result",
+        columnNames = ["user_id", "analysis_result_id"]
+    )]
+)
 class UserAnalysisRequest(
 
     /**

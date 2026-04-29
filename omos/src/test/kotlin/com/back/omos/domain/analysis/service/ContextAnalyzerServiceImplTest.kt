@@ -131,7 +131,7 @@ class ContextAnalyzerServiceImplTest {
             val completedRequest = UserAnalysisRequest(user = mockUser).apply { complete(mockAnalysisResult) }
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
             given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.of(mockUser))
-            given(userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
+            given(userAnalysisRequestRepository.findFirstByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
                 .willReturn(completedRequest)
 
             // when
@@ -141,7 +141,7 @@ class ContextAnalyzerServiceImplTest {
             assertNotNull(result)
             assertEquals("TODO: GLM 연동 후 실제 가이드 생성", result.guideline)
             then(gitHubClient).shouldHaveNoInteractions()
-            then(userAnalysisRequestRepository).should().findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID)
+            then(userAnalysisRequestRepository).should().findFirstByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID)
         }
 
         @Test
@@ -150,7 +150,7 @@ class ContextAnalyzerServiceImplTest {
             // given
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
             given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.of(mockUser))
-            given(userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
+            given(userAnalysisRequestRepository.findFirstByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
                 .willReturn(null)
             given(userAnalysisRequestRepository.countByUserIdAndCreatedAtBetween(any(), any(), any()))
                 .willReturn(0L)
@@ -173,7 +173,7 @@ class ContextAnalyzerServiceImplTest {
             // given
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
             given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.of(mockUser))
-            given(userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
+            given(userAnalysisRequestRepository.findFirstByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
                 .willReturn(null)
             given(userAnalysisRequestRepository.countByUserIdAndCreatedAtBetween(any(), any(), any()))
                 .willReturn(0L)
@@ -237,7 +237,7 @@ class ContextAnalyzerServiceImplTest {
             // given
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
             given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.of(mockUser))
-            given(userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
+            given(userAnalysisRequestRepository.findFirstByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
                 .willReturn(null)
             given(userAnalysisRequestRepository.countByUserIdAndCreatedAtBetween(any(), any(), any()))
                 .willReturn(5L)
@@ -264,7 +264,7 @@ class ContextAnalyzerServiceImplTest {
             val completedRequest = UserAnalysisRequest(user = mockUser).apply { complete(mockAnalysisResult) }
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
             given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.of(mockUser))
-            given(userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
+            given(userAnalysisRequestRepository.findFirstByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
                 .willReturn(completedRequest)
 
             // when
@@ -282,7 +282,7 @@ class ContextAnalyzerServiceImplTest {
             // given
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
             given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.of(mockUser))
-            given(userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
+            given(userAnalysisRequestRepository.findFirstByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
                 .willReturn(null)
             given(userAnalysisRequestRepository.countByUserIdAndCreatedAtBetween(any(), any(), any()))
                 .willReturn(0L)
@@ -329,7 +329,7 @@ class ContextAnalyzerServiceImplTest {
             // given
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
             given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.of(mockUser))
-            given(userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
+            given(userAnalysisRequestRepository.findFirstByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
                 .willReturn(null)
             given(userAnalysisRequestRepository.countByUserIdAndCreatedAtBetween(any(), any(), any()))
                 .willReturn(5L)
