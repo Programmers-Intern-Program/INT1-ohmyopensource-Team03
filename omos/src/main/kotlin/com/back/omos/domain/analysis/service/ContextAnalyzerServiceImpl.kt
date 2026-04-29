@@ -86,7 +86,7 @@ class ContextAnalyzerServiceImpl(
                 )
             }
 
-        val user = userRepository.findByGithubId(githubId)
+        val user = userRepository.findByGithubIdWithLock(githubId)
             .orElseThrow {
                 AuthException(
                     AuthErrorCode.USER_NOT_FOUND,

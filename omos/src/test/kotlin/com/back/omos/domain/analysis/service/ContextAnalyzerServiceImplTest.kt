@@ -130,7 +130,7 @@ class ContextAnalyzerServiceImplTest {
             // given
             val completedRequest = UserAnalysisRequest(user = mockUser).apply { complete(mockAnalysisResult) }
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
-            given(userRepository.findByGithubId(GITHUB_ID)).willReturn(Optional.of(mockUser))
+            given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.of(mockUser))
             given(userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
                 .willReturn(completedRequest)
 
@@ -149,7 +149,7 @@ class ContextAnalyzerServiceImplTest {
         fun `이슈 캐시 HIT시 즉시 반환`() {
             // given
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
-            given(userRepository.findByGithubId(GITHUB_ID)).willReturn(Optional.of(mockUser))
+            given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.of(mockUser))
             given(userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
                 .willReturn(null)
             given(userAnalysisRequestRepository.countByUserIdAndCreatedAtBetween(any(), any(), any()))
@@ -172,7 +172,7 @@ class ContextAnalyzerServiceImplTest {
         fun `캐시 MISS시 GitHub API 호출`() {
             // given
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
-            given(userRepository.findByGithubId(GITHUB_ID)).willReturn(Optional.of(mockUser))
+            given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.of(mockUser))
             given(userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
                 .willReturn(null)
             given(userAnalysisRequestRepository.countByUserIdAndCreatedAtBetween(any(), any(), any()))
@@ -223,7 +223,7 @@ class ContextAnalyzerServiceImplTest {
         fun `사용자 없으면 예외 던짐`() {
             // given
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
-            given(userRepository.findByGithubId(GITHUB_ID)).willReturn(Optional.empty())
+            given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.empty())
 
             // when & then
             assertThrows<AuthException> {
@@ -236,7 +236,7 @@ class ContextAnalyzerServiceImplTest {
         fun `횟수 초과 시 예외 던짐`() {
             // given
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
-            given(userRepository.findByGithubId(GITHUB_ID)).willReturn(Optional.of(mockUser))
+            given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.of(mockUser))
             given(userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
                 .willReturn(null)
             given(userAnalysisRequestRepository.countByUserIdAndCreatedAtBetween(any(), any(), any()))
@@ -263,7 +263,7 @@ class ContextAnalyzerServiceImplTest {
             // given
             val completedRequest = UserAnalysisRequest(user = mockUser).apply { complete(mockAnalysisResult) }
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
-            given(userRepository.findByGithubId(GITHUB_ID)).willReturn(Optional.of(mockUser))
+            given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.of(mockUser))
             given(userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
                 .willReturn(completedRequest)
 
@@ -281,7 +281,7 @@ class ContextAnalyzerServiceImplTest {
         fun `이슈 캐시 HIT시 즉시 반환`() {
             // given
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
-            given(userRepository.findByGithubId(GITHUB_ID)).willReturn(Optional.of(mockUser))
+            given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.of(mockUser))
             given(userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
                 .willReturn(null)
             given(userAnalysisRequestRepository.countByUserIdAndCreatedAtBetween(any(), any(), any()))
@@ -315,7 +315,7 @@ class ContextAnalyzerServiceImplTest {
         fun `사용자 없으면 예외 던짐`() {
             // given
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
-            given(userRepository.findByGithubId(GITHUB_ID)).willReturn(Optional.empty())
+            given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.empty())
 
             // when & then
             assertThrows<AuthException> {
@@ -328,7 +328,7 @@ class ContextAnalyzerServiceImplTest {
         fun `횟수 초과 시 예외 던짐`() {
             // given
             given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
-            given(userRepository.findByGithubId(GITHUB_ID)).willReturn(Optional.of(mockUser))
+            given(userRepository.findByGithubIdWithLock(GITHUB_ID)).willReturn(Optional.of(mockUser))
             given(userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(USER_ID, ISSUE_ID))
                 .willReturn(null)
             given(userAnalysisRequestRepository.countByUserIdAndCreatedAtBetween(any(), any(), any()))
