@@ -29,7 +29,8 @@ import java.time.Duration
  */
 @Component("analysisGitHubClientImpl")
 class GitHubClientImpl(
-    @Value("\${github.token}") private val token: String
+    @Value("\${github.token}") private val token: String,
+    @Value("\${github.api.base-url:https://api.github.com}") private val baseUrl: String = "https://api.github.com"
 ) : GitHubClient {
     private val log = LoggerFactory.getLogger(GitHubClientImpl::class.java)
 
@@ -38,7 +39,7 @@ class GitHubClientImpl(
     }
 
     private val restClient = RestClient.builder()
-        .baseUrl("https://api.github.com")
+        .baseUrl(baseUrl)
         .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer $token")
         .defaultHeader(HttpHeaders.ACCEPT, "application/vnd.github+json")
         .requestFactory(SimpleClientHttpRequestFactory().apply {
