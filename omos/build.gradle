@@ -86,10 +86,9 @@ kotlin {
 tasks.named('test') {
     useJUnitPlatform()
     ignoreFailures = true
-    finalizedBy jacocoTestReport // 테스트 종료 후 리포트 자동 생성
+    finalizedBy jacocoTestReport
 }
 
-// 4. 리포트 생성 및 제외 설정
 jacocoTestReport {
     dependsOn test
     reports {
