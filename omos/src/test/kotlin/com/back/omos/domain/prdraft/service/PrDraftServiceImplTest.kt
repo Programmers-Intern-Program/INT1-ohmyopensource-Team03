@@ -43,7 +43,7 @@ class PrDraftServiceImplTest {
 
     private val githubId = "testUser"
     private val req = CreatePrReq(upstreamRepo = "owner/repo", githubIssueNumber = 1L, baseBranch = "main", headBranch = "fix/issue-123")
-    private val user = User(githubId = githubId)
+    private val user = User(githubId = githubId, name = "testUser")
     private val issue = Issue(repoFullName = "owner/repo", issueNumber = 1L, title = "test issue")
     private val diffContent = "@@ -1 +1 @@\n-old\n+new"
 

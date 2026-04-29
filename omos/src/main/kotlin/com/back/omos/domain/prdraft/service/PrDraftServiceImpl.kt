@@ -53,13 +53,13 @@ class PrDraftServiceImpl(
     private val logger = KotlinLogging.logger {}
 
     /**
-     * diff 내용과 이슈 정보를 기반으로 AI를 호출하여 PR 초안을 생성하고 저장합니다.
+     * GitHub Compare API로 diff를 가져와 AI를 호출하여 PR 초안을 생성하고 저장합니다.
      *
      * @param githubId 요청한 사용자의 GitHub ID
-     * @param request PR 생성 요청 DTO (issueId, diffContent 포함)
+     * @param request PR 생성 요청 DTO (upstreamRepo, githubIssueNumber, baseBranch, headBranch 포함)
      * @return 생성된 PR 제목, 본문
-     * @throws AuthException 존재하지 않는 githubId인 경우
-     * @throws IssueException 존재하지 않는 issueId인 경우
+     * @throws AuthException 존재하지 않는 githubId이거나 GitHub 로그인명이 없는 경우
+     * @throws IssueException 존재하지 않는 issue인 경우
      */
     override fun create(githubId: String, request: CreatePrReq): PrInfoRes {
         // 정보 조회
