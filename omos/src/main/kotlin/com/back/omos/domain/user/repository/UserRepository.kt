@@ -1,7 +1,10 @@
 package com.back.omos.domain.user.repository
 
 import com.back.omos.domain.user.entity.User
+import jakarta.persistence.LockModeType
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
+import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import java.util.*
 
@@ -41,4 +44,18 @@ interface UserRepository : JpaRepository<User, Long> {
      * @return 해당 이메일을 가진 사용자를 포함한 [Optional] 객체
      */
     fun findByEmail(email: String): Optional<User>
+
+    /**
+     * GitHub 고유 ID로 사용자를 조회하며 배타적 락(X-lock)을 획득합니다.
+     *
+     * 일일 분석 요청 횟수 제한의 TOCTOU 경쟁 조건을 방지하기 위해 사용됩니다.
+     * 락은 트랜잭션이 커밋되거나 롤백될 때까지 유지되므로,
+     * 동일 사용자의 동시 요청이 count 조회 → 저장을 직렬화하여 초과 요청을 방지합니다.
+     *
+     * @param githubId 조회할 GitHub 고유 ID
+     * @return 해당 ID를 가진 사용자를 포함한 [Optional] 객체
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.githubId = :githubId")
+    fun findByGithubIdWithLock(githubId: String): Optional<User>
 }
