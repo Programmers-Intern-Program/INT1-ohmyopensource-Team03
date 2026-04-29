@@ -50,27 +50,31 @@ class PrDraftServiceImpl(
 ) : PrDraftService {
 
     /**
-     * diff 내용과 이슈 정보를 기반으로 AI를 호출하여 PR 초안을 생성하고 저장합니다.
+     * GitHub Compare API로 diff를 가져와 AI를 호출하여 PR 초안을 생성하고 저장합니다.
      *
      * @param githubId 요청한 사용자의 GitHub ID
-     * @param request PR 생성 요청 DTO (issueId, diffContent 포함)
+     * @param request PR 생성 요청 DTO (upstreamRepo, githubIssueNumber, baseBranch, headBranch 포함)
      * @return 생성된 PR 제목, 본문
-     * @throws AuthException 존재하지 않는 githubId인 경우
-     * @throws IssueException 존재하지 않는 issueId인 경우
+     * @throws AuthException 존재하지 않는 githubId이거나 GitHub 로그인명이 없는 경우
+     * @throws IssueException 존재하지 않는 issue인 경우
      */
     override fun create(githubId: String, request: CreatePrReq): PrInfoRes {
         // 정보 조회
         val user = userRepository.findByGithubId(githubId)
             .orElseThrow { AuthException(AuthErrorCode.USER_NOT_FOUND) }
-        val issue = issueRepository.findById(request.issueId)
-            .orElseThrow { IssueException(IssueErrorCode.ISSUE_NOT_FOUND) }
+        val issue = issueRepository.findByRepoFullNameAndIssueNumber(request.upstreamRepo, request.githubIssueNumber)
+            ?: throw IssueException(IssueErrorCode.ISSUE_NOT_FOUND)
+
+        // GitHub Compare API로 diff 가져오기 (forkOwner는 GitHub 로그인명)
+        val forkOwner = user.name ?: throw AuthException(AuthErrorCode.USER_NOT_FOUND)
+        val diffContent = gitHubClient.fetchDiff(request.upstreamRepo, request.baseBranch, forkOwner, request.headBranch)
 
         // prompt에게 줄 pr 형식 정보
-        val contributing = gitHubClient.fetchContributing(issue.repoFullName)
-        val prs = if (contributing == null) gitHubClient.fetchMergedPrs(issue.repoFullName) else emptyList()
+        val contributing = gitHubClient.fetchContributing(request.upstreamRepo)
+        val prs = if (contributing == null) gitHubClient.fetchMergedPrs(request.upstreamRepo) else emptyList()
 
         // prompt 작성
-        val prompt = prDraftPromptBuilder.build(request, contributing, prs)
+        val prompt = prDraftPromptBuilder.build(diffContent, contributing, prs)
 
         // AI 호출
         val aiResult = aiClient.generatePrDraft(prompt)
@@ -78,9 +82,12 @@ class PrDraftServiceImpl(
         val saved = prDraftRepository.save(PrDraft(
             user = user,
             issue = issue,
-            diffContent = request.diffContent,
+            diffContent = diffContent,
             prTitle = aiResult.title,
-            prBody = aiResult.body
+            prBody = aiResult.body,
+            baseBranch = request.baseBranch,
+            headBranch = request.headBranch,
+            forkOwner = forkOwner
         ))
 
         return PrInfoRes(
@@ -151,7 +158,7 @@ class PrDraftServiceImpl(
         val translated = aiClient.translate(prDraft.prTitle, prDraft.prBody)
 
         // GitHub URL 빌드
-        val githubUrl = buildGithubUrl(prDraft.issue.repoFullName, translated.title, translated.body)
+        val githubUrl = buildGithubUrl(prDraft.issue.repoFullName, prDraft.baseBranch, prDraft.forkOwner, prDraft.headBranch, translated.title, translated.body)
 
         return PrTranslateRes(
             titleEn = translated.title,
@@ -168,10 +175,10 @@ class PrDraftServiceImpl(
      * @param body URL에 삽입할 PR 본문
      * @return pre-fill된 GitHub PR 생성 URL
      */
-    private fun buildGithubUrl(fullName: String, title: String, body: String): String {
+    private fun buildGithubUrl(fullName: String, baseBranch: String, forkOwner: String, headBranch: String, title: String, body: String): String {
         val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8).replace("+", "%20")
         val encodedBody = URLEncoder.encode(body, StandardCharsets.UTF_8).replace("+", "%20")
-        return "https://github.com/$fullName/compare?quick_pull=1&title=$encodedTitle&body=$encodedBody"
+        return "https://github.com/$fullName/compare/$baseBranch...$forkOwner:$headBranch?quick_pull=1&title=$encodedTitle&body=$encodedBody"
     }
 
     /**

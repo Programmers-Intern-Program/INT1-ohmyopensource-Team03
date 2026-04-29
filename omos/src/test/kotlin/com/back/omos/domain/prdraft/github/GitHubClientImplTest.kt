@@ -1,6 +1,8 @@
 package com.back.omos.domain.prdraft.github
 
+import com.back.omos.global.exception.exceptions.PrDraftException
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.io.File
@@ -74,6 +76,31 @@ class GitHubClientImplTest {
             val result = gitHubClient.fetchMergedPrs("omos-nonexistent/repo")
 
             assertThat(result).isEmpty()
+        }
+    }
+
+    @Nested
+    inner class DiffTest {
+
+        @Test
+        fun `같은 브랜치를 비교하면 빈 문자열을 반환한다`() {
+            val result = gitHubClient.fetchDiff("facebook/react", "main", "facebook", "main")
+
+            assertThat(result).isEmpty()
+        }
+
+        @Test
+        fun `존재하지 않는 레포에서 PrDraftException을 던진다`() {
+            assertThatThrownBy {
+                gitHubClient.fetchDiff("omos-nonexistent/repo", "main", "nobody", "feat/x")
+            }.isInstanceOf(PrDraftException::class.java)
+        }
+
+        @Test
+        fun `존재하지 않는 브랜치에서 PrDraftException을 던진다`() {
+            assertThatThrownBy {
+                gitHubClient.fetchDiff("facebook/react", "main", "facebook", "nonexistent-branch-xyz")
+            }.isInstanceOf(PrDraftException::class.java)
         }
     }
 }

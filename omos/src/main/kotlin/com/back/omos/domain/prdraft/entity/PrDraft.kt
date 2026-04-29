@@ -66,7 +66,27 @@ class PrDraft(
      * diff 내용을 기반으로 AI가 생성한 설명(변경 사항, 테스트 방법 등)을 포함합니다.
      */
     @Column(name = "pr_body", nullable = false, columnDefinition = "TEXT")
-    var prBody: String
+    var prBody: String,
+
+    /**
+     * GitHub PR 생성 시 기준이 되는 upstream 브랜치입니다. (예: main)
+     */
+    @Column(name = "base_branch", nullable = false)
+    var baseBranch: String,
+
+    /**
+     * 포크한 사용자의 작업 브랜치입니다. (예: fix/issue-123)
+     */
+    @Column(name = "head_branch", nullable = false)
+    var headBranch: String,
+
+    /**
+     * 포크한 사용자의 GitHub 로그인명입니다.
+     *
+     * GitHub Compare URL 생성 시 {forkOwner}:{headBranch} 형식으로 사용됩니다.
+     */
+    @Column(name = "fork_owner", nullable = false)
+    var forkOwner: String
 
 ) : BaseEntity() {
 
