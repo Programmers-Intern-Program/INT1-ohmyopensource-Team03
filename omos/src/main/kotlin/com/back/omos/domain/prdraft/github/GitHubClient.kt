@@ -37,4 +37,15 @@ interface GitHubClient {
      * @return merged PR 목록, 없거나 실패 시 빈 리스트
      */
     fun fetchMergedPrs(fullName: String): List<GitHubPrRes>
+
+    /**
+     * GitHub Compare API로 두 브랜치 간의 diff를 가져옵니다.
+     *
+     * @param upstreamRepo owner/repo 형식의 upstream 레포지토리
+     * @param baseBranch 기준 브랜치 (예: main)
+     * @param forkOwner 포크한 사용자의 GitHub ID
+     * @param headBranch 작업 브랜치 (예: fix/issue-123)
+     * @return 변경된 파일들의 patch를 합친 diff 문자열
+     */
+    fun fetchDiff(upstreamRepo: String, baseBranch: String, forkOwner: String, headBranch: String): String
 }
