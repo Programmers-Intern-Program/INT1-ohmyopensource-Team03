@@ -42,9 +42,10 @@ class PrDraftServiceImplTest {
     private lateinit var service: PrDraftServiceImpl
 
     private val githubId = "testUser"
-    private val req = CreatePrReq(issueId = 1L, diffContent = "@@ -1 +1 @@\n-old\n+new")
+    private val req = CreatePrReq(upstreamRepo = "owner/repo", githubIssueNumber = 1L, baseBranch = "main", headBranch = "fix/issue-123")
     private val user = User(githubId = githubId)
     private val issue = Issue(repoFullName = "owner/repo", issueNumber = 1L, title = "test issue")
+    private val diffContent = "@@ -1 +1 @@\n-old\n+new"
 
     @BeforeEach
     fun setUp() {
@@ -60,9 +61,10 @@ class PrDraftServiceImplTest {
         @Test
         fun `contributing 있을 때 AI 호출 후 결과를 저장하고 반환한다`() {
             given(userRepository.findByGithubId(githubId)).willReturn(Optional.of(user))
-            given(issueRepository.findById(1L)).willReturn(Optional.of(issue))
+            given(issueRepository.findByRepoFullNameAndIssueNumber("owner/repo", 1L)).willReturn(issue)
+            given(gitHubClient.fetchDiff("owner/repo", "main", githubId, "fix/issue-123")).willReturn(diffContent)
             given(gitHubClient.fetchContributing("owner/repo")).willReturn("contributing content")
-            given(prDraftPromptBuilder.build(req, "contributing content", emptyList())).willReturn("prompt")
+            given(prDraftPromptBuilder.build(req, diffContent, "contributing content", emptyList())).willReturn("prompt")
             given(aiClient.generatePrDraft("prompt")).willReturn(AiPrResult("feat: title", "body"))
             given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer {
                 val prDraft = it.arguments[0] as PrDraft
@@ -82,10 +84,11 @@ class PrDraftServiceImplTest {
         fun `contributing 없을 때 기존 PR 목록을 가져와 프롬프트를 빌드한다`() {
             val prs = listOf(GitHubPrRes("pr title", "pr body", "2026-01-01"))
             given(userRepository.findByGithubId(githubId)).willReturn(Optional.of(user))
-            given(issueRepository.findById(1L)).willReturn(Optional.of(issue))
+            given(issueRepository.findByRepoFullNameAndIssueNumber("owner/repo", 1L)).willReturn(issue)
+            given(gitHubClient.fetchDiff("owner/repo", "main", githubId, "fix/issue-123")).willReturn(diffContent)
             given(gitHubClient.fetchContributing("owner/repo")).willReturn(null)
             given(gitHubClient.fetchMergedPrs("owner/repo")).willReturn(prs)
-            given(prDraftPromptBuilder.build(req, null, prs)).willReturn("prompt")
+            given(prDraftPromptBuilder.build(req, diffContent, null, prs)).willReturn("prompt")
             given(aiClient.generatePrDraft("prompt")).willReturn(AiPrResult("title", "body"))
             given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer {
                 val prDraft = it.arguments[0] as PrDraft
@@ -268,9 +271,9 @@ class PrDraftServiceImplTest {
         }
 
         @Test
-        fun `존재하지 않는 issueId면 IssueException을 던진다`() {
+        fun `존재하지 않는 issue면 IssueException을 던진다`() {
             given(userRepository.findByGithubId(githubId)).willReturn(Optional.of(user))
-            given(issueRepository.findById(1L)).willReturn(Optional.empty())
+            given(issueRepository.findByRepoFullNameAndIssueNumber("owner/repo", 1L)).willReturn(null)
 
             assertThatThrownBy { service.create(githubId, req) }
                 .isInstanceOf(IssueException::class.java)

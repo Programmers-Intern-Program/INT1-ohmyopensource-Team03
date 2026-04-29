@@ -45,7 +45,7 @@ class PrDraftControllerTest {
     @MockitoBean private lateinit var oauth2FailureHandler: OAuth2FailureHandler
     @MockitoBean private lateinit var jwtProvider: JwtProvider
 
-    private val validBody = """{"issueId": 1, "diffContent": "@@ -1 +1 @@\n-old\n+new"}"""
+    private val validBody = """{"upstreamRepo": "owner/repo", "githubIssueNumber": 1, "baseBranch": "main", "headBranch": "fix/issue-123"}"""
 
     private fun mockAuth() = UsernamePasswordAuthenticationToken(
         OAuthPrincipal("testUser", emptyMap()), null,
@@ -214,23 +214,23 @@ class PrDraftControllerTest {
     inner class ValidationTest {
 
         @Test
-        fun `issueId가 0이면 400을 반환한다`() {
+        fun `githubIssueNumber가 0이면 400을 반환한다`() {
             mockMvc.perform(
                 post("/api/v1/pr")
                     .with(authentication(mockAuth()))
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"issueId": 0, "diffContent": "@@ -1 +1 @@"}""")
+                    .content("""{"upstreamRepo": "owner/repo", "githubIssueNumber": 0, "baseBranch": "main", "headBranch": "fix/issue-123"}""")
             )
                 .andExpect(status().isBadRequest)
         }
 
         @Test
-        fun `diffContent가 비어있으면 400을 반환한다`() {
+        fun `upstreamRepo가 비어있으면 400을 반환한다`() {
             mockMvc.perform(
                 post("/api/v1/pr")
                     .with(authentication(mockAuth()))
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"issueId": 1, "diffContent": ""}""")
+                    .content("""{"upstreamRepo": "", "githubIssueNumber": 1, "baseBranch": "main", "headBranch": "fix/issue-123"}""")
             )
                 .andExpect(status().isBadRequest)
         }
