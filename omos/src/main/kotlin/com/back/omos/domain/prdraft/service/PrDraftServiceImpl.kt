@@ -18,6 +18,7 @@ import com.back.omos.global.exception.errorCode.PrDraftErrorCode
 import com.back.omos.global.exception.exceptions.AuthException
 import com.back.omos.global.exception.exceptions.IssueException
 import com.back.omos.global.exception.exceptions.PrDraftException
+import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -49,6 +50,8 @@ class PrDraftServiceImpl(
     private val gitHubClient: GitHubClient
 ) : PrDraftService {
 
+    private val logger = KotlinLogging.logger {}
+
     /**
      * diff 내용과 이슈 정보를 기반으로 AI를 호출하여 PR 초안을 생성하고 저장합니다.
      *
@@ -65,8 +68,9 @@ class PrDraftServiceImpl(
         val issue = issueRepository.findByRepoFullNameAndIssueNumber(request.upstreamRepo, request.githubIssueNumber)
             ?: throw IssueException(IssueErrorCode.ISSUE_NOT_FOUND)
 
-        // GitHub Compare API로 diff 가져오기
-        val diffContent = gitHubClient.fetchDiff(request.upstreamRepo, request.baseBranch, githubId, request.headBranch)
+        // GitHub Compare API로 diff 가져오기 (forkOwner는 GitHub 로그인명)
+        val forkOwner = user.name ?: throw AuthException(AuthErrorCode.USER_NOT_FOUND)
+        val diffContent = gitHubClient.fetchDiff(request.upstreamRepo, request.baseBranch, forkOwner, request.headBranch)
 
         // prompt에게 줄 pr 형식 정보
         val contributing = gitHubClient.fetchContributing(request.upstreamRepo)
