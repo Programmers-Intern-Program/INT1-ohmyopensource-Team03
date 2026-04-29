@@ -3,6 +3,7 @@ package com.back.omos.domain.prdraft.controller
 import com.back.omos.domain.prdraft.dto.PrDetailRes
 import com.back.omos.domain.prdraft.dto.PrHistoryRes
 import com.back.omos.domain.prdraft.dto.PrInfoRes
+import com.back.omos.domain.prdraft.dto.PrPageRes
 import com.back.omos.domain.prdraft.dto.PrTranslateRes
 import com.back.omos.domain.prdraft.service.PrDraftService
 import com.back.omos.global.auth.handler.OAuth2FailureHandler
@@ -107,9 +108,15 @@ class PrDraftControllerTest {
     inner class GetHistoryTest {
 
         @Test
-        fun `목록 조회 정상 요청이면 200과 목록을 반환한다`() {
-            given(prDraftService.getHistory(any())).willReturn(
-                listOf(PrHistoryRes(1L, "owner/repo", "test issue", "feat: title", LocalDateTime.now()))
+        fun `목록 조회 정상 요청이면 200과 페이징 목록을 반환한다`() {
+            given(prDraftService.getHistory(any(), any())).willReturn(
+                PrPageRes(
+                    content = listOf(PrHistoryRes(1L, "owner/repo", "test issue", "feat: title", LocalDateTime.now())),
+                    totalElements = 1L,
+                    totalPages = 1,
+                    page = 0,
+                    size = 10
+                )
             )
 
             mockMvc.perform(
@@ -118,9 +125,11 @@ class PrDraftControllerTest {
             )
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.status").value("success"))
-                .andExpect(jsonPath("$.data[0].title").value("feat: title"))
-                .andExpect(jsonPath("$.data[0].repoFullName").value("owner/repo"))
-                .andExpect(jsonPath("$.data[0].issueTitle").value("test issue"))
+                .andExpect(jsonPath("$.data.content[0].title").value("feat: title"))
+                .andExpect(jsonPath("$.data.content[0].repoFullName").value("owner/repo"))
+                .andExpect(jsonPath("$.data.content[0].issueTitle").value("test issue"))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.totalPages").value(1))
         }
 
         @Test

@@ -26,6 +26,8 @@ import org.mockito.BDDMockito.given
 import org.mockito.BDDMockito.verify
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
 import org.springframework.test.util.ReflectionTestUtils
 import java.util.Optional
 
@@ -133,28 +135,33 @@ class PrDraftServiceImplTest {
     @Nested
     inner class GetHistoryTest {
 
+        private val pageable = PageRequest.of(0, 10)
+
         @Test
         fun `PR 초안 목록을 최신순으로 반환한다`() {
             val prDraft = PrDraft(user = user, issue = issue, diffContent = "diff", prTitle = "feat: title", prBody = "body", baseBranch = "main", headBranch = "fix/issue-123", forkOwner = "testUser")
             ReflectionTestUtils.setField(prDraft, "id", 1L)
-            given(prDraftRepository.findAllWithIssueByUserGithubId(githubId)).willReturn(listOf(prDraft))
+            given(prDraftRepository.findAllWithIssueByUserGithubId(githubId, pageable)).willReturn(PageImpl(listOf(prDraft)))
 
-            val result = service.getHistory(githubId)
+            val result = service.getHistory(githubId, pageable)
 
-            assertThat(result).hasSize(1)
-            assertThat(result[0].id).isEqualTo(1L)
-            assertThat(result[0].repoFullName).isEqualTo("owner/repo")
-            assertThat(result[0].issueTitle).isEqualTo("test issue")
-            assertThat(result[0].title).isEqualTo("feat: title")
+            assertThat(result.content).hasSize(1)
+            assertThat(result.content[0].id).isEqualTo(1L)
+            assertThat(result.content[0].repoFullName).isEqualTo("owner/repo")
+            assertThat(result.content[0].issueTitle).isEqualTo("test issue")
+            assertThat(result.content[0].title).isEqualTo("feat: title")
+            assertThat(result.totalElements).isEqualTo(1L)
+            assertThat(result.totalPages).isEqualTo(1)
         }
 
         @Test
         fun `PR 초안이 없으면 빈 목록을 반환한다`() {
-            given(prDraftRepository.findAllWithIssueByUserGithubId(githubId)).willReturn(emptyList())
+            given(prDraftRepository.findAllWithIssueByUserGithubId(githubId, pageable)).willReturn(PageImpl(emptyList()))
 
-            val result = service.getHistory(githubId)
+            val result = service.getHistory(githubId, pageable)
 
-            assertThat(result).isEmpty()
+            assertThat(result.content).isEmpty()
+            assertThat(result.totalElements).isEqualTo(0L)
         }
     }
 
