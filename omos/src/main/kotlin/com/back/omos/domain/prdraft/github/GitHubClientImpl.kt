@@ -1,5 +1,7 @@
 package com.back.omos.domain.prdraft.github
 
+import com.back.omos.global.exception.errorCode.PrDraftErrorCode
+import com.back.omos.global.exception.exceptions.PrDraftException
 import mu.KotlinLogging
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
@@ -128,7 +130,7 @@ class GitHubClientImpl(
      * @param forkOwner 포크한 사용자의 GitHub 로그인명
      * @param headBranch 작업 브랜치 (예: fix/issue-123)
      * @return 변경된 파일들의 patch를 합친 diff 문자열
-     * @throws com.back.omos.global.exception.exceptions.PrDraftException 브랜치 또는 레포지토리를 찾을 수 없는 경우
+     * @throws PrDraftException 브랜치 또는 레포지토리를 찾을 수 없는 경우
      */
     override fun fetchDiff(upstreamRepo: String, baseBranch: String, forkOwner: String, headBranch: String): String {
         return try {
@@ -143,9 +145,7 @@ class GitHubClientImpl(
                 ?: ""
         } catch (e: RestClientResponseException) {
             if (e.statusCode.value() == 404) {
-                throw com.back.omos.global.exception.exceptions.PrDraftException(
-                    com.back.omos.global.exception.errorCode.PrDraftErrorCode.DIFF_NOT_FOUND
-                )
+                throw PrDraftException(PrDraftErrorCode.DIFF_NOT_FOUND)
             }
             logger.warn { "GitHub Compare API 오류: $upstreamRepo ($baseBranch...$forkOwner:$headBranch) - ${e.statusCode}" }
             throw e
