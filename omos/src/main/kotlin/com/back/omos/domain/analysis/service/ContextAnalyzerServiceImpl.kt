@@ -4,17 +4,23 @@ import com.back.omos.domain.analysis.ai.GlmClient
 import com.back.omos.domain.analysis.dto.GuideResponseDto
 import com.back.omos.domain.analysis.dto.PseudoCodeResponseDto
 import com.back.omos.domain.analysis.entity.AnalysisResult
+import com.back.omos.domain.analysis.entity.UserAnalysisRequest
 import com.back.omos.domain.analysis.github.GitHubClient
 import com.back.omos.domain.analysis.repository.AnalysisResultRepository
+import com.back.omos.domain.analysis.repository.UserAnalysisRequestRepository
 import com.back.omos.domain.issue.entity.Issue
 import com.back.omos.domain.issue.repository.IssueRepository
+import com.back.omos.domain.user.repository.UserRepository
 import com.back.omos.global.exception.errorCode.AnalysisErrorCode
+import com.back.omos.global.exception.errorCode.AuthErrorCode
 import com.back.omos.global.exception.exceptions.AnalysisException
+import com.back.omos.global.exception.exceptions.AuthException
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 /**
  * [ContextAnalyzerService]의 핵심 비즈니스 로직을 담당하는 서비스 구현체입니다.
@@ -41,7 +47,9 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class ContextAnalyzerServiceImpl(
     private val analysisResultRepository: AnalysisResultRepository,
+    private val userAnalysisRequestRepository: UserAnalysisRequestRepository,
     private val issueRepository: IssueRepository,
+    private val userRepository: UserRepository,
     @Qualifier(("analysisGitHubClientImpl"))
     private val gitHubClient: GitHubClient,
     private val glmClient: GlmClient,
@@ -49,43 +57,69 @@ class ContextAnalyzerServiceImpl(
 ) : ContextAnalyzerService {
 
     @Transactional
-    override fun getGuide(issueId: Long): GuideResponseDto {
-        val issue = issueRepository.findById(issueId)
-            .orElseThrow {
-                AnalysisException(
-                    AnalysisErrorCode.ISSUE_NOT_FOUND,
-                    "[ContextAnalyzerServiceImpl#getGuide] 이슈를 찾을 수 없습니다: issueId=$issueId",
-                    "해당 이슈를 찾을 수 없습니다."
-                )
-            }
-
-        val cached = analysisResultRepository.findByIssueId(issueId)
-        if (cached != null) {
-            return toGuideDto(cached)
-        }
-
-        val analysisResult = generateAnalysis(issue)
-        return toGuideDto(analysisResult)
+    override fun getGuide(issueId: Long, githubId: String): GuideResponseDto {
+        return toGuideDto(resolveOrCreateAnalysis(issueId, githubId))
     }
 
     @Transactional
-    override fun getPseudoCode(issueId: Long): PseudoCodeResponseDto {
+    override fun getPseudoCode(issueId: Long, githubId: String): PseudoCodeResponseDto {
+        return toPseudoCodeDto(resolveOrCreateAnalysis(issueId, githubId))
+    }
+
+    /**
+     * 분석 결과를 반환합니다.
+     *
+     * 사용자별 캐시 확인 → 일일 횟수 제한 검사 → 이슈별 캐시 확인(재사용) → 신규 생성 순으로 처리합니다.
+     * 새로운 요청이 발생할 경우 [UserAnalysisRequest]를 저장하여 이력을 기록합니다.
+     *
+     * @param issueId 분석할 이슈의 식별자
+     * @param githubId 요청한 사용자의 GitHub ID
+     * @return 분석 결과 [AnalysisResult]
+     */
+    private fun resolveOrCreateAnalysis(issueId: Long, githubId: String): AnalysisResult {
         val issue = issueRepository.findById(issueId)
             .orElseThrow {
                 AnalysisException(
                     AnalysisErrorCode.ISSUE_NOT_FOUND,
-                    "[ContextAnalyzerServiceImpl#getPseudoCode] 이슈를 찾을 수 없습니다: issueId=$issueId",
+                    "[ContextAnalyzerServiceImpl#resolveOrCreateAnalysis] 이슈를 찾을 수 없습니다: issueId=$issueId",
                     "해당 이슈를 찾을 수 없습니다."
                 )
             }
 
-        val cached = analysisResultRepository.findByIssueId(issueId)
-        if (cached != null) {
-            return toPseudoCodeDto(cached)
+        val user = userRepository.findByGithubId(githubId)
+            .orElseThrow {
+                AuthException(
+                    AuthErrorCode.USER_NOT_FOUND,
+                    "[ContextAnalyzerServiceImpl#resolveOrCreateAnalysis] 사용자를 찾을 수 없습니다: githubId=$githubId"
+                )
+            }
+
+        // 해당 이슈에 대해 사용자가 이미 완료된 요청을 가지고 있으면 즉시 반환 (횟수 미차감)
+        val existingRequest = userAnalysisRequestRepository.findByUserIdAndAnalysisResultIssueId(user.id!!, issueId)
+        if (existingRequest != null) {
+            return existingRequest.analysisResult!!
         }
 
-        val analysisResult = generateAnalysis(issue)
-        return toPseudoCodeDto(analysisResult)
+        // 새 요청이므로 일일 횟수 제한 검사
+        val now = LocalDateTime.now()
+        val startOfDay = now.toLocalDate().atStartOfDay()
+        val requestCount = userAnalysisRequestRepository.countByUserIdAndCreatedAtBetween(user.id!!, startOfDay, now)
+        if (requestCount >= DAILY_REQUEST_LIMIT) {
+            throw AnalysisException(
+                AnalysisErrorCode.ANALYSIS_RATE_LIMIT_EXCEEDED,
+                "[ContextAnalyzerServiceImpl#resolveOrCreateAnalysis] 일일 분석 요청 횟수 초과: userId=${user.id}, count=$requestCount"
+            )
+        }
+
+        // 이슈에 대한 분석 결과가 이미 존재하면 재사용, 없으면 신규 생성
+        val analysisResult = analysisResultRepository.findByIssueId(issueId) ?: generateAnalysis(issue)
+
+        // 사용자 분석 요청 이력 저장
+        userAnalysisRequestRepository.save(
+            UserAnalysisRequest(user = user).apply { complete(analysisResult) }
+        )
+
+        return analysisResult
     }
 
     /**
@@ -197,6 +231,8 @@ class ContextAnalyzerServiceImpl(
         private const val MAX_CANDIDATE_FILES = 30
         /** GLM이 최종 선별하는 파일 최대 개수. 5개 초과 시 fetchFileContent 호출 증가로 응답 지연 발생. */
         private const val MAX_SELECT_FILES = 5
+        /** 사용자 1인당 하루 최대 분석 요청 횟수. */
+        private const val DAILY_REQUEST_LIMIT = 5L
     }
 
     private fun toGuideDto(result: AnalysisResult): GuideResponseDto {

@@ -3,9 +3,11 @@ package com.back.omos.domain.analysis.controller
 import com.back.omos.domain.analysis.dto.GuideResponseDto
 import com.back.omos.domain.analysis.dto.PseudoCodeResponseDto
 import com.back.omos.domain.analysis.service.ContextAnalyzerService
+import com.back.omos.global.auth.principal.OAuthPrincipal
 import com.back.omos.global.response.CommonResponse
 
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
@@ -28,24 +30,27 @@ class ContextAnalyzerController(
     /**
      * 이슈에 대한 코드 수정 가이드 조회
      *
-     * 캐시에 분석 결과가 있으면 즉시 반환하고, 없으면 GitHub 소스코드 수집 →
-     * GLM API 분석 → DB 저장 순으로 처리한 뒤 반환합니다.
+     * 사용자별 캐시 → 횟수 제한 → 이슈별 캐시 → 신규 생성 순으로 처리합니다.
      *
-     * - 캐시 HIT: 저장된 분석 결과를 즉시 반환
+     * - 사용자 캐시 HIT: 해당 사용자의 기존 요청 결과를 즉시 반환
+     * - 이슈 캐시 HIT: 다른 사용자의 분석 결과를 재사용
      * - 캐시 MISS: 신규 분석 생성 후 반환 (시간 소요)
      *
+     * @param principal 인증된 사용자의 세션 정보 ([OAuthPrincipal])
      * @param issueId 분석할 이슈의 고유 식별자
      * @return [GuideResponseDto] 수정 대상 파일 경로, 가이드라인, 사이드 이펙트 포함
      * @throws AnalysisException ISSUE_NOT_FOUND - 이슈가 존재하지 않는 경우
+     * @throws AnalysisException ANALYSIS_RATE_LIMIT_EXCEEDED - 일일 분석 요청 횟수 초과 시
      * @throws AnalysisException GITHUB_API_FAIL - GitHub API 호출 실패 시
      * @throws AnalysisException GLM_API_FAIL - GLM API 호출 실패 시
      * @throws AnalysisException ANALYSIS_GENERATION_FAIL - 분석 생성 중 오류 발생 시
      */
     @GetMapping("/{issueId}/guide")
     fun getGuide(
+        @AuthenticationPrincipal principal: OAuthPrincipal,
         @PathVariable issueId: Long
     ): ResponseEntity<CommonResponse<GuideResponseDto>> {
-        val result = contextAnalyzerService.getGuide(issueId)
+        val result = contextAnalyzerService.getGuide(issueId, principal.githubId)
         return ResponseEntity.ok(
             CommonResponse.success(result)
         )
@@ -54,24 +59,27 @@ class ContextAnalyzerController(
     /**
      * 이슈에 대한 의사 코드(Pseudo Code) 조회
      *
-     * 캐시에 분석 결과가 있으면 즉시 반환하고, 없으면 GitHub 소스코드 수집 →
-     * GLM API 분석 → DB 저장 순으로 처리한 뒤 반환합니다.
+     * 사용자별 캐시 → 횟수 제한 → 이슈별 캐시 → 신규 생성 순으로 처리합니다.
      *
-     * - 캐시 HIT: 저장된 분석 결과를 즉시 반환
+     * - 사용자 캐시 HIT: 해당 사용자의 기존 요청 결과를 즉시 반환
+     * - 이슈 캐시 HIT: 다른 사용자의 분석 결과를 재사용
      * - 캐시 MISS: 신규 분석 생성 후 반환 (시간 소요)
      *
+     * @param principal 인증된 사용자의 세션 정보 ([OAuthPrincipal])
      * @param issueId 분석할 이슈의 고유 식별자
      * @return [PseudoCodeResponseDto] 수정 대상 파일 경로, 의사 코드 포함
      * @throws AnalysisException ISSUE_NOT_FOUND - 이슈가 존재하지 않는 경우
+     * @throws AnalysisException ANALYSIS_RATE_LIMIT_EXCEEDED - 일일 분석 요청 횟수 초과 시
      * @throws AnalysisException GITHUB_API_FAIL - GitHub API 호출 실패 시
      * @throws AnalysisException GLM_API_FAIL - GLM API 호출 실패 시
      * @throws AnalysisException ANALYSIS_GENERATION_FAIL - 분석 생성 중 오류 발생 시
      */
     @GetMapping("/{issueId}/pseudo")
     fun getPseudoCode(
+        @AuthenticationPrincipal principal: OAuthPrincipal,
         @PathVariable issueId: Long
     ): ResponseEntity<CommonResponse<PseudoCodeResponseDto>> {
-        val result = contextAnalyzerService.getPseudoCode(issueId)
+        val result = contextAnalyzerService.getPseudoCode(issueId, principal.githubId)
         return ResponseEntity.ok(
             CommonResponse.success(result)
         )

@@ -24,6 +24,7 @@ enum class AnalysisErrorCode(
 ) : ErrorCode {
     ISSUE_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 이슈를 찾을 수 없습니다."),
     ANALYSIS_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 이슈에 대한 분석 결과가 존재하지 않습니다."),
+    ANALYSIS_RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "오늘의 분석 요청 횟수를 초과하였습니다."),
     ANALYSIS_GENERATION_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "코드 분석 가이드 생성에 실패하였습니다."),
     GITHUB_API_FAIL(HttpStatus.BAD_GATEWAY, "GitHub API 호출에 실패하였습니다."),
     GLM_API_FAIL(HttpStatus.BAD_GATEWAY, "GLM API 호출에 실패하였습니다.");
