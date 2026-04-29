@@ -4,8 +4,10 @@ import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrDetailRes
 import com.back.omos.domain.prdraft.dto.PrHistoryRes
 import com.back.omos.domain.prdraft.dto.PrInfoRes
+import com.back.omos.domain.prdraft.dto.PrPageRes
 import com.back.omos.domain.prdraft.dto.PrTranslateRes
 import com.back.omos.domain.prdraft.dto.UpdatePrReq
+import org.springframework.data.domain.Pageable
 
 /**
  * PR 초안 생성, 조회, 수정, 삭제, 번역 기능을 제공하는 Service 인터페이스입니다.
@@ -41,12 +43,13 @@ interface PrDraftService {
     fun getOne(githubId: String, prDraftId: Long): PrDetailRes
 
     /**
-     * 사용자가 생성한 PR 초안 목록을 최신순으로 조회합니다.
+     * 사용자가 생성한 PR 초안 목록을 최신순으로 페이징 조회합니다.
      *
      * @param githubId 조회할 사용자의 GitHub ID
-     * @return PR 초안 목록 (최신순)
+     * @param pageable 페이지 정보
+     * @return PR 초안 페이지 (최신순)
      */
-    fun getHistory(githubId: String): List<PrHistoryRes>
+    fun getHistory(githubId: String, pageable: Pageable): PrPageRes<PrHistoryRes>
 
     /**
      * PR 초안의 제목과 본문을 수정합니다.

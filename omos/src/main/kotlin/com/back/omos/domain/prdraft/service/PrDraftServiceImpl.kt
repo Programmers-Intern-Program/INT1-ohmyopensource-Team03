@@ -5,8 +5,10 @@ import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrDetailRes
 import com.back.omos.domain.prdraft.dto.PrHistoryRes
 import com.back.omos.domain.prdraft.dto.PrInfoRes
+import com.back.omos.domain.prdraft.dto.PrPageRes
 import com.back.omos.domain.prdraft.dto.PrTranslateRes
 import com.back.omos.domain.prdraft.dto.UpdatePrReq
+import org.springframework.data.domain.Pageable
 import com.back.omos.domain.prdraft.ai.AiClient
 import com.back.omos.domain.prdraft.entity.PrDraft
 import com.back.omos.domain.prdraft.github.GitHubClient
@@ -19,6 +21,7 @@ import com.back.omos.global.exception.exceptions.AuthException
 import com.back.omos.global.exception.exceptions.IssueException
 import com.back.omos.global.exception.exceptions.PrDraftException
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -105,6 +108,7 @@ class PrDraftServiceImpl(
      * @return PR 초안 상세 정보 (diffContent 포함)
      * @throws PrDraftException 존재하지 않는 PR 초안이거나 본인 소유가 아닌 경우
      */
+    @Transactional(readOnly = true)
     override fun getOne(githubId: String, prDraftId: Long): PrDetailRes {
         val prDraft = prDraftRepository.findByIdWithIssueAndUserGithubId(prDraftId, githubId)
             ?: throw PrDraftException(PrDraftErrorCode.PR_DRAFT_NOT_FOUND)
@@ -117,9 +121,12 @@ class PrDraftServiceImpl(
      * @param githubId 조회할 사용자의 GitHub ID
      * @return PR 초안 목록 (최신순)
      */
-    override fun getHistory(githubId: String): List<PrHistoryRes> {
-        return prDraftRepository.findAllWithIssueByUserGithubId(githubId)
-            .map { PrHistoryRes.from(it) }
+    @Transactional(readOnly = true)
+    override fun getHistory(githubId: String, pageable: Pageable): PrPageRes<PrHistoryRes> {
+        return PrPageRes.from(
+            prDraftRepository.findAllWithIssueByUserGithubId(githubId, pageable)
+                .map { PrHistoryRes.from(it) }
+        )
     }
 
     /**
@@ -131,6 +138,7 @@ class PrDraftServiceImpl(
      * @return 수정된 PR 초안 상세 정보
      * @throws PrDraftException 존재하지 않는 PR 초안이거나 본인 소유가 아닌 경우
      */
+    @Transactional
     override fun update(githubId: String, prDraftId: Long, request: UpdatePrReq): PrDetailRes {
         val prDraft = prDraftRepository.findByIdWithIssueAndUserGithubId(prDraftId, githubId)
             ?: throw PrDraftException(PrDraftErrorCode.PR_DRAFT_NOT_FOUND)
@@ -188,6 +196,7 @@ class PrDraftServiceImpl(
      * @param prDraftId 삭제할 PR 초안 ID
      * @throws PrDraftException 존재하지 않는 PR 초안이거나 본인 소유가 아닌 경우
      */
+    @Transactional
     override fun delete(githubId: String, prDraftId: Long) {
         val prDraft = prDraftRepository.findByIdAndUserGithubId(prDraftId, githubId)
             ?: throw PrDraftException(PrDraftErrorCode.PR_DRAFT_NOT_FOUND)

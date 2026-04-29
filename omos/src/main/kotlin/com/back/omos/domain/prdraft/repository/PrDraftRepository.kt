@@ -1,6 +1,8 @@
 package com.back.omos.domain.prdraft.repository
 
 import com.back.omos.domain.prdraft.entity.PrDraft
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -21,16 +23,20 @@ import org.springframework.data.repository.query.Param
 interface PrDraftRepository : JpaRepository<PrDraft, Long> {
 
     /**
-     * 특정 사용자의 PR 초안 목록을 이슈 정보와 함께 생성일 내림차순으로 조회합니다.
+     * 특정 사용자의 PR 초안 목록을 이슈 정보와 함께 생성일 내림차순으로 페이징 조회합니다.
      *
      * <p>
-     * fetch join을 사용하여 issue를 한 번의 쿼리로 함께 조회합니다.
+     * fetch join과 페이징을 함께 사용하기 위해 countQuery를 분리합니다.
      *
      * @param githubId 조회할 사용자의 GitHub ID
-     * @return PR 초안 목록 (최신순, issue 포함)
+     * @param pageable 페이지 정보
+     * @return PR 초안 페이지 (최신순, issue 포함)
      */
-    @Query("SELECT pd FROM PrDraft pd JOIN FETCH pd.issue WHERE pd.user.githubId = :githubId ORDER BY pd.createdAt DESC")
-    fun findAllWithIssueByUserGithubId(@Param("githubId") githubId: String): List<PrDraft>
+    @Query(
+        value = "SELECT pd FROM PrDraft pd JOIN FETCH pd.issue WHERE pd.user.githubId = :githubId ORDER BY pd.createdAt DESC",
+        countQuery = "SELECT COUNT(pd) FROM PrDraft pd WHERE pd.user.githubId = :githubId"
+    )
+    fun findAllWithIssueByUserGithubId(@Param("githubId") githubId: String, pageable: Pageable): Page<PrDraft>
 
     /**
      * PR 초안 ID와 사용자 GitHub ID로 PR 초안을 조회합니다.
