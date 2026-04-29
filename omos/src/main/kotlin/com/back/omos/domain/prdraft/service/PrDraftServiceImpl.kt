@@ -5,8 +5,10 @@ import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrDetailRes
 import com.back.omos.domain.prdraft.dto.PrHistoryRes
 import com.back.omos.domain.prdraft.dto.PrInfoRes
+import com.back.omos.domain.prdraft.dto.PrPageRes
 import com.back.omos.domain.prdraft.dto.PrTranslateRes
 import com.back.omos.domain.prdraft.dto.UpdatePrReq
+import org.springframework.data.domain.Pageable
 import com.back.omos.domain.prdraft.ai.AiClient
 import com.back.omos.domain.prdraft.entity.PrDraft
 import com.back.omos.domain.prdraft.github.GitHubClient
@@ -117,9 +119,11 @@ class PrDraftServiceImpl(
      * @param githubId 조회할 사용자의 GitHub ID
      * @return PR 초안 목록 (최신순)
      */
-    override fun getHistory(githubId: String): List<PrHistoryRes> {
-        return prDraftRepository.findAllWithIssueByUserGithubId(githubId)
-            .map { PrHistoryRes.from(it) }
+    override fun getHistory(githubId: String, pageable: Pageable): PrPageRes<PrHistoryRes> {
+        return PrPageRes.from(
+            prDraftRepository.findAllWithIssueByUserGithubId(githubId, pageable)
+                .map { PrHistoryRes.from(it) }
+        )
     }
 
     /**
