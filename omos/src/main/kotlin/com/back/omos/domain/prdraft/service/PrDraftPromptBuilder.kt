@@ -1,6 +1,5 @@
 package com.back.omos.domain.prdraft.service
 
-import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.github.GitHubPrRes
 import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
@@ -45,13 +44,12 @@ class PrDraftPromptBuilder {
     /**
      * PR 초안 생성을 위한 프롬프트 문자열을 구성합니다.
      *
-     * @param req PR 생성 요청 DTO
      * @param diffContent GitHub Compare API로 가져온 diff 내용
      * @param contributing CONTRIBUTING.md 내용 (없으면 null)
      * @param prs 참고용 기존 병합 PR 목록
      * @return AI에 전달할 프롬프트 문자열
      */
-    fun build(req: CreatePrReq, diffContent: String, contributing: String?, prs: List<GitHubPrRes>): String {
+    fun build(diffContent: String, contributing: String?, prs: List<GitHubPrRes>): String {
         val contextSection = when {
             contributing != null -> "\n[CONTRIBUTING.md]\n$contributing\n"
             prs.isNotEmpty() -> {

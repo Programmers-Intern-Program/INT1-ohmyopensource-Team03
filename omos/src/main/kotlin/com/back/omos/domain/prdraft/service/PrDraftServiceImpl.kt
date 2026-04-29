@@ -18,7 +18,6 @@ import com.back.omos.global.exception.errorCode.PrDraftErrorCode
 import com.back.omos.global.exception.exceptions.AuthException
 import com.back.omos.global.exception.exceptions.IssueException
 import com.back.omos.global.exception.exceptions.PrDraftException
-import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -50,8 +49,6 @@ class PrDraftServiceImpl(
     private val gitHubClient: GitHubClient
 ) : PrDraftService {
 
-    private val logger = KotlinLogging.logger {}
-
     /**
      * GitHub Compare API로 diff를 가져와 AI를 호출하여 PR 초안을 생성하고 저장합니다.
      *
@@ -77,7 +74,7 @@ class PrDraftServiceImpl(
         val prs = if (contributing == null) gitHubClient.fetchMergedPrs(request.upstreamRepo) else emptyList()
 
         // prompt 작성
-        val prompt = prDraftPromptBuilder.build(request, diffContent, contributing, prs)
+        val prompt = prDraftPromptBuilder.build(diffContent, contributing, prs)
 
         // AI 호출
         val aiResult = aiClient.generatePrDraft(prompt)

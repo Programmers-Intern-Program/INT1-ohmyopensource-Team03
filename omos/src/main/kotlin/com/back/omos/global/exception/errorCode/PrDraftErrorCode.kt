@@ -21,4 +21,5 @@ enum class PrDraftErrorCode(
     override val message: String
 ) : ErrorCode {
     PR_DRAFT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 PR 초안을 찾을 수 없습니다."),
+    DIFF_NOT_FOUND(HttpStatus.NOT_FOUND, "브랜치 또는 레포지토리를 찾을 수 없습니다."),
 }

@@ -43,7 +43,7 @@ interface GitHubClient {
      *
      * @param upstreamRepo owner/repo 형식의 upstream 레포지토리
      * @param baseBranch 기준 브랜치 (예: main)
-     * @param forkOwner 포크한 사용자의 GitHub ID
+     * @param forkOwner 포크한 사용자의 GitHub 로그인명
      * @param headBranch 작업 브랜치 (예: fix/issue-123)
      * @return 변경된 파일들의 patch를 합친 diff 문자열
      */
