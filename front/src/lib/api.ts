@@ -27,29 +27,80 @@ export interface RecommendIssueRes {
   summary: string;
   score: number;
   labels: string[] | null;
-  status: "OPEN" | "CLOSED";
+  status: string;
 }
 
-export interface Issue {
+export interface RecommendIssueHistoryRes {
   id: number;
   repoFullName: string;
   issueNumber: number;
   title: string;
-  content: string | null;
+  summary: string;
+  score: number;
   labels: string[] | null;
-  status: "OPEN" | "CLOSED";
-  createdAt: string;
-  updatedAt: string;
+  status: string;
+  isAnalyzed: boolean;
+  analysisResultId: number | null;
+}
+
+export interface GuideResponseDto {
+  filePaths: string[];
+  guideline: string;
+  sideEffects: string;
+}
+
+export interface PseudoCodeResponseDto {
+  filePaths: string[];
+  pseudoCode: string;
 }
 
 export interface CreatePrReq {
-  issueId: number;
-  diffContent: string;
+  upstreamRepo: string;
+  githubIssueNumber: number;
+  baseBranch: string;
+  headBranch: string;
+}
+
+export interface UpdatePrReq {
+  title?: string;
+  body?: string;
 }
 
 export interface PrInfoRes {
+  id: number;
   title: string;
   body: string;
+}
+
+export interface PrDetailRes {
+  id: number;
+  repoFullName: string;
+  issueTitle: string;
+  title: string;
+  body: string;
+  diffContent: string;
+  createdAt: string;
+}
+
+export interface PrHistoryRes {
+  id: number;
+  repoFullName: string;
+  issueTitle: string;
+  title: string;
+  createdAt: string;
+}
+
+export interface PrPageRes<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  page: number;
+  size: number;
+}
+
+export interface PrTranslateRes {
+  titleEn: string;
+  bodyEn: string;
   githubUrl: string;
 }
 
@@ -108,15 +159,26 @@ export const userApi = {
 // ─── Issue API ───────────────────────────────────────────
 
 export const issueApi = {
-  getAll(): Promise<Issue[]> {
-    return apiFetch("/api/v1/issues/");
+  crawlSearch(q: string): Promise<CommonResponse<RecommendIssueRes[]>> {
+    return apiFetch(`/api/v1/issues/crawl/search?q=${encodeURIComponent(q)}`, {
+      method: "POST",
+    });
   },
 
-  crawlSearch(q: string): Promise<RecommendIssueRes[]> {
-    return apiFetch(
-      `/api/v1/issues/crawl/search?q=${encodeURIComponent(q)}`,
-      { method: "POST" }
-    );
+  recommend(): Promise<CommonResponse<RecommendIssueRes[]>> {
+    return apiFetch("/api/v1/issues/recommend");
+  },
+
+  getHistory(): Promise<CommonResponse<RecommendIssueHistoryRes[]>> {
+    return apiFetch("/api/v1/issues/recommend/history");
+  },
+
+  getGuide(issueId: number): Promise<CommonResponse<GuideResponseDto>> {
+    return apiFetch(`/api/v1/issues/${issueId}/guide`);
+  },
+
+  getPseudoCode(issueId: number): Promise<CommonResponse<PseudoCodeResponseDto>> {
+    return apiFetch(`/api/v1/issues/${issueId}/pseudo`);
   },
 };
 
@@ -124,9 +186,32 @@ export const issueApi = {
 
 export const prApi = {
   create(req: CreatePrReq): Promise<CommonResponse<PrInfoRes>> {
-    return apiFetch("/api/v1/pr/", {
+    return apiFetch("/api/v1/pr", {
       method: "POST",
       body: JSON.stringify(req),
     });
+  },
+
+  getOne(id: number): Promise<CommonResponse<PrDetailRes>> {
+    return apiFetch(`/api/v1/pr/${id}`);
+  },
+
+  getHistory(page = 0, size = 5): Promise<CommonResponse<PrPageRes<PrHistoryRes>>> {
+    return apiFetch(`/api/v1/pr/history?page=${page}&size=${size}`);
+  },
+
+  update(id: number, req: UpdatePrReq): Promise<CommonResponse<PrDetailRes>> {
+    return apiFetch(`/api/v1/pr/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(req),
+    });
+  },
+
+  translate(id: number): Promise<CommonResponse<PrTranslateRes>> {
+    return apiFetch(`/api/v1/pr/${id}/translate`, { method: "POST" });
+  },
+
+  delete(id: number): Promise<CommonResponse<null>> {
+    return apiFetch(`/api/v1/pr/${id}`, { method: "DELETE" });
   },
 };
