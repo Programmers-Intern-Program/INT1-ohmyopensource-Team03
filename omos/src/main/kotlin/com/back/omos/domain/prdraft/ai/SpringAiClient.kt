@@ -6,6 +6,7 @@ import com.back.omos.global.exception.exceptions.AiException
 import com.fasterxml.jackson.databind.ObjectMapper
 import mu.KotlinLogging
 import org.springframework.ai.chat.model.ChatModel
+import org.springframework.ai.chat.prompt.Prompt
 import org.springframework.stereotype.Component
 import java.security.MessageDigest
 import java.time.Instant
@@ -46,6 +47,69 @@ class SpringAiClient(
     }
 
     /**
+     * 생성된 PR 초안의 품질을 LLM-as-judge 방식으로 채점합니다.
+     *
+     * <p>
+     * 원본 프롬프트(diff 포함)와 생성 결과를 AI에게 다시 전달하여
+     * 0~10점 점수와 채점 근거를 JSON으로 반환받습니다.
+     * 채점 결과는 Langfuse의 해당 trace에 score로 기록됩니다.
+     *
+     * <p><b>비동기 처리:</b><br>
+     * AI 호출은 별도 스레드에서 실행되어 PR 생성 응답 시간에 영향을 주지 않습니다.
+     *
+     * @param traceId 점수를 붙일 Langfuse trace ID
+     * @param originalPrompt PR 생성에 사용된 원본 프롬프트
+     * @param generatedTitle AI가 생성한 PR 제목
+     * @param generatedBody AI가 생성한 PR 본문
+     */
+    private fun evaluateAsync(
+        traceId: String,
+        originalPrompt: String,
+        generatedTitle: String,
+        generatedBody: String
+    ) {
+        Thread {
+            try {
+                val judgePrompt = """
+                    아래 PR 초안이 diff 내용을 얼마나 잘 반영했는지 평가해줘.
+
+                    [원본 프롬프트 (diff 포함)]
+                    $originalPrompt
+
+                    [생성된 PR 제목]
+                    $generatedTitle
+
+                    [생성된 PR 본문]
+                    $generatedBody
+
+                    [평가 기준]
+                    - 제목이 변경 내용을 정확히 요약하는가 (0~3점)
+                    - 본문이 변경 이유와 맥락을 충분히 설명하는가 (0~3점)
+                    - conventional commits 형식을 따르는가 (0~2점)
+                    - 불필요하거나 부정확한 내용이 없는가 (0~2점)
+
+                    반드시 아래 JSON 형식으로만 응답해.
+                    {"score": 8.5, "reason": "채점 근거 한 줄"}
+                """.trimIndent()
+
+                val judgeResponse = chatModel.call(judgePrompt) ?: return@Thread
+
+                // JSON에서 score와 reason 추출
+                val json = extractJson(judgeResponse) ?: return@Thread
+                val node = objectMapper.readTree(json)
+                val score = node.get("score")?.asDouble() ?: return@Thread
+                val reason = node.get("reason")?.asText() ?: ""
+
+                langfuseClient.recordScore(traceId, score, reason)
+                logger.debug { "LLM judge 채점 완료: score=$score" }
+            } catch (e: Exception) {
+                // 채점 실패는 메인 흐름에 영향을 주지 않음
+                logger.warn { "LLM judge 채점 실패 (무시됨): ${e.message}" }
+            }
+        }.start()
+    }
+
+    /**
      * 전달받은 프롬프트를 GLM에 전달하여 PR 초안을 생성합니다.
      *
      * <p>
@@ -57,21 +121,35 @@ class SpringAiClient(
      */
     override fun generatePrDraft(prompt: String): AiPrResult {
         val startTime = Instant.now()
-        val response = chatModel.call(prompt)
-            .takeIf { it.isNotBlank() }
-            ?: throw AiException(AiErrorCode.AI_RESPONSE_EMPTY)
+        val chatResponse = chatModel.call(Prompt(prompt))
         val endTime = Instant.now()
 
-        // 응답시간·프롬프트·결과를 Langfuse에 비동기 기록 (실패해도 메인 흐름에 영향 없음)
-        langfuseClient.recordGeneration(
+        val response = chatResponse.result.output.text
+            ?.takeIf { it.isNotBlank() }
+            ?: throw AiException(AiErrorCode.AI_RESPONSE_EMPTY)
+
+        // 토큰 수는 GLM API 응답에 포함된 usage 메타데이터에서 추출
+        val usage = chatResponse.metadata.usage
+
+        // 응답시간·토큰 수·프롬프트·결과를 Langfuse에 비동기 기록 (실패해도 메인 흐름에 영향 없음)
+        val traceId = langfuseClient.recordGeneration(
             name = GENERATION_PR_DRAFT,
             input = prompt,
             output = response,
             startTime = startTime,
-            endTime = endTime
+            endTime = endTime,
+            inputTokens = usage?.promptTokens?.toInt(),
+            outputTokens = usage?.completionTokens?.toInt()
         )
 
-        return parseResponse(response)
+        val result = parseResponse(response)
+
+        // traceId가 있을 때만 LLM judge 채점 (비동기, 응답 시간에 영향 없음)
+        if (traceId != null) {
+            evaluateAsync(traceId, prompt, result.title, result.body)
+        }
+
+        return result
     }
 
     /**
@@ -102,18 +180,24 @@ class SpringAiClient(
         """.trimIndent()
 
         val startTime = Instant.now()
-        val response = chatModel.call(prompt)
-            .takeIf { it.isNotBlank() }
-            ?: throw AiException(AiErrorCode.AI_RESPONSE_EMPTY)
+        val chatResponse = chatModel.call(Prompt(prompt))
         val endTime = Instant.now()
 
-        // 응답시간·프롬프트·결과를 Langfuse에 비동기 기록 (실패해도 메인 흐름에 영향 없음)
+        val response = chatResponse.result.output.text
+            ?.takeIf { it.isNotBlank() }
+            ?: throw AiException(AiErrorCode.AI_RESPONSE_EMPTY)
+
+        val usage = chatResponse.metadata.usage
+
+        // 응답시간·토큰 수·프롬프트·결과를 Langfuse에 비동기 기록 (실패해도 메인 흐름에 영향 없음)
         langfuseClient.recordGeneration(
             name = GENERATION_TRANSLATE,
             input = prompt,
             output = response,
             startTime = startTime,
-            endTime = endTime
+            endTime = endTime,
+            inputTokens = usage?.promptTokens?.toInt(),
+            outputTokens = usage?.completionTokens?.toInt()
         )
 
         return parseResponse(response)
