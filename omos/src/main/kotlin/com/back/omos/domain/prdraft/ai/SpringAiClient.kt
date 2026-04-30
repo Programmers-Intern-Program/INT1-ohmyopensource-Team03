@@ -1,5 +1,6 @@
 package com.back.omos.domain.prdraft.ai
 
+import com.back.omos.global.ai.LangfuseClient
 import com.back.omos.global.exception.errorCode.AiErrorCode
 import com.back.omos.global.exception.exceptions.AiException
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -7,6 +8,7 @@ import mu.KotlinLogging
 import org.springframework.ai.chat.model.ChatModel
 import org.springframework.stereotype.Component
 import java.security.MessageDigest
+import java.time.Instant
 
 /**
  * Spring AI를 사용하여 GLM 모델을 호출하는 실제 AI 구현체입니다.
@@ -19,35 +21,64 @@ import java.security.MessageDigest
  * AI 응답에 마크다운 코드 블록이 포함될 수 있어,
  * 정규식으로 JSON 객체를 추출한 뒤 역직렬화합니다.
  *
+ * <p><b>성능 기록:</b><br>
+ * 각 AI 호출의 프롬프트·응답·응답시간을 {@link LangfuseClient}를 통해 비동기로 기록합니다.
+ * Langfuse 미설정 시 기록을 건너뛰므로 기능에는 영향을 주지 않습니다.
+ *
  * @author 5h6vm
  * @since 2026-04-24
  * @see AiClient
+ * @see LangfuseClient
  */
 @Component
 class SpringAiClient(
     private val chatModel: ChatModel,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val langfuseClient: LangfuseClient
 ) : AiClient {
 
     private val logger = KotlinLogging.logger {}
 
+    companion object {
+        // 프롬프트 내용을 변경할 때 버전을 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
+        private const val GENERATION_PR_DRAFT = "pr-draft-v1"
+        private const val GENERATION_TRANSLATE = "pr-translate-v1"
+    }
+
     /**
      * 전달받은 프롬프트를 GLM에 전달하여 PR 초안을 생성합니다.
+     *
+     * <p>
+     * 호출 전후로 시각을 측정하여 응답시간을 포함한 기록을 Langfuse에 비동기로 전송합니다.
      *
      * @param prompt AI에게 전달할 PR 생성 프롬프트
      * @return AI가 생성한 PR 제목 및 본문
      * @throws AiException AI 응답이 비어 있거나 JSON 파싱에 실패한 경우
      */
     override fun generatePrDraft(prompt: String): AiPrResult {
+        val startTime = Instant.now()
         val response = chatModel.call(prompt)
             .takeIf { it.isNotBlank() }
             ?: throw AiException(AiErrorCode.AI_RESPONSE_EMPTY)
+        val endTime = Instant.now()
+
+        // 응답시간·프롬프트·결과를 Langfuse에 비동기 기록 (실패해도 메인 흐름에 영향 없음)
+        langfuseClient.recordGeneration(
+            name = GENERATION_PR_DRAFT,
+            input = prompt,
+            output = response,
+            startTime = startTime,
+            endTime = endTime
+        )
 
         return parseResponse(response)
     }
 
     /**
      * 한국어 PR 제목과 본문을 영어로 번역합니다.
+     *
+     * <p>
+     * 호출 전후로 시각을 측정하여 응답시간을 포함한 기록을 Langfuse에 비동기로 전송합니다.
      *
      * @param title 번역할 PR 제목 (한국어)
      * @param body 번역할 PR 본문 (한국어)
@@ -70,9 +101,20 @@ class SpringAiClient(
             $body
         """.trimIndent()
 
+        val startTime = Instant.now()
         val response = chatModel.call(prompt)
             .takeIf { it.isNotBlank() }
             ?: throw AiException(AiErrorCode.AI_RESPONSE_EMPTY)
+        val endTime = Instant.now()
+
+        // 응답시간·프롬프트·결과를 Langfuse에 비동기 기록 (실패해도 메인 흐름에 영향 없음)
+        langfuseClient.recordGeneration(
+            name = GENERATION_TRANSLATE,
+            input = prompt,
+            output = response,
+            startTime = startTime,
+            endTime = endTime
+        )
 
         return parseResponse(response)
     }
