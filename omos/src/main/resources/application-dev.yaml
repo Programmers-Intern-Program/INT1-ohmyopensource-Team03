@@ -63,6 +63,12 @@ app:
   oauth2:
     redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth/callback}
 
+# Langfuse 설정 (localhost:3001에서 프로젝트 생성 후 발급받은 키로 교체)
+langfuse:
+  host: ${LANGFUSE_HOST:http://localhost:3001}
+  public-key: ${LANGFUSE_PUBLIC_KEY:}
+  secret-key: ${LANGFUSE_SECRET_KEY:}
+
 # 로깅 레벨
 logging:
   level:
