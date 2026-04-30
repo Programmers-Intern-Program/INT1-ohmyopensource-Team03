@@ -3,6 +3,8 @@ spring:
     activate:
       on-profile: dev
   ai:
+    retry:
+      max-attempts: 2 # 전체 1번 재시도 허용
     openai:
       api-key: ${GLM_API_KEY}
       base-url: https://aigw.alpha.grepp.co/v1
