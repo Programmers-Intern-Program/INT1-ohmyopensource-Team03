@@ -65,4 +65,17 @@ interface GitHubClient {
      *         GITHUB_API_FAIL — API 호출 실패 또는 Rate Limit 초과 시
      */
     fun fetchTree(owner: String, repo: String): List<String>
+
+    /**
+     * GitHub GraphQL API를 통해 여러 파일의 내용을 한 번에 가져옵니다.
+     *
+     * fetchFileContent 순차 호출 대비 응답시간이 개선됩니다.
+     *
+     * @param owner 레포지토리 소유자
+     * @param repo 레포지토리명
+     * @param paths 조회할 파일 경로 목록
+     * @return 파일 경로 → 내용 맵. 조회 실패한 파일은 맵에서 제외됩니다.
+     * @throws AnalysisException GITHUB_API_FAIL — API 호출 실패 시
+     */
+    fun fetchFileContents(owner: String, repo: String, paths: List<String>): Map<String, String>
 }

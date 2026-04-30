@@ -165,4 +165,53 @@ class GitHubClientImpl(
             )
         }
     }
+    override fun fetchFileContents(owner: String, repo: String, paths: List<String>): Map<String, String> {
+        if (paths.isEmpty()) return emptyMap()
+
+        val fileQueries = paths.mapIndexed { index, path ->
+            """file$index: object(expression: "HEAD:$path") { ... on Blob { text } }"""
+        }.joinToString("\n")
+
+        val query = """
+        query {
+            repository(owner: "$owner", name: "$repo") {
+                $fileQueries
+            }
+        }
+    """.trimIndent()
+
+        return try {
+            val response = restClient.post()
+                .uri("/graphql")
+                .header(HttpHeaders.ACCEPT, "application/json")
+                .body(mapOf("query" to query))
+                .retrieve()
+                .body(Map::class.java)
+                ?: throw AnalysisException(
+                    AnalysisErrorCode.GITHUB_API_FAIL,
+                    "[GitHubClientImpl#fetchFileContents] 응답이 null입니다: $owner/$repo",
+                    "파일 내용을 가져오는 데 실패했습니다."
+                )
+
+            @Suppress("UNCHECKED_CAST")
+            val repository = (response["data"] as? Map<String, Any>)
+                ?.get("repository") as? Map<String, Any>
+                ?: return emptyMap()
+
+            paths.mapIndexed { index, path ->
+                val text = (repository["file$index"] as? Map<String, Any>)
+                    ?.get("text") as? String
+                if (text != null) path to text else null
+            }.filterNotNull().toMap()
+
+        } catch (e: AnalysisException) {
+            throw e
+        } catch (e: RestClientResponseException) {
+            throw AnalysisException(
+                AnalysisErrorCode.GITHUB_API_FAIL,
+                "[GitHubClientImpl#fetchFileContents] HTTP ${e.statusCode}: $owner/$repo",
+                "파일 내용을 가져오는 데 실패했습니다."
+            )
+        }
+    }
 }
