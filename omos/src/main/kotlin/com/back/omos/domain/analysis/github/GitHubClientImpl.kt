@@ -168,17 +168,22 @@ class GitHubClientImpl(
     override fun fetchFileContents(owner: String, repo: String, paths: List<String>): Map<String, String> {
         if (paths.isEmpty()) return emptyMap()
 
+        // 특수문자 이스케이프 (GraphQL Injection 방지)
+        val safeOwner = owner.replace("\\", "\\\\").replace("\"", "\\\"")
+        val safeRepo = repo.replace("\\", "\\\\").replace("\"", "\\\"")
+
         val fileQueries = paths.mapIndexed { index, path ->
-            """file$index: object(expression: "HEAD:$path") { ... on Blob { text } }"""
+            val safePath = path.replace("\\", "\\\\").replace("\"", "\\\"")
+            """file$index: object(expression: "HEAD:$safePath") { ... on Blob { text } }"""
         }.joinToString("\n")
 
         val query = """
-        query {
-            repository(owner: "$owner", name: "$repo") {
-                $fileQueries
-            }
+    query {
+        repository(owner: "$safeOwner", name: "$safeRepo") {
+            $fileQueries
         }
-    """.trimIndent()
+    }
+""".trimIndent()
 
         return try {
             val response = restClient.post()
