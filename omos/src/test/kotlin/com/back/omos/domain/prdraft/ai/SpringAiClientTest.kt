@@ -1,5 +1,6 @@
 package com.back.omos.domain.prdraft.ai
 
+import com.back.omos.global.ai.LangfuseClient
 import com.back.omos.global.exception.errorCode.AiErrorCode
 import com.back.omos.global.exception.exceptions.AiException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -12,19 +13,43 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.BDDMockito.given
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
-import org.mockito.ArgumentMatchers.anyString
+import org.mockito.kotlin.any
+import org.springframework.ai.chat.messages.AssistantMessage
+import org.springframework.ai.chat.metadata.ChatResponseMetadata
 import org.springframework.ai.chat.model.ChatModel
+import org.springframework.ai.chat.model.ChatResponse
+import org.springframework.ai.chat.model.Generation
+import org.springframework.ai.chat.prompt.Prompt
 
 @ExtendWith(MockitoExtension::class)
 class SpringAiClientTest {
 
     @Mock private lateinit var chatModel: ChatModel
+    @Mock private lateinit var langfuseClient: LangfuseClient
 
     private lateinit var client: SpringAiClient
 
     @BeforeEach
     fun setUp() {
-        client = SpringAiClient(chatModel, jacksonObjectMapper())
+        client = SpringAiClient(chatModel, jacksonObjectMapper(), langfuseClient)
+        // Langfuse 미설정 환경처럼 동작 (score 기록 불필요)
+        given(langfuseClient.recordGeneration(any(), any(), any(), any(), any(), any(), any(), any())).willReturn(null)
+    }
+
+    private fun mockChatResponse(text: String): ChatResponse {
+        val message = org.mockito.Mockito.mock(AssistantMessage::class.java).also {
+            given(it.text).willReturn(text)
+        }
+        val generation = org.mockito.Mockito.mock(Generation::class.java).also {
+            given(it.output).willReturn(message)
+        }
+        val metadata = org.mockito.Mockito.mock(ChatResponseMetadata::class.java).also {
+            given(it.usage).willReturn(null)
+        }
+        return org.mockito.Mockito.mock(ChatResponse::class.java).also {
+            given(it.result).willReturn(generation)
+            given(it.metadata).willReturn(metadata)
+        }
     }
 
     @Nested
@@ -32,7 +57,8 @@ class SpringAiClientTest {
 
         @Test
         fun `정상 JSON 응답을 파싱한다`() {
-            given(chatModel.call(anyString())).willReturn("""{"title":"feat: test","body":"test body"}""")
+            given(chatModel.call(any(Prompt::class.java)))
+                .willReturn(mockChatResponse("""{"title":"feat: test","body":"test body"}"""))
 
             val result = client.generatePrDraft("prompt")
 
@@ -42,8 +68,8 @@ class SpringAiClientTest {
 
         @Test
         fun `마크다운 코드펜스로 감싸진 응답을 파싱한다`() {
-            val response = "```json\n{\"title\":\"feat: test\",\"body\":\"test body\"}\n```"
-            given(chatModel.call(anyString())).willReturn(response)
+            given(chatModel.call(any(Prompt::class.java)))
+                .willReturn(mockChatResponse("```json\n{\"title\":\"feat: test\",\"body\":\"test body\"}\n```"))
 
             val result = client.generatePrDraft("prompt")
 
@@ -56,7 +82,8 @@ class SpringAiClientTest {
 
         @Test
         fun `빈 응답이면 AI_RESPONSE_EMPTY 예외를 던진다`() {
-            given(chatModel.call(anyString())).willReturn("   ")
+            given(chatModel.call(any(Prompt::class.java)))
+                .willReturn(mockChatResponse("   "))
 
             assertThatThrownBy { client.generatePrDraft("prompt") }
                 .isInstanceOf(AiException::class.java)
@@ -66,7 +93,8 @@ class SpringAiClientTest {
 
         @Test
         fun `JSON 파싱 실패 시 AI_RESPONSE_PARSE_FAILED 예외를 던진다`() {
-            given(chatModel.call(anyString())).willReturn("not a json response at all")
+            given(chatModel.call(any(Prompt::class.java)))
+                .willReturn(mockChatResponse("not a json response at all"))
 
             assertThatThrownBy { client.generatePrDraft("prompt") }
                 .isInstanceOf(AiException::class.java)
