@@ -198,10 +198,20 @@ class GitHubClientImpl(
                     "파일 내용을 가져오는 데 실패했습니다."
                 )
 
+            // errors 필드 확인
+            @Suppress("UNCHECKED_CAST")
+            val errors = response["errors"] as? List<*>
+            if (!errors.isNullOrEmpty()) {
+                log.warn("[GitHubClientImpl#fetchFileContents] GraphQL errors: $errors")
+            }
+
             @Suppress("UNCHECKED_CAST")
             val repository = (response["data"] as? Map<String, Any>)
                 ?.get("repository") as? Map<String, Any>
-                ?: return emptyMap()
+                ?: run {
+                    log.warn("[GitHubClientImpl#fetchFileContents] repository가 null입니다: $owner/$repo")
+                    return emptyMap()
+                }
 
             paths.mapIndexed { index, path ->
                 val text = (repository["file$index"] as? Map<String, Any>)
