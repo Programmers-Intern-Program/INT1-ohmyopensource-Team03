@@ -112,13 +112,14 @@ class RecommendServiceImpl(
      */
     private fun saveRecommendationHistory(user: User, recommendations: List<Pair<Issue, String>>) {
         val userId = user.id ?: return
-        val issueIds = recommendations.mapNotNull { (issue, _) -> issue.id }
+        val deduped = recommendations.distinctBy { (issue, _) -> issue.id }
+        val issueIds = deduped.mapNotNull { (issue, _) -> issue.id }
 
         val existingMap = userRecommendedIssueRepository
             .findAllByUserIdAndIssueIdIn(userId, issueIds)
             .associateBy { it.issue.id!! }
 
-        recommendations.forEach { (issue, summary) ->
+        deduped.forEach { (issue, summary) ->
             val issueId = issue.id ?: return@forEach
             val existing = existingMap[issueId]
             if (existing != null) {
