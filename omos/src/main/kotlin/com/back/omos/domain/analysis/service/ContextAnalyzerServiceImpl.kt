@@ -181,6 +181,7 @@ class ContextAnalyzerServiceImpl(
 // 2단계: 동적 배치로 GLM 1차 호출 (최대한 많은 파일 경로 전달)
         val batchSizes = listOf(3300, 3000, 2000, 1000, 700, 300, 100)
         var selectedPaths: List<String> = emptyList()
+        val allFilePathsSet = allFilePaths.toSet()
 
         for (size in batchSizes) {
             try {
@@ -191,13 +192,15 @@ class ContextAnalyzerServiceImpl(
                     filePaths = allFilePaths.take(size)
                 )
                     .asSequence()
-                    .filter { it in allFilePaths.toSet() }
+                    .filter { it in allFilePathsSet }
                     .distinct()
                     .take(MAX_SELECT_FILES)
                     .toList()
                 log.info("[generateAnalysis] GLM selectFiles 성공! 배치 사이즈: $size, 선별 파일: $selectedPaths")
                 break
-            } catch (e: Throwable) {
+            } catch (e: Error) {
+                throw e
+            } catch (e: Exception) {
                 log.warn("[generateAnalysis] GLM selectFiles 실패 (배치 사이즈: $size): ${e.message}")
             }
         }
