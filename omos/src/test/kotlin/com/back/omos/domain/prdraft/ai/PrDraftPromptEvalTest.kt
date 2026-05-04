@@ -1,5 +1,6 @@
 package com.back.omos.domain.prdraft.ai
 
+import com.back.omos.domain.prdraft.github.GitHubPrRes
 import com.back.omos.domain.prdraft.service.PrDraftPromptBuilder
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -30,7 +31,7 @@ import org.springframework.beans.factory.annotation.Qualifier
  * @author 5h6vm
  * @since 2026-04-30
  */
-@Disabled("수동 프롬프트 평가 전용 — 실행 시 @Disabled 제거")
+//@Disabled("수동 프롬프트 평가 전용 — 실행 시 @Disabled 제거")
 @SpringBootTest
 @ActiveProfiles("test")
 class PrDraftPromptEvalTest {
@@ -77,6 +78,40 @@ class PrDraftPromptEvalTest {
         Thread.sleep(60_000)
     }
 
+    @Test
+    fun `CONTRIBUTING md 컨텍스트로 프롬프트 평가`() {
+        try {
+            val prompt = promptBuilder.build(
+                diffContent = EVAL_SAMPLES[0].diff,
+                contributing = SAMPLE_CONTRIBUTING,
+                prs = emptyList()
+            )
+            val result = aiClient.generatePrDraft(prompt)
+            println("제목: ${result.title}")
+            println("본문 미리보기: ${result.body.take(200)}...")
+        } catch (e: Exception) {
+            println("CONTRIBUTING 테스트 실패 (건너뜀): ${e.message}")
+        }
+        Thread.sleep(60_000)
+    }
+
+    @Test
+    fun `기존 PR 컨텍스트로 프롬프트 평가`() {
+        try {
+            val prompt = promptBuilder.build(
+                diffContent = EVAL_SAMPLES[1].diff,
+                contributing = null,
+                prs = SAMPLE_PRS
+            )
+            val result = aiClient.generatePrDraft(prompt)
+            println("제목: ${result.title}")
+            println("본문 미리보기: ${result.body.take(200)}...")
+        } catch (e: Exception) {
+            println("기존 PR 테스트 실패 (건너뜀): ${e.message}")
+        }
+        Thread.sleep(60_000)
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
     // 고정 평가 샘플 (같은 샘플로 버전 간 비교해야 의미 있음 — 임의로 수정 금지)
     // ──────────────────────────────────────────────────────────────────────────
@@ -101,6 +136,54 @@ class PrDraftPromptEvalTest {
                 }
             }
         }
+        val SAMPLE_CONTRIBUTING = """
+            # Contributing Guide
+
+            ## PR 제목
+            - feat:, fix:, refactor:, chore:, docs: 중 하나로 시작, 50자 이내
+
+            ## PR 본문
+            - 변경 이유(Why), 수정 내용(What), 테스트 방법(How to Test) 순으로 작성
+            - 수정 내용은 bullet point로, 기술적 세부사항(타입, 메서드 시그니처 등) 포함
+            - 테스트 방법은 엔드포인트·파라미터·예상 응답을 명시
+        """.trimIndent()
+
+        val SAMPLE_PRS = listOf(
+            GitHubPrRes(
+                title = "feat: 사용자 프로필 이미지 업로드 기능 추가",
+                body = """
+                    ## 변경 이유
+                    프로필 이미지 설정 불가로 UX 불편 피드백 반영
+
+                    ## 수정 내용
+                    - `UserController`에 `POST /api/users/profile-image` 추가
+                    - `MultipartFile` → S3 업로드 후 URL을 `User.profileImageUrl`에 저장
+                    - 파일 크기 5MB, 확장자 jpg/png/webp 제한
+
+                    ## 테스트 방법
+                    POST /api/users/profile-image (multipart/form-data)
+                    Expected: 200 OK { "imageUrl": "https://..." }
+                """.trimIndent(),
+                mergedAt = "2026-04-01T10:00:00Z"
+            ),
+            GitHubPrRes(
+                title = "fix: 토큰 만료 시 갱신 실패 버그 수정",
+                body = """
+                    ## 변경 이유
+                    리프레시 토큰 재발급 시 NullPointerException 발생
+
+                    ## 수정 내용
+                    - `AuthService.refresh()`에 null 체크 추가 → `InvalidTokenException` 반환
+                    - `RefreshToken` 타입 String → String?으로 변경
+
+                    ## 테스트 방법
+                    POST /api/auth/refresh Body: { "refreshToken": null }
+                    Expected: 401 { "message": "유효하지 않은 토큰입니다" }
+                """.trimIndent(),
+                mergedAt = "2026-04-10T14:00:00Z"
+            )
+        )
+
         data class EvalSample(val description: String, val diff: String)
 
         val EVAL_SAMPLES = listOf(

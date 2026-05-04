@@ -43,7 +43,7 @@ class SpringAiClient(
 
     companion object {
         // 프롬프트 내용을 변경할 때 버전을 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
-        private const val GENERATION_PR_DRAFT = "pr-draft-v2"
+        private const val GENERATION_PR_DRAFT = "pr-draft-v3"
         private const val GENERATION_TRANSLATE = "pr-translate-v1"
 
         // LLM judge 채점 전용 풀 — 동시 채점 수를 제한해 스레드 고갈 방지
@@ -75,7 +75,7 @@ class SpringAiClient(
         judgeExecutor.submit {
             try {
                 val judgePrompt = """
-                    아래 PR 초안이 diff 내용을 얼마나 잘 반영했는지 평가해줘.
+                    아래 PR 초안을 diff 기준으로 엄격하게 평가해줘. 관대하게 채점하지 마.
 
                     [원본 프롬프트 (diff 포함)]
                     $originalPrompt
@@ -86,11 +86,13 @@ class SpringAiClient(
                     [생성된 PR 본문]
                     $generatedBody
 
-                    [평가 기준]
-                    - 제목이 변경 내용을 정확히 요약하는가 (0~3점)
-                    - 본문이 변경 이유와 맥락을 충분히 설명하는가 (0~3점)
-                    - conventional commits 형식을 따르는가 (0~2점)
-                    - 불필요하거나 부정확한 내용이 없는가 (0~2점)
+                    [채점 기준] 각 항목을 꼼꼼히 확인하고 부족하면 감점해.
+                    - 제목 (0~3점): feat:/fix: 등 컨벤션 준수 + diff 핵심을 정확히 한 줄로 요약. 두루뭉술하면 감점.
+                    - 변경 내용 (0~3점): 타입 변경·메서드 시그니처·어노테이션 등 기술적 세부사항을 명시했는가. 고수준 요약만 있으면 감점.
+                    - 테스트 방법 (0~2점): 구체적인 엔드포인트·파라미터·예상 결과가 있는가. '확인한다', '호출한다' 수준이면 0점.
+                    - 정확성 (0~2점): diff에 없는 내용을 지어내거나 기술적으로 틀린 설명이 있으면 감점.
+
+                    [채점 기준점] 평범한 PR은 5점, 훌륭한 PR만 8점 이상. 10점은 모든 항목 만점일 때만.
 
                     반드시 아래 JSON 형식으로만 응답해.
                     {"score": 8.5, "reason": "채점 근거 한 줄"}
