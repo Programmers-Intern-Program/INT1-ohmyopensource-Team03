@@ -35,6 +35,76 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 | `pr-translate-vN` | 번역 — 응답시간, 토큰 수 |
 | `quality` score | LLM-as-judge가 채점한 0~10점 품질 점수 (PR 초안 생성에만 적용) |
 
+## 다른 AI 파트에서 Langfuse 연동하기
+
+`LangfuseClient`는 전역 빈으로 등록되어 있어서 어디서든 주입받아 사용할 수 있습니다.
+
+### 기본 사용법 — AI 호출 기록
+
+```kotlin
+@Component
+class MyAiClient(
+    private val chatModel: ChatModel,
+    private val langfuseClient: LangfuseClient
+) {
+    companion object {
+        // 프롬프트를 수정할 때마다 버전을 올려야 Langfuse에서 버전별 비교가 가능합니다.
+        private const val GENERATION_NAME = "my-feature-v1"
+    }
+
+    fun callAi(prompt: String): String {
+        val startTime = Instant.now()
+        val response = chatModel.call(prompt)
+        val endTime = Instant.now()
+
+        langfuseClient.recordGeneration(
+            name = GENERATION_NAME,
+            input = prompt,
+            output = response,
+            startTime = startTime,
+            endTime = endTime,
+        )
+
+        return response
+    }
+}
+```
+
+### 토큰 수도 같이 기록하고 싶다면
+
+`ChatModel.call(Prompt(...))`으로 호출하면 usage 메타데이터에서 토큰 수를 꺼낼 수 있습니다.
+
+```kotlin
+val chatResponse = chatModel.call(Prompt(prompt))
+val usage = chatResponse.metadata.usage
+
+langfuseClient.recordGeneration(
+    name = GENERATION_NAME,
+    input = prompt,
+    output = chatResponse.result.output.text ?: "",
+    startTime = startTime,
+    endTime = endTime,
+    inputTokens = usage?.promptTokens?.toInt(),
+    outputTokens = usage?.completionTokens?.toInt(),
+)
+```
+
+### 품질 점수도 기록하고 싶다면
+
+`recordGeneration()`이 반환하는 `traceId`로 점수를 붙일 수 있습니다.
+
+```kotlin
+val traceId = langfuseClient.recordGeneration(...)
+
+if (traceId != null) {
+    langfuseClient.recordScore(traceId, score = 8.5, reason = "채점 근거")
+}
+```
+
+> Langfuse 키가 설정되지 않은 환경에서는 `recordGeneration()`이 `null`을 반환하고 기록을 건너뜁니다. 메인 로직에는 영향이 없습니다.
+
+---
+
 ## 프롬프트 버전 관리
 
 프롬프트를 수정할 때 반드시 두 곳의 버전을 함께 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
