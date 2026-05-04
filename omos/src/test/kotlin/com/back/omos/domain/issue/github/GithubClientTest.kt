@@ -11,26 +11,20 @@ import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
 
 /**
- * 코드에 대한 전체적인 역할을 적습니다.
+ * GitHub API와 통신하는 GithubClient의 동작을 검증하는 테스트 클래스입니다.
  * <p>
- * 코드에 대한 작동 원리 등을 적습니다.
- *
- * <p><b>상속 정보:</b><br>
- * 상속 정보를 적습니다.
+ * 실제 외부 API를 호출하는 대신 {@code MockWebServer}를 사용하여 로컬 환경에서
+ * HTTP 가상 서버를 구동하고, 요청 URL, 헤더, 쿼리 파라미터 및 응답 역직렬화 로직을 검증합니다.
  *
  * <p><b>주요 생성자:</b><br>
- * {@code ExampleClass(String example)}  <br>
- * 주요 생성자와 그 매개변수에 대한 설명을 적습니다. <br>
- *
- * <p><b>빈 관리:</b><br>
- * 필요 시 빈 관리에 대한 내용을 적습니다.
+ * 각 테스트 실행 전 {@code @BeforeEach}를 통해 독립적인 MockWebServer 인스턴스를 생성하고 클라이언트에 주입합니다.
  *
  * <p><b>외부 모듈:</b><br>
- * 필요 시 외부 모듈에 대한 내용을 적습니다.
+ * - OkHttp MockWebServer: 실제 HTTP 호출을 가로채고 가짜 응답(MockResponse)을 반환 <br>
+ * - Spring WebFlux (WebClient): 비동기/논블로킹 기반의 HTTP 클라이언트 테스트
  *
  * @author 유재원
  * @since 2026-05-04
- * @see
  */
 class GithubClientTest {
 
@@ -60,18 +54,13 @@ class GithubClientTest {
     fun `searchIssues - 성공 시 결과 리스트를 반환한다`() {
         // Given: 가짜 응답 설정 (JSON)
         val mockResponseBody = """
-            {
-                "items": [
-                    { 
-                        "id": 1, 
-                        "title": "Issue 1", 
-                        "html_url": "url1",
-                        "repository_url": "https://api.github.com/repos/test/repo" 
-                    }
-                ]
-            }
+        {
+            "items": [
+                { "id": 1, "title": "Issue 1", "html_url": "url1", "repository_url": "url" },
+                { "id": 2, "title": "Issue 2", "html_url": "url2", "repository_url": "url" }
+            ]
+        }
         """.trimIndent()
-
         mockWebServer.enqueue(
             MockResponse()
                 .setResponseCode(200)
@@ -88,7 +77,7 @@ class GithubClientTest {
 
         // 요청 쿼리 파라미터 검증
         val recordedRequest = mockWebServer.takeRequest()
-        assertThat(recordedRequest.path).contains("q=kotlin+is%3Aissue+is%3Aopen")
+        assertThat(recordedRequest.path).contains("q=kotlin%20is:issue%20is:open")
         assertThat(recordedRequest.path).contains("per_page=3")
         assertThat(recordedRequest.getHeader("Authorization")).isEqualTo("Bearer $testToken")
     }

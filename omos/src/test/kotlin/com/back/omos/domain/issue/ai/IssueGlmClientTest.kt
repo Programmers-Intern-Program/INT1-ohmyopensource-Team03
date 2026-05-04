@@ -1,14 +1,17 @@
 package com.back.omos.domain.issue.ai
 
+import com.back.omos.domain.issue.entity.Issue
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import org.mockito.kotlin.whenever
 import org.springframework.ai.chat.model.ChatModel
 import org.mockito.kotlin.any
-import org.mockito.kotlin.whenever
 import org.mockito.kotlin.mock
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.argumentCaptor
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.mockito.kotlin.*
 
 /**
  * AI 모델(GLM)을 이용한 이슈 추천 로직의 단위 테스트 클래스입니다.
@@ -50,5 +53,55 @@ class IssueGlmClientTest {
         assertEquals(2, results.size)
         assertEquals("이슈1", results[0].title)
         assertEquals("owner/repo2", results[1].repoName)
+    }
+
+    @Test
+    fun `이슈 리스트의 모든 분기점(Nullable 체크 및 루프)을 실행하여 프롬프트를 생성한다`() {
+        // 1. Given
+        val candidateIssues = listOf(
+            // Case 1: 모든 데이터가 꽉 찬 경우
+            Issue(
+                repoFullName = "google/guava",
+                issueNumber = 101,
+                title = "정상 이슈 제목",
+                content = "A".repeat(500),
+                labels = listOf("bug", "p0"),
+                status = Issue.IssueStatus.OPEN
+            ),
+            // Case 2: Nullable 필드들이 null인 경우
+            Issue(
+                repoFullName = "apache/spark",
+                issueNumber = 202,
+                title = "데이터 미비 이슈",
+                content = null,
+                labels = null,
+                status = Issue.IssueStatus.OPEN
+            )
+        )
+
+        val fakeJsonResponse = """
+            [
+              { "title": "정상 이슈 제목", "repoName": "google/guava", "reason": "라벨이 적절함" },
+              { "title": "데이터 미비 이슈", "repoName": "apache/spark", "reason": "내용은 없지만 제목이 관련됨" }
+            ]
+        """.trimIndent()
+
+        whenever(chatModel.call(any<String>())).thenReturn(fakeJsonResponse)
+
+        // 2. When: 호출
+        val results = client.generateRecommendationReasons("Java/Kotlin Backend", candidateIssues)
+
+        // 3. Then: 결과 검증 및 내부 프롬프트 생성 로직 실행 확인
+        assertEquals(2, results.size)
+
+        val promptCaptor = argumentCaptor<String>()
+        verify(chatModel).call(promptCaptor.capture())
+        val generatedPrompt = promptCaptor.firstValue
+
+        assertTrue(generatedPrompt.contains("google/guava"))
+        assertTrue(generatedPrompt.contains("bug, p0"))
+        assertTrue(generatedPrompt.contains("없음"))
+        assertTrue(generatedPrompt.contains("내용 없음"))
+        assertEquals(400, candidateIssues[0].content?.take(400)?.length)
     }
 }
