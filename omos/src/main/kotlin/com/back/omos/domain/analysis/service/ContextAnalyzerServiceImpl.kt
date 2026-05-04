@@ -142,7 +142,7 @@ class ContextAnalyzerServiceImpl(
                     log.info("[resolveOrCreateAnalysis] 이슈 수정 감지, 캐시 무효화: issueId=$issueId")
                     analysisResultRepository.delete(cached)
                     analysisResultRepository.flush()
-                    generateAnalysis(issue)
+                    generateAnalysis(issue, owner, repoName)
                 } else {
                     // 이슈 수정 안 됨 → 기존 캐시 반환
                     cached
@@ -152,7 +152,7 @@ class ContextAnalyzerServiceImpl(
                 cached
             }
         } else {
-            generateAnalysis(issue)
+            generateAnalysis(issue, owner, repoName)
         }
 
         // 사용자 분석 요청 이력 저장
@@ -181,29 +181,19 @@ class ContextAnalyzerServiceImpl(
      * GitHub API로 관련 소스코드를 수집하고 GLM API로 분석 결과를 생성한 뒤 저장합니다.
      *
      * 처리 흐름:
-     * 1. [Issue.repoFullName]에서 owner/repo 파싱
-     * 2. GitHub API로 이슈 상세 정보 fetch
-     * 3. GitHub Tree API로 전체 파일 경로 목록 fetch 후 확장자 필터링
-     * 4. 확장자 필터링된 경로 전체 + 이슈 → GLM 1차 호출로 관련 파일 선별
-     * 5. GraphQL로 선별된 파일 내용 한 번에 fetch
-     * 6. 파일 내용 파싱/가공 (주석 제거, 토큰 제한)
-     * 7. 파싱한 코드 + 이슈 → GLM 2차 호출로 가이드 생성
+     * 1. GitHub API로 이슈 상세 정보 fetch
+     * 2. GitHub Tree API로 전체 파일 경로 목록 fetch 후 확장자 필터링
+     * 3. 확장자 필터링된 경로 전체 + 이슈 → GLM 1차 호출로 관련 파일 선별 (동적 배치)
+     * 4. GraphQL로 선별된 파일 내용 한 번에 fetch
+     * 5. 파일 내용 파싱/가공 (주석 제거, 토큰 제한)
+     * 6. 파싱한 코드 + 이슈 → GLM 2차 호출로 가이드 생성
      *
      * @param issue 분석 대상 이슈
      * @return 저장된 [AnalysisResult]
      * @throws AnalysisException [Issue.repoFullName] 형식이 `owner/repo`가 아닌 경우,
      *                           또는 GitHub/GLM API 호출에 실패하는 경우
      */
-    private fun generateAnalysis(issue: Issue): AnalysisResult {
-        val parts = issue.repoFullName.split("/")
-        if (parts.size != 2) {
-            throw AnalysisException(
-                AnalysisErrorCode.GITHUB_API_FAIL,
-                "[ContextAnalyzerServiceImpl#generateAnalysis] repoFullName 형식이 올바르지 않습니다: ${issue.repoFullName}",
-                "레포지토리 정보가 올바르지 않습니다."
-            )
-        }
-        val (owner, repoName) = parts
+    private fun generateAnalysis(issue: Issue, owner: String, repoName: String): AnalysisResult {
 
         val issueInfo = gitHubClient.fetchIssue(owner, repoName, issue.issueNumber.toInt())
 
