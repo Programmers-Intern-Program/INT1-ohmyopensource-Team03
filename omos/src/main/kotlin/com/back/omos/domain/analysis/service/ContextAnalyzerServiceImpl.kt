@@ -217,7 +217,13 @@ class ContextAnalyzerServiceImpl(
                 path.endsWith(".ts") || path.endsWith(".js") ||
                         path.endsWith(".kt") || path.endsWith(".java") ||
                         path.endsWith(".py") || path.endsWith(".go") ||
-                        path.endsWith(".rs") || path.endsWith(".cpp")
+                        path.endsWith(".rs") || path.endsWith(".cpp") ||
+                        path.endsWith(".json") || path.endsWith(".yaml") ||
+                        path.endsWith(".yml") || path.endsWith(".md") ||
+                        path.endsWith(".html") || path.endsWith(".css") ||
+                        path.endsWith(".scss") || path.endsWith(".xml") ||
+                        path.endsWith(".toml") || path.endsWith(".gradle") ||
+                        path.endsWith(".properties")
             }
         log.info("[generateAnalysis] 확장자 필터링 후 파일 수: ${allFilePaths.size}")
 // 2단계: 동적 배치로 GLM 1차 호출 (최대한 많은 파일 경로 전달)
