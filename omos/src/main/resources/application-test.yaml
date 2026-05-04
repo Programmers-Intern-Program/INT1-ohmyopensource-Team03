@@ -26,6 +26,8 @@ spring:
               - read:user
 
   ai:
+    retry:
+      max-attempts: 2
     openai:
       api-key: ${GLM_API_KEY}
       base-url: https://aigw.alpha.grepp.co/v1

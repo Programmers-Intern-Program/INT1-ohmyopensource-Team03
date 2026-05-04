@@ -1,8 +1,10 @@
 package com.back.omos.domain.issue.service
 
+import com.back.omos.domain.analysis.repository.UserAnalysisRequestRepository
 import com.back.omos.domain.issue.ai.IssueGlmClient
 import com.back.omos.domain.issue.entity.Issue
 import com.back.omos.domain.issue.repository.IssueRepository
+import com.back.omos.domain.issue.repository.UserRecommendedIssueRepository
 import com.back.omos.domain.issue.dto.AIRecommendationResult
 import com.back.omos.domain.user.entity.User
 import com.back.omos.domain.user.repository.UserRepository
@@ -38,11 +40,15 @@ class RecommendServiceTest {
     private val issueRepository: IssueRepository = mock()
     private val userRepository: UserRepository = mock()
     private val issueGlmClient: IssueGlmClient = mock()
+    private val userRecommendedIssueRepository: UserRecommendedIssueRepository = mock()
+    private val userAnalysisRequestRepository: UserAnalysisRequestRepository = mock()
 
     private val recommendService = RecommendServiceImpl(
         issueRepository,
         userRepository,
-        issueGlmClient
+        issueGlmClient,
+        userRecommendedIssueRepository,
+        userAnalysisRequestRepository
     )
 
     @Test
