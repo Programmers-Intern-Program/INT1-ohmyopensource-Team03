@@ -1,6 +1,6 @@
 # Langfuse 설정 가이드
 
-PR 초안 생성 AI 호출의 응답시간·토큰 사용량·품질 점수를 추적하기 위해 Langfuse를 사용합니다.
+AI 호출의 응답시간·토큰 사용량·품질 점수를 추적하기 위해 Langfuse를 사용합니다.
 
 ## 로컬 실행
 
@@ -28,6 +28,8 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 키가 없어도 앱은 정상 동작합니다. 키가 없으면 AI 호출 기록만 건너뜁니다.
 
 ## 추적 항목
+
+아래는 현재 PR 파트 기준입니다. 각 파트에서 연동하면 항목이 추가됩니다.
 
 | 항목 | 설명 |
 |---|---|
@@ -107,11 +109,17 @@ if (traceId != null) {
 
 ## 프롬프트 버전 관리
 
-프롬프트를 수정할 때 반드시 두 곳의 버전을 함께 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
+프롬프트를 수정할 때 `GENERATION_NAME` 상수의 버전을 함께 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
 
-| 파일 | 상수 |
-|---|---|
-| `PrDraftPromptBuilder.kt` | `PROMPT_VERSION` |
-| `SpringAiClient.kt` | `GENERATION_PR_DRAFT` |
+**네이밍 컨벤션:** `{기능명}-v{N}`
 
-예: `v2` → `v3`으로 올릴 때 두 상수를 같이 변경합니다.
+PR 파트의 경우 `SpringAiClient.kt`에서 이렇게 관리합니다:
+
+```kotlin
+companion object {
+    private const val GENERATION_PR_DRAFT = "pr-draft-v2"  // 프롬프트 수정 시 v3, v4... 으로 올릴 것
+    private const val GENERATION_TRANSLATE = "pr-translate-v1"
+}
+```
+
+버전을 올리지 않으면 Langfuse에서 이전 버전과 현재 버전의 데이터가 섞여 비교가 어렵습니다.
