@@ -96,12 +96,12 @@ class SpringAiClient(
                     {"score": 8.5, "reason": "채점 근거 한 줄"}
                 """.trimIndent()
 
-                val judgeResponse = chatModel.call(judgePrompt) ?: return@Thread
+                val judgeResponse = chatModel.call(judgePrompt) ?: return@submit
 
                 // JSON에서 score와 reason 추출
-                val json = extractJson(judgeResponse) ?: return@Thread
+                val json = extractJson(judgeResponse) ?: return@submit
                 val node = objectMapper.readTree(json)
-                val score = node.get("score")?.asDouble() ?: return@Thread
+                val score = node.get("score")?.asDouble() ?: return@submit
                 val reason = node.get("reason")?.asText() ?: ""
 
                 langfuseClient.recordScore(traceId, score, reason)

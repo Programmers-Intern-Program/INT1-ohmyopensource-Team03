@@ -30,7 +30,7 @@ import org.springframework.beans.factory.annotation.Qualifier
  * @author 5h6vm
  * @since 2026-04-30
  */
-@Disabled("수동 프롬프트 평가 전용 — 실행 시 @Disabled 제거")
+//@Disabled("수동 프롬프트 평가 전용 — 실행 시 @Disabled 제거")
 @SpringBootTest
 @ActiveProfiles("test")
 class PrDraftPromptEvalTest {
