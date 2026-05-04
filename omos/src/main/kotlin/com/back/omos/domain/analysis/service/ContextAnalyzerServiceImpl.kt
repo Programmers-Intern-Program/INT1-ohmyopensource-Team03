@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import org.slf4j.LoggerFactory
 
 /**
  * [ContextAnalyzerService]의 핵심 비즈니스 로직을 담당하는 서비스 구현체입니다.
@@ -55,6 +56,8 @@ class ContextAnalyzerServiceImpl(
     private val glmClient: GlmClient,
     private val objectMapper: ObjectMapper
 ) : ContextAnalyzerService {
+
+    private val log = LoggerFactory.getLogger(ContextAnalyzerServiceImpl::class.java)
 
     @Transactional
     override fun getGuide(issueId: Long, githubId: String): GuideResponseDto {
@@ -142,11 +145,11 @@ class ContextAnalyzerServiceImpl(
      * 처리 흐름:
      * 1. [Issue.repoFullName]에서 owner/repo 파싱
      * 2. GitHub API로 이슈 상세 정보 fetch
-     * 3. GitHub API로 레포지토리 전체 파일 트리 fetch 후 지원 확장자로 필터링
-     * 4. 이슈 제목 키워드와 매칭되는 파일 경로 선별 (매칭 없으면 상위 5개 폴백)
-     * 5. 선택된 파일의 내용 fetch
-     * 6. 선택된 파일 경로를 JSON 배열 문자열로 직렬화
-     * 7. GLM API로 가이드·수도 코드·사이드 이펙트 분석 수행
+     * 3. GitHub Tree API로 전체 파일 경로 목록 fetch 후 확장자 필터링
+     * 4. 확장자 필터링된 경로 전체 + 이슈 → GLM 1차 호출로 관련 파일 선별
+     * 5. GraphQL로 선별된 파일 내용 한 번에 fetch
+     * 6. 파일 내용 파싱/가공 (주석 제거, 토큰 제한)
+     * 7. 파싱한 코드 + 이슈 → GLM 2차 호출로 가이드 생성
      *
      * @param issue 분석 대상 이슈
      * @return 저장된 [AnalysisResult]
@@ -174,45 +177,63 @@ class ContextAnalyzerServiceImpl(
                         path.endsWith(".py") || path.endsWith(".go") ||
                         path.endsWith(".rs") || path.endsWith(".cpp")
             }
+        log.info("[generateAnalysis] 확장자 필터링 후 파일 수: ${allFilePaths.size}")
+// 2단계: 동적 배치로 GLM 1차 호출 (최대한 많은 파일 경로 전달)
+        val batchSizes = listOf(3300, 3000, 2000, 1000, 700, 300, 100)
+        var selectedPaths: List<String> = emptyList()
+        val allFilePathsSet = allFilePaths.toSet()
 
-        // 2단계: 키워드 프리필터링으로 GLM에 넘길 후보를 MAX_CANDIDATE_FILES 이하로 제한
-        val keywords = issueInfo.title
-            .lowercase()
-            .split(" ", "-", "_", ".")
-            .filter { it.length > 3 }
-
-        val candidatePaths = allFilePaths
-            .filter { path -> keywords.any { keyword -> path.lowercase().contains(keyword) } }
-            .take(MAX_CANDIDATE_FILES)
-            .ifEmpty { allFilePaths.take(MAX_CANDIDATE_FILES) }
-
-// 3단계: 좁혀진 후보 내에서 GLM이 최종 선별 + 결과 검증
-        val candidatePathsSet = candidatePaths.toSet()
-        val selectedPaths = glmClient.selectFiles(
-            issueTitle = issueInfo.title,
-            issueBody = issueInfo.body,
-            filePaths = candidatePaths
-        )
-            .asSequence()
-            .filter { it in candidatePathsSet }  // 후보 외 경로 제거
-            .distinct()                           // 중복 제거
-            .take(MAX_SELECT_FILES)               // 최대 5개 강제 제한
-            .toList()
-
-        val fileContents = selectedPaths
-            .mapNotNull { path ->
-                val content = gitHubClient.fetchFileContent(owner, repoName, path)
-                if (content != null) path to content else null
+        for (size in batchSizes) {
+            try {
+                log.info("[generateAnalysis] GLM selectFiles 시도: ${size}개")
+                selectedPaths = glmClient.selectFiles(
+                    issueTitle = issueInfo.title,
+                    issueBody = issueInfo.body,
+                    filePaths = allFilePaths.take(size)
+                )
+                    .asSequence()
+                    .filter { it in allFilePathsSet }
+                    .distinct()
+                    .take(MAX_SELECT_FILES)
+                    .toList()
+                log.info("[generateAnalysis] GLM selectFiles 성공! 배치 사이즈: $size, 선별 파일: $selectedPaths")
+                break
+            } catch (e: Error) {
+                throw e
+            } catch (e: Exception) {
+                log.warn("[generateAnalysis] GLM selectFiles 실패 (배치 사이즈: $size): ${e.message}")
             }
-            .toMap()
+        }
 
-        val filePaths = objectMapper.writeValueAsString(fileContents.keys.toList())
+        if (selectedPaths.isEmpty()) {
+            throw AnalysisException(
+                AnalysisErrorCode.GLM_API_FAIL,
+                "[generateAnalysis] 모든 배치 사이즈에서 GLM selectFiles 실패",
+                "파일 선별에 실패했습니다."
+            )
+        }
+        log.info("[generateAnalysis] GLM 선별 파일: $selectedPaths")
+        // 3단계: GraphQL로 선별된 파일 내용 한 번에 fetch
+        val fileContents = gitHubClient.fetchFileContents(owner, repoName, selectedPaths)
+        log.info("[generateAnalysis] GraphQL fetch 완료 파일 수: ${fileContents.size}")
+        fileContents.forEach { (path, content) ->
+            log.info("[generateAnalysis] $path — ${content.length}자")
+        }
+        // 4단계: 파일 내용 파싱/가공 (토큰 절약)
+        val parsedFileContents = fileContents.mapValues { (_, content) ->
+            parseFileContent(content)
+        }
+        parsedFileContents.forEach { (path, content) ->
+            log.info("[generateAnalysis] 파싱 후 $path — ${content.length}자")
+        }
+        // 5단계: 파싱한 코드 + 이슈 → GLM 2차 호출
+        val filePaths = objectMapper.writeValueAsString(parsedFileContents.keys.toList())
         val labels = issueInfo.labels.map { it.name }
         val glmResult = glmClient.analyze(
             issueTitle = issueInfo.title,
             issueBody = issueInfo.body,
             labels = labels,
-            fileContents = fileContents
+            fileContents = parsedFileContents
         )
 
         return analysisResultRepository.save(
@@ -226,13 +247,36 @@ class ContextAnalyzerServiceImpl(
         )
     }
 
+    /**
+     * 파일 내용을 파싱/가공합니다.
+     *
+     * 빈 줄, 주석 제거 및 토큰 제한을 적용합니다.
+     *
+     * @param content 원본 파일 내용
+     * @return 가공된 파일 내용
+     */
+    private fun parseFileContent(content: String): String {
+        return content
+            .lines()
+            .filter { it.isNotBlank() }
+            .filter { line ->
+                val trimmed = line.trimStart()
+                !trimmed.startsWith("//") &&
+                        !trimmed.startsWith("*") &&
+                        !trimmed.startsWith("/*") &&
+                        !trimmed.startsWith("#")
+            }
+            .joinToString("\n")
+            .take(MAX_FILE_CONTENT_LENGTH)
+    }
+
     companion object {
-        /** GLM에 넘기는 후보 파일 최대 개수. 테스트 결과 30개 초과 시 GLM 응답 품질 저하 및 토큰 초과 가능성이 있어 설정. */
-        private const val MAX_CANDIDATE_FILES = 30
-        /** GLM이 최종 선별하는 파일 최대 개수. 5개 초과 시 fetchFileContent 호출 증가로 응답 지연 발생. */
+        /** GLM이 최종 선별하는 파일 최대 개수 */
         private const val MAX_SELECT_FILES = 5
-        /** 사용자 1인당 하루 최대 분석 요청 횟수. */
+        /** 사용자 1인당 하루 최대 분석 요청 횟수 */
         private const val DAILY_REQUEST_LIMIT = 5L
+        /** 파일당 최대 문자 수 (토큰 절약) */
+        private const val MAX_FILE_CONTENT_LENGTH = 3000
     }
 
     private fun toGuideDto(result: AnalysisResult): GuideResponseDto {
