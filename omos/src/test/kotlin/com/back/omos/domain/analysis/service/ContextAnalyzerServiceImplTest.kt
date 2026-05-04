@@ -1,5 +1,6 @@
 package com.back.omos.domain.analysis.service
 
+import org.mockito.Mockito.doNothing
 import com.back.omos.domain.analysis.ai.GlmAnalysisRes
 import com.back.omos.domain.analysis.ai.GlmClient
 import com.back.omos.domain.analysis.entity.AnalysisResult
@@ -245,6 +246,7 @@ class ContextAnalyzerServiceImplTest {
                 contextAnalyzerService.getGuide(ISSUE_ID, GITHUB_ID)
             }
         }
+    }
 
         @Nested
         @DisplayName("getPseudoCode()")
@@ -362,7 +364,7 @@ class ContextAnalyzerServiceImplTest {
                 given(analysisResultRepository.findByIssueId(ISSUE_ID)).willReturn(recentResult)
                 given(userAnalysisRequestRepository.save(any())).willReturn(any())
 
-                val result = contextAnalyzerService.getGuide(ISSUE_ID, GITHUB_ID)
+                val result = contextAnalyzerService.getPseudoCode(ISSUE_ID, GITHUB_ID)
 
                 assertNotNull(result)
                 // fetchIssue 호출 안 됨
@@ -380,6 +382,7 @@ class ContextAnalyzerServiceImplTest {
                     sideEffects = "오래된 부작용"
                 )
                 ReflectionTestUtils.setField(oldResult, "createdAt", LocalDateTime.now().minusDays(4))
+                ReflectionTestUtils.setField(oldResult, "id", 999L)
 
                 val latestIssueInfo = GitHubIssueRes(
                     number = 42,
@@ -404,10 +407,10 @@ class ContextAnalyzerServiceImplTest {
                 given(gitHubClient.fetchIssue("spring-projects", "spring-boot", 42)).willReturn(latestIssueInfo)
                 given(userAnalysisRequestRepository.save(any())).willReturn(any())
 
-                val result = contextAnalyzerService.getGuide(ISSUE_ID, GITHUB_ID)
+                val result = contextAnalyzerService.getPseudoCode(ISSUE_ID, GITHUB_ID)
 
                 assertNotNull(result)
-                assertEquals("오래된 가이드", result.guideline)
+                assertEquals("오래된 코드", result.pseudoCode)
                 then(analysisResultRepository).shouldHaveNoMoreInteractions()
             }
 
@@ -422,6 +425,7 @@ class ContextAnalyzerServiceImplTest {
                     sideEffects = "오래된 부작용"
                 )
                 ReflectionTestUtils.setField(oldResult, "createdAt", LocalDateTime.now().minusDays(4))
+                ReflectionTestUtils.setField(oldResult, "id", 999L)
 
                 val latestIssueInfo = GitHubIssueRes(
                     number = 42,
@@ -454,13 +458,15 @@ class ContextAnalyzerServiceImplTest {
                     .willReturn(GlmAnalysisRes(guideline = "새 가이드", pseudoCode = "새 코드", sideEffects = "새 부작용"))
                 given(analysisResultRepository.save(any())).willReturn(mockAnalysisResult)
 
-                contextAnalyzerService.getGuide(ISSUE_ID, GITHUB_ID)
+                // 캐시 삭제 검증 전에 stub 추가
+                doNothing().`when`(userAnalysisRequestRepository).deleteAllByAnalysisResultId(any())
+                contextAnalyzerService.getPseudoCode(ISSUE_ID, GITHUB_ID)
 
-                // 캐시 삭제 검증
+                // 캐시 삭제 검증에도 추가
+                then(userAnalysisRequestRepository).should().deleteAllByAnalysisResultId(any())
                 then(analysisResultRepository).should().delete(oldResult)
                 then(analysisResultRepository).should().flush()
                 then(analysisResultRepository).should().save(any())
             }
         }
     }
-}
