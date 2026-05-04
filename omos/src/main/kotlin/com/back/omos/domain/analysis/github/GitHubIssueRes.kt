@@ -3,6 +3,7 @@ package com.back.omos.domain.analysis.github
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
 
 /**
  * GitHub Issues API 응답을 담는 DTO입니다.
@@ -52,5 +53,5 @@ data class GitHubIssueRes(
      * GitHub API 응답의 updated_at 필드와 매핑됩니다.
      */
     @JsonProperty("updated_at")
-    val updatedAt: LocalDateTime?
+    val updatedAt: OffsetDateTime?
 )

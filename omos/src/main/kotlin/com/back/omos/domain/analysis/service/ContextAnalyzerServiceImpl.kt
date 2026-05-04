@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import org.slf4j.LoggerFactory
+import java.time.ZoneId
 
 /**
  * [ContextAnalyzerService]의 핵심 비즈니스 로직을 담당하는 서비스 구현체입니다.
@@ -184,7 +185,10 @@ class ContextAnalyzerServiceImpl(
      * @return 이슈의 updatedAt이 분석 결과의 createdAt보다 늦으면 true
      */
     private fun isIssueModifiedAfterAnalysis(latestIssue: GitHubIssueRes, result: AnalysisResult): Boolean {
-        return latestIssue.updatedAt?.isAfter(result.createdAt) ?: false
+        val updatedAt = latestIssue.updatedAt ?: return false
+        // OffsetDateTime을 서버 시간대 기준 LocalDateTime으로 변환해서 비교
+        val updatedAtLocal = updatedAt.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime()
+        return updatedAtLocal.isAfter(result.createdAt)
     }
 
     /**
