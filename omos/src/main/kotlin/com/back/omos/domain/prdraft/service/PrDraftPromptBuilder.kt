@@ -42,7 +42,7 @@ class PrDraftPromptBuilder {
 
     companion object {
         // 프롬프트 내용을 변경할 때 이 버전도 함께 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
-        const val PROMPT_VERSION = "v1"
+        const val PROMPT_VERSION = "v2"
     }
 
 
@@ -65,12 +65,20 @@ class PrDraftPromptBuilder {
         }
 
         return """
-            당신은 오픈소스 프로젝트의 PR 초안 작성 도우미입니다.
-            아래 diff를 바탕으로 PR 제목과 본문을 작성하세요.
+            [System Message]
+            당신은 오픈소스 커뮤니티의 소통을 돕는 테크니컬 라이터입니다.
+            수정된 코드와 맥락을 결합하여, 메인테이너가 한눈에 이해할 수 있는 전문적인 Pull Request 본문을 작성합니다.
             반드시 제목과 본문 모두 한국어로 작성하세요.
+
+            [Input]
             $contextSection
-            [Diff]
+            - 변경된 코드 내역:
             $diffContent
+
+            [Instruction]
+            1. 제목은 feat:, fix:, refactor:, chore:, docs:, test: 중 하나의 커밋 컨벤션을 따르고 50자 이내로 작성하세요.
+            2. 본문은 '변경 이유(Why)', '수정 내용(What)', '테스트 방법(How to Test)'의 3단 구조로 작성하세요.
+            3. 불필요한 미사여구는 배제하고, 엔지니어링 관점에서 간결하고 명확한 어조를 유지하세요.
 
             반드시 아래 JSON 형식으로만 응답하세요.
             {
