@@ -1,6 +1,8 @@
 package com.back.omos.domain.analysis.github
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonProperty
+import java.time.LocalDateTime
 
 /**
  * GitHub Issues API 응답을 담는 DTO입니다.
@@ -42,5 +44,13 @@ data class GitHubIssueRes(
      * 이슈에 부여된 라벨 목록입니다.
      * GitHub 응답의 labels 배열을 GitHubLabel 리스트로 매핑합니다.
      */
-    val labels: List<GitHubLabel>
+    val labels: List<GitHubLabel>,
+
+    /**
+     * 이슈 최종 수정 시각입니다.
+     * 캐시 유효성 검사 시 분석 결과의 createdAt과 비교합니다.
+     * GitHub API 응답의 updated_at 필드와 매핑됩니다.
+     */
+    @JsonProperty("updated_at")
+    val updatedAt: LocalDateTime?
 )
