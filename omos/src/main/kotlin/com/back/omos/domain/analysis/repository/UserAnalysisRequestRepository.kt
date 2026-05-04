@@ -1,7 +1,11 @@
 package com.back.omos.domain.analysis.repository
 
+import com.back.omos.domain.analysis.entity.AnalysisResult
 import com.back.omos.domain.analysis.entity.UserAnalysisRequest
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
 
 /**
@@ -53,12 +57,15 @@ interface UserAnalysisRequestRepository : JpaRepository<UserAnalysisRequest, Lon
     fun findAllByUserIdAndAnalysisResultIssueIdIn(userId: Long, issueIds: List<Long>): List<UserAnalysisRequest>
 
     /**
-     * 특정 분석 결과를 참조하는 모든 사용자 분석 요청을 삭제합니다.
+     * 특정 분석 결과를 참조하는 모든 사용자 분석 요청을 새 분석 결과로 업데이트합니다.
      *
-     * 캐시 무효화 시 기존 [AnalysisResult]를 삭제하기 전에 호출하여
-     * [UserAnalysisRequest] 고아 레코드 발생을 방지합니다.
+     * 캐시 무효화 시 기존 [UserAnalysisRequest]의 이력과 일일 제한 카운트를 보존하면서
+     * 새 [AnalysisResult]로 연결을 갱신합니다.
      *
-     * @param analysisResultId 삭제할 분석 결과의 ID
+     * @param oldResultId 기존 분석 결과 ID
+     * @param newResult 새 분석 결과
      */
-    fun deleteAllByAnalysisResultId(analysisResultId: Long)
+    @Modifying
+    @Query("UPDATE UserAnalysisRequest u SET u.analysisResult = :newResult WHERE u.analysisResult.id = :oldId")
+    fun updateAnalysisResult(@Param("oldId") oldId: Long, @Param("newResult") newResult: AnalysisResult)
 }

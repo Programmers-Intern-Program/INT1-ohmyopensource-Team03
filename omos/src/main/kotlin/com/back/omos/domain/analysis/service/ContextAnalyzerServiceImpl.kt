@@ -33,9 +33,10 @@ import org.slf4j.LoggerFactory
  * [AnalysisResultRepository]에 해당 이슈의 분석 결과가 존재하면 즉시 반환합니다.
  * 분석 결과가 없는 경우에만 GitHub API와 GLM API를 통해 새 분석 결과를 생성하고 저장합니다.
  *
- * <p><b>캐시 갱신 (미구현 — TODO):</b><br>
+ * <p><b>캐시 갱신:</b><br>
  * [isIssueModifiedAfterAnalysis]를 통해 이슈의 updatedAt과 분석 결과의 createdAt을 비교,
- * 이슈가 분석 이후 수정된 경우 가이드를 재생성하는 로직이 설계되어 있으나 아직 적용되지 않았습니다.
+ * 캐시 유효기간([CACHE_VALIDITY_DAYS]일) 초과 시 GitHub API로 이슈 수정 여부를 확인합니다.
+ * 수정된 경우 새 분석 결과를 생성하고 기존 [UserAnalysisRequest]는 새 결과로 업데이트합니다.
  *
  * <p><b>외부 모듈:</b><br>
  * GitHub API — 관련 소스코드 수집<br>
@@ -138,12 +139,20 @@ class ContextAnalyzerServiceImpl(
                 val latestIssue = gitHubClient.fetchIssue(owner, repoName, issue.issueNumber.toInt())
 
                 if (isIssueModifiedAfterAnalysis(latestIssue, cached)) {
-                    // 이슈 수정됨 → 캐시 무효화 후 재생성
+                    // 이슈 수정됨 → 새 결과 생성 후 기존 요청 업데이트 (이력 보존)
                     log.info("[resolveOrCreateAnalysis] 이슈 수정 감지, 캐시 무효화: issueId=$issueId")
-                    userAnalysisRequestRepository.deleteAllByAnalysisResultId(cached.id!!)
+
+                    // 1. 새 분석 결과 먼저 생성
+                    val newResult = generateAnalysis(issue, owner, repoName)
+
+                    // 2. 기존 UserAnalysisRequest를 새 결과로 업데이트 (daily count 보존)
+                    userAnalysisRequestRepository.updateAnalysisResult(cached.id!!, newResult)
+
+                    // 3. 기존 캐시 삭제
                     analysisResultRepository.delete(cached)
                     analysisResultRepository.flush()
-                    generateAnalysis(issue, owner, repoName)
+
+                    newResult
                 } else {
                     // 이슈 수정 안 됨 → 기존 캐시 반환
                     cached
