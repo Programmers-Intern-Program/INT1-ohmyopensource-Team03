@@ -6,8 +6,8 @@ import { auth } from "@/lib/auth";
 
 const navLinks = [
   { href: "/dashboard", label: "대시보드" },
-  { href: "/issues", label: "이슈 탐색" },
-  { href: "/pr-draft", label: "PR 초안" },
+  { href: "/issues", label: "추천 이슈" },
+  { href: "/pr-draft", label: "PR 초안", matchPrefixes: ["/pr-draft", "/pr/"] },
   { href: "/profile", label: "내 프로필" },
 ];
 
@@ -18,6 +18,13 @@ export default function Navbar() {
   function handleLogout() {
     auth.removeToken();
     router.push("/login");
+  }
+
+  function isActive(link: (typeof navLinks)[number]) {
+    if (link.matchPrefixes) {
+      return link.matchPrefixes.some((prefix) => pathname.startsWith(prefix));
+    }
+    return pathname.startsWith(link.href);
   }
 
   return (
@@ -31,17 +38,17 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-1">
-          {navLinks.map(({ href, label }) => (
+          {navLinks.map((link) => (
             <Link
-              key={href}
-              href={href}
+              key={link.href}
+              href={link.href}
               className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                pathname.startsWith(href)
+                isActive(link)
                   ? "bg-github-purple/20 text-github-purple-light"
                   : "text-github-muted hover:text-github-text hover:bg-white/5"
               }`}
             >
-              {label}
+              {link.label}
             </Link>
           ))}
 

@@ -1,38 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import ProtectedLayout from "@/components/ProtectedLayout";
-import { issueApi, Issue, RecommendIssueRes } from "@/lib/api";
-
-type ViewMode = "all" | "search";
+import { userApi, issueApi, RecommendIssueHistoryRes } from "@/lib/api";
 
 export default function IssuesPage() {
-  const [viewMode, setViewMode] = useState<ViewMode>("all");
-  const [allIssues, setAllIssues] = useState<Issue[]>([]);
-  const [searchResults, setSearchResults] = useState<RecommendIssueRes[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [query, setQuery] = useState("language:kotlin state:open label:\"good first issue\"");
+  const router = useRouter();
+  const [history, setHistory] = useState<RecommendIssueHistoryRes[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [recommending, setRecommending] = useState(false);
+  const [recommendStep, setRecommendStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    issueApi
-      .getAll()
-      .then(setAllIssues)
-      .catch((e) => setError(e.message))
-      .finally(() => setInitialLoading(false));
+    loadHistory();
   }, []);
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (!query.trim()) return;
+  async function loadHistory() {
     setLoading(true);
-    setError(null);
-    setViewMode("search");
     try {
-      const results = await issueApi.crawlSearch(query);
-      setSearchResults(results);
+      const res = await issueApi.getHistory();
+      if (res.status === "success" && res.data) setHistory(res.data);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -40,37 +29,70 @@ export default function IssuesPage() {
     }
   }
 
+  async function handleRecommend() {
+    setRecommending(true);
+    setError(null);
+    setRecommendStep(null);
+    try {
+      setRecommendStep("사용자 정보 확인 중...");
+      const userRes = await userApi.getMe();
+      if (userRes.status !== "success" || !userRes.data) {
+        throw new Error("사용자 정보를 불러올 수 없습니다.");
+      }
+
+      const langs = userRes.data.primaryLanguages;
+      if (!langs || langs.length === 0) {
+        throw new Error(
+          "프로필 분석이 필요합니다. 마이페이지에서 '벡터 업데이트'를 먼저 실행해주세요."
+        );
+      }
+
+      setRecommendStep("GitHub에서 이슈 수집 중...");
+      await Promise.all(
+        langs.slice(0, 3).map((lang) =>
+          issueApi.crawlSearch(
+            `language:${lang.toLowerCase()} label:"good first issue" state:open`
+          )
+        )
+      );
+
+      setRecommendStep("나에게 맞는 이슈 분석 중...");
+      await issueApi.recommend();
+
+      setRecommendStep(null);
+      await loadHistory();
+    } catch (e) {
+      setError((e as Error).message);
+      setRecommendStep(null);
+    } finally {
+      setRecommending(false);
+    }
+  }
+
   return (
     <ProtectedLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-github-text mb-1">이슈 탐색</h1>
-        <p className="text-github-muted text-sm">
-          GitHub 오픈소스 이슈를 검색하고 PR 초안을 생성해보세요.
-        </p>
-      </div>
-
-      {/* Search Bar */}
-      <form onSubmit={handleSearch} className="mb-6">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="GitHub 검색 쿼리 (예: language:kotlin state:open label:&quot;good first issue&quot;)"
-            className="flex-1 bg-github-surface border border-github-border rounded-lg px-4 py-2.5 text-github-text text-sm placeholder:text-github-muted focus:outline-none focus:border-github-purple transition-colors"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-5 py-2.5 bg-github-purple hover:bg-github-purple/90 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
-          >
-            {loading ? "검색 중..." : "GitHub 검색"}
-          </button>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-github-text mb-1">추천 이슈</h1>
+          <p className="text-github-muted text-sm">
+            나의 기술 스택과 GitHub 활동 기반으로 맞춤 오픈소스 이슈를 추천합니다.
+          </p>
         </div>
-        <p className="text-github-muted text-xs mt-2">
-          검색하면 GitHub에서 이슈를 크롤링하고 벡터 DB에 저장합니다.
-        </p>
-      </form>
+        <button
+          onClick={handleRecommend}
+          disabled={recommending}
+          className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-github-purple hover:bg-github-purple/90 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          {recommending ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              {recommendStep ?? "분석 중..."}
+            </>
+          ) : (
+            "이슈 추천받기"
+          )}
+        </button>
+      </div>
 
       {error && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
@@ -78,197 +100,76 @@ export default function IssuesPage() {
         </div>
       )}
 
-      {/* Tab */}
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => setViewMode("all")}
-          className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-            viewMode === "all"
-              ? "bg-github-purple/20 text-github-purple-light"
-              : "text-github-muted hover:text-github-text hover:bg-white/5"
-          }`}
-        >
-          전체 이슈 ({allIssues.length})
-        </button>
-        <button
-          onClick={() => setViewMode("search")}
-          className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-            viewMode === "search"
-              ? "bg-github-purple/20 text-github-purple-light"
-              : "text-github-muted hover:text-github-text hover:bg-white/5"
-          }`}
-        >
-          검색 결과 ({searchResults.length})
-        </button>
-      </div>
-
-      {/* Issue List */}
-      {viewMode === "all" ? (
-        <AllIssuesList issues={allIssues} loading={initialLoading} />
+      {loading ? (
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-28 bg-github-surface rounded-xl animate-pulse" />
+          ))}
+        </div>
+      ) : history.length === 0 ? (
+        <div className="text-center py-24 text-github-muted">
+          <p className="text-5xl mb-4">🔍</p>
+          <p className="mb-1">아직 추천받은 이슈가 없습니다.</p>
+          <p className="text-xs mt-1">
+            프로필 분석 완료 후 "이슈 추천받기" 버튼을 눌러보세요.
+          </p>
+        </div>
       ) : (
-        <SearchResultsList results={searchResults} loading={loading} />
+        <div className="space-y-3">
+          {history.map((item) => (
+            <IssueHistoryCard
+              key={item.id}
+              item={item}
+              onClick={() => router.push(`/issues/${item.id}`)}
+            />
+          ))}
+        </div>
       )}
     </ProtectedLayout>
   );
 }
 
-function AllIssuesList({
-  issues,
-  loading,
+function IssueHistoryCard({
+  item,
+  onClick,
 }: {
-  issues: Issue[];
-  loading: boolean;
+  item: RecommendIssueHistoryRes;
+  onClick: () => void;
 }) {
-  if (loading) {
-    return (
-      <div className="space-y-3">
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="h-24 bg-github-surface rounded-xl animate-pulse"
-          />
-        ))}
-      </div>
-    );
-  }
-
-  if (issues.length === 0) {
-    return (
-      <div className="text-center py-16 text-github-muted">
-        <p className="text-4xl mb-3">📭</p>
-        <p>이슈가 없습니다. GitHub 검색으로 이슈를 추가해보세요.</p>
-      </div>
-    );
-  }
+  const scorePercent = Math.round(item.score * 100);
 
   return (
-    <div className="space-y-3">
-      {issues.map((issue) => (
-        <IssueCard key={issue.id} issue={issue} />
-      ))}
-    </div>
-  );
-}
-
-function SearchResultsList({
-  results,
-  loading,
-}: {
-  results: RecommendIssueRes[];
-  loading: boolean;
-}) {
-  if (loading) {
-    return (
-      <div className="space-y-3">
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="h-24 bg-github-surface rounded-xl animate-pulse"
-          />
-        ))}
-      </div>
-    );
-  }
-
-  if (results.length === 0) {
-    return (
-      <div className="text-center py-16 text-github-muted">
-        <p className="text-4xl mb-3">🔍</p>
-        <p>위 검색창에서 GitHub 이슈를 검색해보세요.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {results.map((result) => (
-        <RecommendIssueCard key={result.id} result={result} />
-      ))}
-    </div>
-  );
-}
-
-function IssueCard({ issue }: { issue: Issue }) {
-  const githubUrl = `https://github.com/${issue.repoFullName}/issues/${issue.issueNumber}`;
-
-  return (
-    <div className="bg-github-surface border border-github-border rounded-xl p-5 hover:border-github-purple/50 transition-colors">
+    <button
+      onClick={onClick}
+      className="w-full text-left bg-github-surface border border-github-border rounded-xl p-5 hover:border-github-purple/50 transition-colors"
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <StatusBadge status={issue.status} />
-            <span className="text-github-muted text-xs">{issue.repoFullName} #{issue.issueNumber}</span>
-          </div>
-          <h3 className="text-github-text font-medium truncate mb-1">
-            {issue.title}
-          </h3>
-          {issue.content && (
-            <p className="text-github-muted text-xs line-clamp-2">
-              {issue.content.slice(0, 150)}
-            </p>
-          )}
-          {issue.labels && issue.labels.length > 0 && (
-            <div className="flex gap-1.5 mt-2 flex-wrap">
-              {issue.labels.map((label) => (
-                <span
-                  key={label}
-                  className="px-2 py-0.5 bg-github-accent/10 text-github-accent text-xs rounded-full border border-github-accent/20"
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="flex flex-col gap-2 shrink-0">
-          <a
-            href={githubUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-github-muted hover:text-github-accent text-xs transition-colors"
-          >
-            GitHub ↗
-          </a>
-          <Link
-            href={`/pr-draft?issueId=${issue.id}&repo=${encodeURIComponent(issue.repoFullName)}&title=${encodeURIComponent(issue.title)}`}
-            className="px-3 py-1.5 bg-github-purple/20 hover:bg-github-purple/40 text-github-purple-light text-xs font-medium rounded-lg transition-colors whitespace-nowrap"
-          >
-            PR 초안 생성
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RecommendIssueCard({ result }: { result: RecommendIssueRes }) {
-  const githubUrl = `https://github.com/${result.repoFullName}/issues/${result.issueNumber}`;
-  const scorePercent = Math.round(result.score * 100);
-
-  return (
-    <div className="bg-github-surface border border-github-border rounded-xl p-5 hover:border-github-purple/50 transition-colors">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <StatusBadge status={result.status} />
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <StatusBadge status={item.status} />
             <span className="text-github-muted text-xs">
-              {result.repoFullName} #{result.issueNumber}
+              {item.repoFullName} #{item.issueNumber}
             </span>
-            <span className="ml-auto text-xs px-2 py-0.5 bg-green-500/10 text-green-400 rounded-full border border-green-500/20">
-              유사도 {scorePercent}%
-            </span>
+            {scorePercent > 0 && (
+              <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-400 rounded-full border border-green-500/20">
+                매칭 {scorePercent}%
+              </span>
+            )}
+            {item.isAnalyzed && (
+              <span className="text-xs px-2 py-0.5 bg-github-accent/10 text-github-accent rounded-full border border-github-accent/20">
+                분석 완료
+              </span>
+            )}
           </div>
-          <h3 className="text-github-text font-medium truncate mb-1">
-            {result.title}
+          <h3 className="text-github-text font-medium mb-2 line-clamp-1">
+            {item.title}
           </h3>
-          {result.summary && (
-            <p className="text-github-muted text-xs line-clamp-2">
-              {result.summary}
-            </p>
+          {item.summary && (
+            <p className="text-github-muted text-xs line-clamp-2">{item.summary}</p>
           )}
-          {result.labels && result.labels.length > 0 && (
+          {item.labels && item.labels.length > 0 && (
             <div className="flex gap-1.5 mt-2 flex-wrap">
-              {result.labels.map((label) => (
+              {item.labels.map((label) => (
                 <span
                   key={label}
                   className="px-2 py-0.5 bg-github-accent/10 text-github-accent text-xs rounded-full border border-github-accent/20"
@@ -279,24 +180,9 @@ function RecommendIssueCard({ result }: { result: RecommendIssueRes }) {
             </div>
           )}
         </div>
-        <div className="flex flex-col gap-2 shrink-0">
-          <a
-            href={githubUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-github-muted hover:text-github-accent text-xs transition-colors"
-          >
-            GitHub ↗
-          </a>
-          <Link
-            href={`/pr-draft?issueId=${result.id}&repo=${encodeURIComponent(result.repoFullName)}&title=${encodeURIComponent(result.title)}`}
-            className="px-3 py-1.5 bg-github-purple/20 hover:bg-github-purple/40 text-github-purple-light text-xs font-medium rounded-lg transition-colors whitespace-nowrap"
-          >
-            PR 초안 생성
-          </Link>
-        </div>
+        <span className="text-github-muted text-xs shrink-0 mt-1">자세히 →</span>
       </div>
-    </div>
+    </button>
   );
 }
 

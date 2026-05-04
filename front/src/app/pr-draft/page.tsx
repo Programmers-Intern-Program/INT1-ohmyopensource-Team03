@@ -1,50 +1,75 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import ProtectedLayout from "@/components/ProtectedLayout";
-import { prApi, PrInfoRes } from "@/lib/api";
-
-const DIFF_PLACEHOLDER = `diff --git a/src/main/kotlin/Example.kt b/src/main/kotlin/Example.kt
-index abc1234..def5678 100644
---- a/src/main/kotlin/Example.kt
-+++ b/src/main/kotlin/Example.kt
-@@ -10,6 +10,10 @@ class Example {
-     fun existingMethod() {
-         // existing code
-     }
-+
-+    fun newMethod() {
-+        // your implementation
-+    }
- }`;
+import {
+  prApi,
+  PrInfoRes,
+  PrTranslateRes,
+  PrHistoryRes,
+} from "@/lib/api";
 
 function PrDraftContent() {
   const searchParams = useSearchParams();
-  const issueId = searchParams.get("issueId");
-  const repoName = searchParams.get("repo");
-  const issueTitle = searchParams.get("title");
+  const repo = searchParams.get("repo") ?? "";
+  const issueNumber = Number(searchParams.get("issueNumber") ?? "0");
+  const issueId = searchParams.get("issueId") ?? "";
+  const issueTitle = searchParams.get("issueTitle") ?? "";
 
-  const [diffContent, setDiffContent] = useState("");
-  const [result, setResult] = useState<PrInfoRes | null>(null);
+  const [baseBranch, setBaseBranch] = useState("main");
+  const [headBranch, setHeadBranch] = useState("");
+
+  const [createdPr, setCreatedPr] = useState<PrInfoRes | null>(null);
+  const [translated, setTranslated] = useState<PrTranslateRes | null>(null);
   const [loading, setLoading] = useState(false);
+  const [translating, setTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<"title" | "body" | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
+  const [history, setHistory] = useState<PrHistoryRes[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyPage, setHistoryPage] = useState(0);
+  const [historyTotalPages, setHistoryTotalPages] = useState(0);
+
+  useEffect(() => {
+    loadHistory(0);
+  }, []);
+
+  async function loadHistory(page: number) {
+    setHistoryLoading(true);
+    try {
+      const res = await prApi.getHistory(page, 5);
+      if (res.status === "success" && res.data) {
+        setHistory(res.data.content);
+        setHistoryTotalPages(res.data.totalPages);
+        setHistoryPage(page);
+      }
+    } catch {
+      // non-critical
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!issueId || !diffContent.trim()) return;
+    if (!repo || !issueNumber || !baseBranch.trim() || !headBranch.trim()) return;
     setLoading(true);
     setError(null);
-    setResult(null);
+    setCreatedPr(null);
+    setTranslated(null);
     try {
       const res = await prApi.create({
-        issueId: Number(issueId),
-        diffContent,
+        upstreamRepo: repo,
+        githubIssueNumber: issueNumber,
+        baseBranch: baseBranch.trim(),
+        headBranch: headBranch.trim(),
       });
       if (res.status === "success" && res.data) {
-        setResult(res.data);
+        setCreatedPr(res.data);
+        loadHistory(0);
       } else {
         setError(res.message ?? "PR 초안 생성에 실패했습니다.");
       }
@@ -55,112 +80,125 @@ function PrDraftContent() {
     }
   }
 
+  async function handleTranslate() {
+    if (!createdPr) return;
+    setTranslating(true);
+    setError(null);
+    try {
+      const res = await prApi.translate(createdPr.id);
+      if (res.status === "success" && res.data) setTranslated(res.data);
+      else setError(res.message ?? "번역에 실패했습니다.");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setTranslating(false);
+    }
+  }
+
   async function copyToClipboard(text: string, type: "title" | "body") {
     await navigator.clipboard.writeText(text);
     setCopied(type);
     setTimeout(() => setCopied(null), 2000);
   }
 
+  const hasIssueParam = !!repo && !!issueNumber;
+  const displayTitle = translated?.titleEn ?? createdPr?.title ?? "";
+  const displayBody = translated?.bodyEn ?? createdPr?.body ?? "";
+
   return (
     <ProtectedLayout>
       <div className="mb-6 flex items-center gap-3">
-        <Link
-          href="/issues"
-          className="text-github-muted hover:text-github-text text-sm transition-colors"
-        >
-          ← 이슈 목록
-        </Link>
+        {hasIssueParam && issueId ? (
+          <Link
+            href={`/issues/${issueId}`}
+            className="text-github-muted hover:text-github-text text-sm transition-colors"
+          >
+            ← 이슈로 돌아가기
+          </Link>
+        ) : (
+          <Link
+            href="/issues"
+            className="text-github-muted hover:text-github-text text-sm transition-colors"
+          >
+            ← 추천 이슈
+          </Link>
+        )}
         <h1 className="text-2xl font-bold text-github-text">PR 초안 생성</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
         {/* Left: Input */}
         <div className="space-y-4">
-          {/* Issue Info */}
-          {issueId ? (
+          {hasIssueParam ? (
             <div className="bg-github-surface border border-github-border rounded-xl p-5">
               <p className="text-github-muted text-xs mb-1">선택된 이슈</p>
-              {repoName && (
-                <p className="text-github-muted text-xs mb-1">{repoName}</p>
-              )}
+              <p className="text-github-muted text-xs mb-1">{repo}</p>
               <p className="text-github-text font-medium">
-                {issueTitle ?? `Issue #${issueId}`}
+                {issueTitle || `Issue #${issueNumber}`}
               </p>
-              <p className="text-github-muted text-xs mt-1">ID: {issueId}</p>
+              <p className="text-github-muted text-xs mt-1">#{issueNumber}</p>
             </div>
           ) : (
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-5">
               <p className="text-yellow-400 text-sm">
-                이슈를 선택하지 않았습니다.{" "}
+                이슈 상세 페이지에서 "PR 초안 만들기"를 통해 접근해주세요.{" "}
                 <Link href="/issues" className="underline">
-                  이슈 목록
+                  이슈 목록으로
                 </Link>
-                에서 이슈를 선택하세요.
               </p>
-              <div className="mt-3">
-                <label className="block text-github-muted text-xs mb-1.5">
-                  또는 Issue ID를 직접 입력
-                </label>
-                <input
-                  type="number"
-                  placeholder="Issue ID"
-                  onChange={(e) => {
-                    const params = new URLSearchParams(window.location.search);
-                    params.set("issueId", e.target.value);
-                    window.history.replaceState(
-                      {},
-                      "",
-                      `?${params.toString()}`
-                    );
-                  }}
-                  className="w-full bg-github-bg border border-github-border rounded-lg px-3 py-2 text-github-text text-sm focus:outline-none focus:border-github-purple transition-colors"
-                />
-              </div>
             </div>
           )}
 
-          {/* Diff Input */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-github-muted text-xs mb-1.5">
-                Git Diff 내용
-                <span className="text-red-400 ml-1">*</span>
-              </label>
-              <textarea
-                value={diffContent}
-                onChange={(e) => setDiffContent(e.target.value)}
-                placeholder={DIFF_PLACEHOLDER}
-                rows={16}
-                className="w-full bg-github-bg border border-github-border rounded-lg px-4 py-3 text-github-text text-xs font-mono focus:outline-none focus:border-github-purple transition-colors resize-none leading-relaxed"
-              />
-              <p className="text-github-muted text-xs mt-1">
-                터미널에서{" "}
-                <code className="bg-github-bg px-1 py-0.5 rounded text-github-accent">
-                  git diff HEAD
-                </code>{" "}
-                또는{" "}
-                <code className="bg-github-bg px-1 py-0.5 rounded text-github-accent">
-                  git diff main...feat
-                </code>{" "}
-                출력을 붙여넣으세요.
-              </p>
-            </div>
+          {hasIssueParam && (
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div>
+                <label className="block text-github-muted text-xs mb-1.5">
+                  Base 브랜치 <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={baseBranch}
+                  onChange={(e) => setBaseBranch(e.target.value)}
+                  placeholder="main"
+                  className="w-full bg-github-bg border border-github-border rounded-lg px-3 py-2 text-github-text text-sm font-mono focus:outline-none focus:border-github-purple transition-colors"
+                />
+                <p className="text-github-muted text-xs mt-1">
+                  PR의 대상 브랜치 (예: main, develop)
+                </p>
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading || !diffContent.trim()}
-              className="w-full py-3 bg-github-purple hover:bg-github-purple/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  AI가 PR 초안을 생성 중... (10~30초 소요)
-                </>
-              ) : (
-                "PR 초안 생성"
-              )}
-            </button>
-          </form>
+              <div>
+                <label className="block text-github-muted text-xs mb-1.5">
+                  Head 브랜치 <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={headBranch}
+                  onChange={(e) => setHeadBranch(e.target.value)}
+                  placeholder="feat/my-feature"
+                  className="w-full bg-github-bg border border-github-border rounded-lg px-3 py-2 text-github-text text-sm font-mono focus:outline-none focus:border-github-purple transition-colors"
+                />
+                <p className="text-github-muted text-xs mt-1">
+                  내 작업 브랜치 (예: feat/fix-issue-123)
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !baseBranch.trim() || !headBranch.trim()}
+                className="w-full py-3 bg-github-purple hover:bg-github-purple/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    AI가 PR 초안 생성 중...
+                  </>
+                ) : (
+                  "PR 초안 생성"
+                )}
+              </button>
+            </form>
+          )}
 
           {error && (
             <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
@@ -171,58 +209,84 @@ function PrDraftContent() {
 
         {/* Right: Result */}
         <div>
-          {result ? (
+          {createdPr ? (
             <div className="space-y-4">
-              <h2 className="text-github-text font-semibold">생성된 PR 초안</h2>
+              <h2 className="text-github-text font-semibold">
+                생성된 PR 초안
+                {translated && (
+                  <span className="ml-2 text-github-accent text-sm font-normal">
+                    (영어 번역 완료)
+                  </span>
+                )}
+              </h2>
 
-              {/* PR Title */}
               <div className="bg-github-surface border border-github-border rounded-xl p-5">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-github-muted text-xs">PR 제목</p>
                   <button
-                    onClick={() => copyToClipboard(result.title, "title")}
+                    onClick={() => copyToClipboard(displayTitle, "title")}
                     className="text-github-muted hover:text-github-accent text-xs transition-colors"
                   >
                     {copied === "title" ? "복사됨 ✓" : "복사"}
                   </button>
                 </div>
-                <p className="text-github-text font-medium">{result.title}</p>
+                <p className="text-github-text font-medium">{displayTitle}</p>
               </div>
 
-              {/* PR Body */}
               <div className="bg-github-surface border border-github-border rounded-xl p-5">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-github-muted text-xs">PR 본문</p>
                   <button
-                    onClick={() => copyToClipboard(result.body, "body")}
+                    onClick={() => copyToClipboard(displayBody, "body")}
                     className="text-github-muted hover:text-github-accent text-xs transition-colors"
                   >
                     {copied === "body" ? "복사됨 ✓" : "복사"}
                   </button>
                 </div>
-                <pre className="text-github-text text-xs font-mono whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto">
-                  {result.body}
+                <pre className="text-github-text text-xs font-mono whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">
+                  {displayBody}
                 </pre>
               </div>
 
-              {/* GitHub Link */}
-              {result.githubUrl && (
+              {!translated ? (
+                <button
+                  onClick={handleTranslate}
+                  disabled={translating}
+                  className="w-full py-2.5 bg-github-accent/10 hover:bg-github-accent/20 disabled:opacity-50 text-github-accent font-medium rounded-lg border border-github-accent/30 transition-colors text-sm flex items-center justify-center gap-2"
+                >
+                  {translating ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-github-accent border-t-transparent rounded-full animate-spin" />
+                      영어로 번역 중...
+                    </>
+                  ) : (
+                    "영어로 번역하기"
+                  )}
+                </button>
+              ) : (
                 <a
-                  href={result.githubUrl}
+                  href={translated.githubUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full py-3 bg-github-accent/10 hover:bg-github-accent/20 text-github-accent font-medium rounded-xl border border-github-accent/30 transition-colors text-sm"
                 >
-                  GitHub에서 PR 열기 ↗
+                  GitHub에서 PR 올리기 ↗
                 </a>
               )}
+
+              <Link
+                href={`/pr/${createdPr.id}`}
+                className="block text-center text-github-muted hover:text-github-text text-xs transition-colors"
+              >
+                상세 보기 (수정·삭제) →
+              </Link>
             </div>
           ) : (
             <div className="bg-github-surface border border-github-border rounded-xl p-8 h-full flex items-center justify-center">
               <div className="text-center text-github-muted">
                 <p className="text-4xl mb-3">✨</p>
                 <p className="text-sm">
-                  왼쪽에서 diff를 입력하고 생성 버튼을 누르면
+                  브랜치 정보를 입력하고 생성 버튼을 누르면
                   <br />
                   AI가 PR 초안을 자동 작성합니다.
                 </p>
@@ -230,6 +294,69 @@ function PrDraftContent() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* PR History */}
+      <div>
+        <h2 className="text-github-text font-semibold mb-4">PR 초안 이력</h2>
+        {historyLoading ? (
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-16 bg-github-surface rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : history.length === 0 ? (
+          <div className="text-center py-8 text-github-muted text-sm">
+            아직 생성된 PR 초안이 없습니다.
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2">
+              {history.map((pr) => (
+                <Link
+                  key={pr.id}
+                  href={`/pr/${pr.id}`}
+                  className="flex items-center justify-between bg-github-surface border border-github-border rounded-xl px-5 py-4 hover:border-github-purple/50 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-github-text text-sm font-medium truncate">
+                      {pr.title}
+                    </p>
+                    <p className="text-github-muted text-xs mt-0.5">
+                      {pr.repoFullName} ·{" "}
+                      {new Date(pr.createdAt).toLocaleDateString("ko-KR")}
+                    </p>
+                  </div>
+                  <span className="text-github-muted text-xs shrink-0 ml-4">
+                    보기 →
+                  </span>
+                </Link>
+              ))}
+            </div>
+
+            {historyTotalPages > 1 && (
+              <div className="flex justify-center items-center gap-3 mt-4">
+                <button
+                  onClick={() => loadHistory(historyPage - 1)}
+                  disabled={historyPage === 0}
+                  className="px-3 py-1 text-xs text-github-muted hover:text-github-text disabled:opacity-30 transition-colors"
+                >
+                  ← 이전
+                </button>
+                <span className="text-xs text-github-muted">
+                  {historyPage + 1} / {historyTotalPages}
+                </span>
+                <button
+                  onClick={() => loadHistory(historyPage + 1)}
+                  disabled={historyPage >= historyTotalPages - 1}
+                  className="px-3 py-1 text-xs text-github-muted hover:text-github-text disabled:opacity-30 transition-colors"
+                >
+                  다음 →
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </ProtectedLayout>
   );
