@@ -1,8 +1,14 @@
 package com.back.omos.domain.issue.service
 
+import com.back.omos.domain.analysis.repository.UserAnalysisRequestRepository
 import com.back.omos.domain.issue.ai.IssueGlmClient
+import com.back.omos.domain.issue.dto.RecommendIssueHistoryRes
 import com.back.omos.domain.issue.dto.RecommendIssueRes
+import com.back.omos.domain.issue.entity.Issue
+import com.back.omos.domain.issue.entity.UserRecommendedIssue
 import com.back.omos.domain.issue.repository.IssueRepository
+import com.back.omos.domain.issue.repository.UserRecommendedIssueRepository
+import com.back.omos.domain.user.entity.User
 import com.back.omos.domain.user.repository.UserRepository
 import com.back.omos.global.exception.errorCode.AuthErrorCode
 import com.back.omos.global.exception.errorCode.IssueErrorCode
@@ -21,10 +27,12 @@ import org.springframework.transaction.annotation.Transactional
 class RecommendServiceImpl(
     private val issueRepository: IssueRepository,
     private val userRepository: UserRepository,
-    private val issueGlmClient: IssueGlmClient
+    private val issueGlmClient: IssueGlmClient,
+    private val userRecommendedIssueRepository: UserRecommendedIssueRepository,
+    private val userAnalysisRequestRepository: UserAnalysisRequestRepository
 ) : RecommendService {
 
-    @Transactional(readOnly = true)
+    @Transactional
     override fun getPersonalizedRecommendation(githubId: String): List<RecommendIssueRes> {
 
         // 1. 유저 조회
@@ -52,22 +60,73 @@ class RecommendServiceImpl(
             candidateIssues = topIssues
         )
 
-        // 6. 결과 반환
-        return aiRecommendationReasons.mapNotNull { aiResult ->
-            // 제목과 레포지토리 이름이 모두 일치하는 이슈를 찾음
+        // 6. AI 결과와 이슈 매칭
+        val recommendations = aiRecommendationReasons.mapNotNull { aiResult ->
             val matchedIssue = topIssues.find {
                 it.title == aiResult.title && it.repoFullName == aiResult.repoName
-            }
+            } ?: return@mapNotNull null
 
-            // 매칭되는 이슈를 못 찾으면 null처리
-            if (matchedIssue == null) {
-                return@mapNotNull null
-            }
+            matchedIssue to aiResult.reason
+        }
 
-            // DTO로 변환
-            RecommendIssueRes.from(matchedIssue).copy(
-                summary = aiResult.reason
-            )
+        // 7. 추천 이력 저장 (upsert)
+        saveRecommendationHistory(user, recommendations)
+
+        // 8. 결과 반환
+        return recommendations.map { (issue, reason) ->
+            RecommendIssueRes.from(issue).copy(summary = reason)
+        }
+    }
+
+    @Transactional(readOnly = true)
+    override fun getUserRecommendationHistory(githubId: String): List<RecommendIssueHistoryRes> {
+        val user = userRepository.findByGithubId(githubId)
+            .orElseThrow { AuthException(AuthErrorCode.USER_NOT_FOUND, "GitHub ID [$githubId]에 해당하는 유저를 찾을 수 없습니다.") }
+
+        val history = userRecommendedIssueRepository.findAllByUserIdOrderByUpdatedAtDesc(user.id!!)
+
+        if (history.isEmpty()) return emptyList()
+
+        // 추천 이력의 이슈 ID 목록으로 분석 완료 여부를 한 번에 조회
+        val issueIds = history.mapNotNull { it.issue.id }
+        val analyzedMap = userAnalysisRequestRepository
+            .findAllByUserIdAndAnalysisResultIssueIdIn(user.id!!, issueIds)
+            .associateBy { it.analysisResult!!.issue.id!! }
+
+        return history.map { recommended ->
+            val analysisRequest = recommended.issue.id?.let { analyzedMap[it] }
+            RecommendIssueHistoryRes.from(recommended, analysisRequest)
+        }.sortedByDescending { it.isAnalyzed }
+    }
+
+    /**
+     * 추천 결과를 이력으로 저장합니다. 이미 추천된 이슈는 요약을 최신 내용으로 갱신합니다.
+     *
+     * 기존 레코드를 한 번의 IN 쿼리로 일괄 조회한 뒤 메모리에서 upsert를 처리하여
+     * N+1 문제를 방지합니다.
+     *
+     * @param user 추천을 받은 사용자
+     * @param recommendations 추천된 이슈와 AI 생성 사유의 쌍 목록
+     * @author MintyU
+     * @since 2026-04-29
+     */
+    private fun saveRecommendationHistory(user: User, recommendations: List<Pair<Issue, String>>) {
+        val userId = user.id ?: return
+        val deduped = recommendations.distinctBy { (issue, _) -> issue.id }
+        val issueIds = deduped.mapNotNull { (issue, _) -> issue.id }
+
+        val existingMap = userRecommendedIssueRepository
+            .findAllByUserIdAndIssueIdIn(userId, issueIds)
+            .associateBy { it.issue.id!! }
+
+        deduped.forEach { (issue, summary) ->
+            val issueId = issue.id ?: return@forEach
+            val existing = existingMap[issueId]
+            if (existing != null) {
+                existing.summary = summary
+            } else {
+                userRecommendedIssueRepository.save(UserRecommendedIssue(user = user, issue = issue, summary = summary))
+            }
         }
     }
 }

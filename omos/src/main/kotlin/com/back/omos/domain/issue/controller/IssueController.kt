@@ -1,5 +1,6 @@
 package com.back.omos.domain.issue.controller
 
+import com.back.omos.domain.issue.dto.RecommendIssueHistoryRes
 import com.back.omos.domain.issue.dto.RecommendIssueRes
 import com.back.omos.domain.issue.entity.Issue
 import com.back.omos.domain.issue.repository.IssueRepository
@@ -86,6 +87,7 @@ class IssueController(
      * <p>
      * 인증된 사용자의 GitHub ID를 기반으로 프로필 벡터를 조회하며,
      * 벡터 유사도 검색과 AI 분석(RAG)을 거쳐 최적의 이슈 3개를 선정해 반환합니다.
+     * 추천 결과는 이력으로 저장되어 [getRecommendationHistory]를 통해 재조회할 수 있습니다.
      *
      * @param principal 인증된 사용자의 세션 정보 ([OAuthPrincipal])
      * @return AI가 생성한 상세 추천 사유를 포함한 [RecommendIssueRes]
@@ -97,5 +99,23 @@ class IssueController(
     ): CommonResponse<List<RecommendIssueRes>> {
         val responses = recommendService.getPersonalizedRecommendation(principal.githubId)
         return CommonResponse.success(responses)
+    }
+
+    /**
+     * 사용자가 이전에 추천받은 이슈 목록을 반환합니다.
+     * <p>
+     * 서비스 재방문 시 기존 추천 이력을 확인할 수 있으며, 최근 추천 순으로 정렬됩니다.
+     * 동일 이슈가 재추천된 경우 가장 최근 추천 일시를 기준으로 정렬됩니다.
+     *
+     * @param principal 인증된 사용자의 세션 정보 ([OAuthPrincipal])
+     * @return 추천 이력 목록 (최근 추천 순), 이력이 없으면 빈 리스트 반환
+     * @author MintyU
+     * @since 2026-04-29
+     */
+    @GetMapping("/recommend/history")
+    fun getRecommendationHistory(
+        @AuthenticationPrincipal principal: OAuthPrincipal
+    ): CommonResponse<List<RecommendIssueHistoryRes>> {
+        return CommonResponse.success(recommendService.getUserRecommendationHistory(principal.githubId))
     }
 }
