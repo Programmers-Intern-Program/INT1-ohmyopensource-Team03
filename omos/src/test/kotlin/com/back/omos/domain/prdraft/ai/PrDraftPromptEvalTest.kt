@@ -33,7 +33,7 @@ import org.springframework.beans.factory.annotation.Qualifier
 //@Disabled("프롬프트 평가용 수동 실행 테스트 — 필요할 때만 @Disabled 제거하고 실행")
 @SpringBootTest
 @ActiveProfiles("test")
-class PromptEvalTest {
+class PrDraftPromptEvalTest {
 
     @Autowired
     private lateinit var aiClient: SpringAiClient
