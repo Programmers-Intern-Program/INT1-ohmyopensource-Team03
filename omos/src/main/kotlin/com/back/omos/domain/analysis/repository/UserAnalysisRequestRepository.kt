@@ -51,4 +51,14 @@ interface UserAnalysisRequestRepository : JpaRepository<UserAnalysisRequest, Lon
      * @return 해당 이슈들에 대한 완료된 분석 요청 목록
      */
     fun findAllByUserIdAndAnalysisResultIssueIdIn(userId: Long, issueIds: List<Long>): List<UserAnalysisRequest>
+
+    /**
+     * 특정 분석 결과를 참조하는 모든 사용자 분석 요청을 삭제합니다.
+     *
+     * 캐시 무효화 시 기존 [AnalysisResult]를 삭제하기 전에 호출하여
+     * [UserAnalysisRequest] 고아 레코드 발생을 방지합니다.
+     *
+     * @param analysisResultId 삭제할 분석 결과의 ID
+     */
+    fun deleteAllByAnalysisResultId(analysisResultId: Long)
 }

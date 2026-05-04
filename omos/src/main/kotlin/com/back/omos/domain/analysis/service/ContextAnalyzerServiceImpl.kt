@@ -140,6 +140,7 @@ class ContextAnalyzerServiceImpl(
                 if (isIssueModifiedAfterAnalysis(latestIssue, cached)) {
                     // 이슈 수정됨 → 캐시 무효화 후 재생성
                     log.info("[resolveOrCreateAnalysis] 이슈 수정 감지, 캐시 무효화: issueId=$issueId")
+                    userAnalysisRequestRepository.deleteAllByAnalysisResultId(cached.id!!)
                     analysisResultRepository.delete(cached)
                     analysisResultRepository.flush()
                     generateAnalysis(issue, owner, repoName)
