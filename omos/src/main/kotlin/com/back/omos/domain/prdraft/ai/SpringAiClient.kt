@@ -10,6 +10,7 @@ import org.springframework.ai.chat.prompt.Prompt
 import org.springframework.stereotype.Component
 import java.security.MessageDigest
 import java.time.Instant
+import java.util.concurrent.Executors
 
 /**
  * Spring AI를 사용하여 GLM 모델을 호출하는 실제 AI 구현체입니다.
@@ -44,6 +45,9 @@ class SpringAiClient(
         // 프롬프트 내용을 변경할 때 버전을 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
         private const val GENERATION_PR_DRAFT = "pr-draft-v2"
         private const val GENERATION_TRANSLATE = "pr-translate-v1"
+
+        // LLM judge 채점 전용 풀 — 동시 채점 수를 제한해 스레드 고갈 방지
+        private val judgeExecutor = Executors.newFixedThreadPool(4)
     }
 
     /**
@@ -68,7 +72,7 @@ class SpringAiClient(
         generatedTitle: String,
         generatedBody: String
     ) {
-        Thread {
+        judgeExecutor.submit {
             try {
                 val judgePrompt = """
                     아래 PR 초안이 diff 내용을 얼마나 잘 반영했는지 평가해줘.
@@ -106,7 +110,7 @@ class SpringAiClient(
                 // 채점 실패는 메인 흐름에 영향을 주지 않음
                 logger.warn { "LLM judge 채점 실패 (무시됨): ${e.message}" }
             }
-        }.start()
+        }
     }
 
     /**
