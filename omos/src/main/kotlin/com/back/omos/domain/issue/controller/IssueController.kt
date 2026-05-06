@@ -1,5 +1,6 @@
 package com.back.omos.domain.issue.controller
 
+import com.back.omos.domain.issue.dto.IssueInfoRes
 import com.back.omos.domain.issue.dto.RecommendIssueHistoryRes
 import com.back.omos.domain.issue.dto.RecommendIssueRes
 import com.back.omos.domain.issue.entity.Issue
@@ -57,6 +58,28 @@ class IssueController(
     fun getAllIssues(): CommonResponse<List<Issue>> {
         val issues = issueRepository.findAll()
         return CommonResponse.success(issues)
+    }
+
+    /**
+     * repoFullName과 GitHub 이슈 번호로 OMOS DB의 이슈 ID를 조회합니다.
+     *
+     * Chrome Extension 등 외부 클라이언트가 GitHub 이슈 번호만 알고 있을 때
+     * OMOS 내부 ID를 획득하기 위해 사용합니다.
+     * 이슈가 DB에 없으면 404를 반환합니다.
+     *
+     * @param repo 레포지토리 전체 이름 (예: kayinza/GreenCode)
+     * @param number GitHub 이슈 번호
+     * @return [IssueInfoRes]
+     * @author MintyU
+     */
+    @GetMapping("/lookup")
+    fun lookupIssue(
+        @RequestParam repo: String,
+        @RequestParam number: Long
+    ): ResponseEntity<CommonResponse<IssueInfoRes>> {
+        val issue = issueRepository.findByRepoFullNameAndIssueNumber(repo, number)
+            ?: throw IssueException(IssueErrorCode.ISSUE_NOT_FOUND)
+        return ResponseEntity.ok(CommonResponse.success(IssueInfoRes.from(issue)))
     }
 
     /**

@@ -171,12 +171,30 @@ function renderIssueDetail(el) {
   const issueNumber = pathParts[pathParts.length - 1];
 
   el.innerHTML = `
+    <div id="omos-rec-reason"></div>
     <h3 class="omos-section-title">이슈 분석</h3>
     <p class="omos-desc">이슈 #${issueNumber}에 대한 AI 분석을 제공합니다.</p>
     <button class="omos-btn" id="omos-guide-btn">코드 수정 가이드 보기</button>
     <button class="omos-btn omos-btn-secondary" id="omos-pseudo-btn">의사 코드 보기</button>
     <div id="omos-analysis-result"></div>
   `;
+
+  sendMessage({ type: 'GET_CACHED_RECOMMENDATIONS' }, (res) => {
+    const allIssues = res?.data?.data ?? [];
+    const matched = allIssues.find(
+      (i) => i.repoFullName === repoFullName && String(i.issueNumber) === issueNumber
+    );
+    const recReasonEl = document.getElementById('omos-rec-reason');
+    if (recReasonEl && matched?.summary) {
+      recReasonEl.innerHTML = `
+        <h3 class="omos-section-title">추천 이유</h3>
+        <div class="omos-reason-card">
+          <p class="omos-reason-text">${matched.summary}</p>
+        </div>
+        <hr class="omos-divider">
+      `;
+    }
+  });
 
   document.getElementById('omos-guide-btn').addEventListener('click', () => {
     requestAnalysis('GET_ISSUE_GUIDE', '분석 중...', repoFullName, issueNumber);
@@ -189,7 +207,43 @@ function renderIssueDetail(el) {
 
 function renderAnalysisResult(data) {
   if (!data) return `<p class="omos-empty">결과가 없습니다.</p>`;
-  return `<div class="omos-result"><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+
+  const filePathsHtml = (data.filePaths ?? []).length > 0
+    ? `<div class="omos-result-section">
+        <p class="omos-result-label">수정 대상 파일</p>
+        <ul class="omos-file-list">
+          ${data.filePaths.map((p) => `<li class="omos-file-item">${p}</li>`).join('')}
+        </ul>
+       </div>`
+    : '';
+
+  if (data.guideline != null) {
+    return `
+      <div class="omos-result">
+        ${filePathsHtml}
+        <div class="omos-result-section">
+          <p class="omos-result-label">수정 방향</p>
+          <p class="omos-result-text">${data.guideline}</p>
+        </div>
+        <div class="omos-result-section">
+          <p class="omos-result-label">주의 사항</p>
+          <p class="omos-result-text omos-result-warning">${data.sideEffects}</p>
+        </div>
+      </div>`;
+  }
+
+  if (data.pseudoCode != null) {
+    return `
+      <div class="omos-result">
+        ${filePathsHtml}
+        <div class="omos-result-section">
+          <p class="omos-result-label">의사 코드</p>
+          <pre class="omos-code-block">${data.pseudoCode}</pre>
+        </div>
+      </div>`;
+  }
+
+  return `<p class="omos-empty">결과가 없습니다.</p>`;
 }
 
 // ── PR 생성: PR 초안 자동 생성 ──────────────────────────────────────────────

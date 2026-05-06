@@ -54,18 +54,15 @@ function refreshRecommendations() {
   recHint.textContent = '';
 
   chrome.runtime.sendMessage({ type: 'GET_RECOMMEND_ISSUES' }, (res) => {
-    recLoading.style.display = 'none';
-
     if (!res?.ok) {
+      recLoading.style.display = 'none';
       renderEmptyState('추천 생성에 실패했습니다.');
       appendRefreshButton();
       return;
     }
 
-    const issues = res.data?.data ?? [];
-    recHint.textContent = `${issues.length}개`;
-    renderIssues(issues);
-    appendRefreshButton();
+    // 새 추천이 DB에 저장됐으므로 갱신된 이력을 바로 표시
+    loadHistory();
   });
 }
 

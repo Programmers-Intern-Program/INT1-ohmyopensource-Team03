@@ -94,6 +94,7 @@ class GlmClientImpl(
                     "[GlmClientImpl#selectFiles] GLM 응답이 null입니다.",
                     "관련 파일 탐색에 실패했습니다."
                 )
+            log.debug("[GlmClientImpl#selectFiles] GLM 원본 응답: $response")
             parseFileList(response)
         } catch (e: AnalysisException) {
             throw e

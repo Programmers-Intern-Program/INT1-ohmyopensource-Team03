@@ -68,6 +68,11 @@ async function apiFetch(path, options = {}) {
     throw new Error('TOKEN_EXPIRED');
   }
 
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.message || `HTTP_${res.status}`);
+  }
+
   return res.json();
 }
 
