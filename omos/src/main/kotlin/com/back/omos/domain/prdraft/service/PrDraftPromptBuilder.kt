@@ -42,7 +42,7 @@ class PrDraftPromptBuilder {
 
     companion object {
         // 프롬프트 내용을 변경할 때 이 버전도 함께 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
-        const val PROMPT_VERSION = "v4"
+        const val PROMPT_VERSION = "v5"
     }
 
 
@@ -52,9 +52,17 @@ class PrDraftPromptBuilder {
      * @param diffContent GitHub Compare API로 가져온 diff 내용
      * @param contributing CONTRIBUTING.md 내용 (없으면 null)
      * @param prs 참고용 기존 병합 PR 목록
+     * @param issueTitle 연결된 이슈 제목 (없으면 null)
+     * @param issueContent 연결된 이슈 본문 (없으면 null)
      * @return AI에 전달할 프롬프트 문자열
      */
-    fun build(diffContent: String, contributing: String?, prs: List<GitHubPrRes>): String {
+    fun build(
+        diffContent: String,
+        contributing: String?,
+        prs: List<GitHubPrRes>,
+        issueTitle: String? = null,
+        issueContent: String? = null
+    ): String {
         val contextSection = when {
             contributing != null -> "\n[CONTRIBUTING.md]\n$contributing\n"
             prs.isNotEmpty() -> {
@@ -64,6 +72,10 @@ class PrDraftPromptBuilder {
             else -> "\n[아래 기본 템플릿 형식에 맞춰 작성하세요]\n$defaultTemplate\n"
         }
 
+        val issueSection = if (issueTitle != null) {
+            "\n[이슈]\n제목: $issueTitle\n내용: ${issueContent ?: "(본문 없음)"}\n"
+        } else ""
+
         return """
             [System Message]
             당신은 오픈소스 커뮤니티의 소통을 돕는 테크니컬 라이터입니다.
@@ -71,13 +83,14 @@ class PrDraftPromptBuilder {
             반드시 제목과 본문 모두 한국어로 작성하세요.
 
             [Input]
+            $issueSection
             $contextSection
             - 변경된 코드 내역:
             $diffContent
 
             [Instruction]
             1. 제목은 feat:, fix:, refactor:, chore:, docs:, test: 중 하나의 커밋 컨벤션을 따르고 50자 이내로 작성하세요.
-            2. 본문은 '변경 이유(Why)', '수정 내용(What)'의 2단 구조로 작성하세요. 변경 이유가 diff에서 추론되지 않으면 '(작성 필요)'로 남겨두세요.
+            2. 본문은 '변경 이유(Why)', '수정 내용(What)'의 2단 구조로 작성하세요. 변경 이유는 이슈 내용을 우선 참고하고, 이슈에도 없으면 '(작성 필요)'로 남겨두세요.
             3. 불필요한 미사여구는 배제하고, 엔지니어링 관점에서 간결하고 명확한 어조를 유지하세요.
             4. 타입 변경·메서드 시그니처·어노테이션 위치 등 기술적 세부사항이 있다면 본문에 명시하세요.
             5. 테스트 방법 섹션은 개발자가 직접 작성할 수 있도록 아래와 같이 placeholder로 남겨두세요.
