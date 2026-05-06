@@ -36,6 +36,7 @@ import org.mockito.kotlin.eq
 import org.springframework.test.context.ActiveProfiles
 import java.util.Optional
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
 
 @ExtendWith(MockitoExtension::class)
 @ActiveProfiles("test")
@@ -389,7 +390,7 @@ class ContextAnalyzerServiceImplTest {
                     title = "Fix NullPointerException",
                     body = "이슈 본문",
                     labels = emptyList(),
-                    updatedAt = LocalDateTime.now().minusDays(5)  // createdAt보다 이전
+                    updatedAt = OffsetDateTime.now().minusDays(5)  // createdAt보다 이전
                 )
 
                 given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
@@ -432,7 +433,7 @@ class ContextAnalyzerServiceImplTest {
                     title = "Fix NullPointerException",
                     body = "이슈 본문",
                     labels = emptyList(),
-                    updatedAt = LocalDateTime.now()  // createdAt보다 최신
+                    updatedAt = OffsetDateTime.now()  // createdAt보다 최신
                 )
 
                 given(issueRepository.findById(ISSUE_ID)).willReturn(Optional.of(mockIssue))
@@ -459,11 +460,10 @@ class ContextAnalyzerServiceImplTest {
                 given(analysisResultRepository.save(any())).willReturn(mockAnalysisResult)
 
                 // 캐시 삭제 검증 전에 stub 추가
-                doNothing().`when`(userAnalysisRequestRepository).deleteAllByAnalysisResultId(any())
                 contextAnalyzerService.getPseudoCode(ISSUE_ID, GITHUB_ID)
 
                 // 캐시 삭제 검증에도 추가
-                then(userAnalysisRequestRepository).should().deleteAllByAnalysisResultId(any())
+                then(userAnalysisRequestRepository).should().updateAnalysisResult(eq(999L), any())
                 then(analysisResultRepository).should().delete(oldResult)
                 then(analysisResultRepository).should().flush()
                 then(analysisResultRepository).should().save(any())
