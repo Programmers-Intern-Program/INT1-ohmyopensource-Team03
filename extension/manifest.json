@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "OMOS",
+  "version": "0.1.0",
+  "description": "GitHub 오픈소스 기여를 위한 이슈 추천 및 PR 초안 생성 도우미",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "https://github.com/*",
+    "http://localhost:8080/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "OMOS"
+  }
+}
