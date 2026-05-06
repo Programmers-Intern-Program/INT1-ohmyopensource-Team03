@@ -2,12 +2,15 @@ package com.back.omos.domain.issue.ai
 
 import com.back.omos.domain.issue.dto.AIRecommendationResult
 import com.back.omos.domain.issue.entity.Issue
+import com.back.omos.global.ai.LangfuseClient
 import com.back.omos.global.exception.errorCode.AiErrorCode
 import com.back.omos.global.exception.exceptions.AiException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.core.type.TypeReference
 import org.springframework.ai.chat.model.ChatModel
+import org.springframework.ai.chat.prompt.Prompt
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 /**
  * Generative AI 모델과 통신하여 실제 추천 로직을 수행하는 클라이언트 구현체입니다.
@@ -35,9 +38,14 @@ import org.springframework.stereotype.Component
 @Component
 class IssueGlmClientImpl(
     private val chatModel: ChatModel,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val langfuseClient: LangfuseClient // 추가
 ) : IssueGlmClient {
 
+    companion object {
+        // 프롬프트를 수정할 때마다 버전을 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
+        private const val GENERATION_NAME = "issue-recommendation-GLM-4.5-v1"
+    }
 
     override fun generateRecommendationReasons(
         userProfile: String,
@@ -45,15 +53,47 @@ class IssueGlmClientImpl(
     ): List<AIRecommendationResult> {
         val promptText = buildRecommendPrompt(userProfile, candidateIssues)
 
-        val responseContent = try {
-            chatModel.call(promptText) ?: throw AiException(AiErrorCode.AI_RESPONSE_EMPTY);
+        // 측정 시작
+        val startTime = Instant.now()
+
+        // 2. ChatResponse 형태로 호출 (토큰 정보 추출을 위해)
+        val chatResponse = try {
+            chatModel.call(Prompt(promptText))
         } catch (e: Exception) {
             throw AiException(AiErrorCode.AI_RESPONSE_PARSE_FAILED);
         }
 
+        // 3. 시간 측정 종료 및 메타데이터 추출
+        val endTime = Instant.now()
+        val responseContent = chatResponse.result.output.text ?: throw AiException(AiErrorCode.AI_RESPONSE_EMPTY);
+        val usage = chatResponse.metadata.usage
+
+        // 4. Langfuse 기록 (토큰 수 포함) 및 traceId 획득
+        val traceId = langfuseClient.recordGeneration(
+            name = GENERATION_NAME,
+            input = promptText,
+            output = responseContent,
+            startTime = startTime,
+            endTime = endTime,
+            inputTokens = usage?.promptTokens?.toInt(),
+            outputTokens = usage?.completionTokens?.toInt()
+        )
+
         return try {
-            objectMapper.readValue(responseContent, object : TypeReference<List<AIRecommendationResult>>() {})
+            val result =
+                objectMapper.readValue(responseContent, object : TypeReference<List<AIRecommendationResult>>() {})
+
+            // 5. 성공 시 품질 점수 기록 (예: 파싱 성공 시 10점)
+            if (traceId != null) {
+                langfuseClient.recordScore(traceId, 10.0, "JSON Parsing Success")
+            }
+
+            result
         } catch (e: Exception) {
+            // 6. 실패 시 품질 점수 기록 (예: 파싱 실패 시 0점)
+            if (traceId != null) {
+                langfuseClient.recordScore(traceId, 0.0, "JSON Parsing Failed: ${e.message}")
+            }
             throw AiException(AiErrorCode.AI_RESPONSE_PARSE_FAILED);
         }
     }
