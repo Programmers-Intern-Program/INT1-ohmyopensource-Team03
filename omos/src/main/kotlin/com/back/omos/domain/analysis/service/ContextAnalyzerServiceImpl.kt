@@ -15,6 +15,7 @@ import com.back.omos.global.exception.errorCode.AnalysisErrorCode
 import com.back.omos.global.exception.errorCode.AuthErrorCode
 import com.back.omos.global.exception.exceptions.AnalysisException
 import com.back.omos.global.exception.exceptions.AuthException
+import com.back.omos.domain.analysis.github.GitHubIssueRes
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.beans.factory.annotation.Qualifier
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import org.slf4j.LoggerFactory
+import java.time.ZoneId
 
 /**
  * [ContextAnalyzerService]의 핵심 비즈니스 로직을 담당하는 서비스 구현체입니다.
@@ -32,9 +34,10 @@ import org.slf4j.LoggerFactory
  * [AnalysisResultRepository]에 해당 이슈의 분석 결과가 존재하면 즉시 반환합니다.
  * 분석 결과가 없는 경우에만 GitHub API와 GLM API를 통해 새 분석 결과를 생성하고 저장합니다.
  *
- * <p><b>캐시 갱신 (미구현 — TODO):</b><br>
+ * <p><b>캐시 갱신:</b><br>
  * [isIssueModifiedAfterAnalysis]를 통해 이슈의 updatedAt과 분석 결과의 createdAt을 비교,
- * 이슈가 분석 이후 수정된 경우 가이드를 재생성하는 로직이 설계되어 있으나 아직 적용되지 않았습니다.
+ * 캐시 유효기간([CACHE_VALIDITY_DAYS]일) 초과 시 GitHub API로 이슈 수정 여부를 확인합니다.
+ * 수정된 경우 새 분석 결과를 생성하고 기존 [UserAnalysisRequest]는 새 결과로 업데이트합니다.
  *
  * <p><b>외부 모듈:</b><br>
  * GitHub API — 관련 소스코드 수집<br>
@@ -72,8 +75,9 @@ class ContextAnalyzerServiceImpl(
     /**
      * 분석 결과를 반환합니다.
      *
-     * 사용자별 캐시 확인 → 일일 횟수 제한 검사 → 이슈별 캐시 확인(재사용) → 신규 생성 순으로 처리합니다.
-     * 새로운 요청이 발생할 경우 [UserAnalysisRequest]를 저장하여 이력을 기록합니다.
+     * 사용자별 캐시 확인 → 일일 횟수 제한 검사 → 이슈별 캐시 확인(재사용/갱신) → 신규 생성 순으로 처리합니다.
+     * 캐시된 분석 결과가 [CACHE_VALIDITY_DAYS]일 이상 경과한 경우 GitHub API로 이슈 수정 여부를 확인하고,
+     * 수정된 경우 캐시를 무효화하고 재생성합니다.
      *
      * @param issueId 분석할 이슈의 식별자
      * @param githubId 요청한 사용자의 GitHub ID
@@ -88,6 +92,17 @@ class ContextAnalyzerServiceImpl(
                     "해당 이슈를 찾을 수 없습니다."
                 )
             }
+
+        // repoFullName 파싱을 상단으로 올림 (캐시 갱신 체크에 필요)
+        val parts = issue.repoFullName.split("/")
+        if (parts.size != 2) {
+            throw AnalysisException(
+                AnalysisErrorCode.GITHUB_API_FAIL,
+                "[ContextAnalyzerServiceImpl#resolveOrCreateAnalysis] repoFullName 형식이 올바르지 않습니다: ${issue.repoFullName}",
+                "레포지토리 정보가 올바르지 않습니다."
+            )
+        }
+        val (owner, repoName) = parts
 
         val user = userRepository.findByGithubIdWithLock(githubId)
             .orElseThrow {
@@ -114,8 +129,42 @@ class ContextAnalyzerServiceImpl(
             )
         }
 
-        // 이슈에 대한 분석 결과가 이미 존재하면 재사용, 없으면 신규 생성
-        val analysisResult = analysisResultRepository.findByIssueId(issueId) ?: generateAnalysis(issue)
+        // 이슈별 캐시 확인 + 갱신 체크
+        val cached = analysisResultRepository.findByIssueId(issueId)
+        val cacheThreshold = now.minusDays(CACHE_VALIDITY_DAYS)
+
+        val analysisResult = if (cached != null) {
+            if (cached.createdAt.isBefore(cacheThreshold)) {
+                // 캐시가 3일 이상 경과 → GitHub API로 이슈 수정 여부 확인
+                log.info("[resolveOrCreateAnalysis] 캐시 유효기간 초과, 이슈 수정 여부 확인: issueId=$issueId")
+                val latestIssue = gitHubClient.fetchIssue(owner, repoName, issue.issueNumber.toInt())
+
+                if (isIssueModifiedAfterAnalysis(latestIssue, cached)) {
+                    // 이슈 수정됨 → 새 결과 생성 후 기존 요청 업데이트 (이력 보존)
+                    log.info("[resolveOrCreateAnalysis] 이슈 수정 감지, 캐시 무효화: issueId=$issueId")
+
+                    // 1. 새 분석 결과 먼저 생성
+                    val newResult = generateAnalysis(issue, owner, repoName)
+
+                    // 2. 기존 UserAnalysisRequest를 새 결과로 업데이트 (daily count 보존)
+                    userAnalysisRequestRepository.updateAnalysisResult(cached.id!!, newResult)
+
+                    // 3. 기존 캐시 삭제
+                    analysisResultRepository.delete(cached)
+                    analysisResultRepository.flush()
+
+                    newResult
+                } else {
+                    // 이슈 수정 안 됨 → 기존 캐시 반환
+                    cached
+                }
+            } else {
+                // 3일 이내 캐시 → 그대로 반환
+                cached
+            }
+        } else {
+            generateAnalysis(issue, owner, repoName)
+        }
 
         // 사용자 분석 요청 이력 저장
         userAnalysisRequestRepository.save(
@@ -128,44 +177,37 @@ class ContextAnalyzerServiceImpl(
     /**
      * 이슈가 분석 이후 수정되었는지 판단합니다.
      *
-     * TODO: [getGuide], [getPseudoCode]의 캐시 갱신 조건으로 연결 필요.
-     *       현재 이 메서드는 호출되지 않으므로 캐시 무효화가 동작하지 않습니다.
+     * 캐시된 분석 결과의 createdAt과 GitHub API에서 가져온 이슈의 updatedAt을 비교합니다.
+     * [resolveOrCreateAnalysis]에서 캐시 유효기간([CACHE_VALIDITY_DAYS]일) 초과 시 호출됩니다.
      *
-     * @param issue 캐시 유효성을 검사할 이슈
+     * @param latestIssue GitHub API에서 가져온 최신 이슈 정보
      * @param result 비교 대상인 기존 분석 결과
-     * @return 이슈의 [Issue.updatedAt]이 분석 결과의 [AnalysisResult.createdAt]보다 늦으면 true
+     * @return 이슈의 updatedAt이 분석 결과의 createdAt보다 늦으면 true
      */
-    private fun isIssueModifiedAfterAnalysis(issue: Issue, result: AnalysisResult): Boolean {
-        return issue.updatedAt.isAfter(result.createdAt)
+    private fun isIssueModifiedAfterAnalysis(latestIssue: GitHubIssueRes, result: AnalysisResult): Boolean {
+        val updatedAt = latestIssue.updatedAt ?: return false
+        // OffsetDateTime을 서버 시간대 기준 LocalDateTime으로 변환해서 비교
+        val updatedAtLocal = updatedAt.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime()
+        return updatedAtLocal.isAfter(result.createdAt)
     }
 
     /**
      * GitHub API로 관련 소스코드를 수집하고 GLM API로 분석 결과를 생성한 뒤 저장합니다.
      *
      * 처리 흐름:
-     * 1. [Issue.repoFullName]에서 owner/repo 파싱
-     * 2. GitHub API로 이슈 상세 정보 fetch
-     * 3. GitHub Tree API로 전체 파일 경로 목록 fetch 후 확장자 필터링
-     * 4. 확장자 필터링된 경로 전체 + 이슈 → GLM 1차 호출로 관련 파일 선별
-     * 5. GraphQL로 선별된 파일 내용 한 번에 fetch
-     * 6. 파일 내용 파싱/가공 (주석 제거, 토큰 제한)
-     * 7. 파싱한 코드 + 이슈 → GLM 2차 호출로 가이드 생성
+     * 1. GitHub API로 이슈 상세 정보 fetch
+     * 2. GitHub Tree API로 전체 파일 경로 목록 fetch 후 확장자 필터링
+     * 3. 확장자 필터링된 경로 전체 + 이슈 → GLM 1차 호출로 관련 파일 선별 (동적 배치)
+     * 4. GraphQL로 선별된 파일 내용 한 번에 fetch
+     * 5. 파일 내용 파싱/가공 (주석 제거, 토큰 제한)
+     * 6. 파싱한 코드 + 이슈 → GLM 2차 호출로 가이드 생성
      *
      * @param issue 분석 대상 이슈
      * @return 저장된 [AnalysisResult]
      * @throws AnalysisException [Issue.repoFullName] 형식이 `owner/repo`가 아닌 경우,
      *                           또는 GitHub/GLM API 호출에 실패하는 경우
      */
-    private fun generateAnalysis(issue: Issue): AnalysisResult {
-        val parts = issue.repoFullName.split("/")
-        if (parts.size != 2) {
-            throw AnalysisException(
-                AnalysisErrorCode.GITHUB_API_FAIL,
-                "[ContextAnalyzerServiceImpl#generateAnalysis] repoFullName 형식이 올바르지 않습니다: ${issue.repoFullName}",
-                "레포지토리 정보가 올바르지 않습니다."
-            )
-        }
-        val (owner, repoName) = parts
+    private fun generateAnalysis(issue: Issue, owner: String, repoName: String): AnalysisResult {
 
         val issueInfo = gitHubClient.fetchIssue(owner, repoName, issue.issueNumber.toInt())
 
@@ -175,7 +217,13 @@ class ContextAnalyzerServiceImpl(
                 path.endsWith(".ts") || path.endsWith(".js") ||
                         path.endsWith(".kt") || path.endsWith(".java") ||
                         path.endsWith(".py") || path.endsWith(".go") ||
-                        path.endsWith(".rs") || path.endsWith(".cpp")
+                        path.endsWith(".rs") || path.endsWith(".cpp") ||
+                        path.endsWith(".json") || path.endsWith(".yaml") ||
+                        path.endsWith(".yml") || path.endsWith(".md") ||
+                        path.endsWith(".html") || path.endsWith(".css") ||
+                        path.endsWith(".scss") || path.endsWith(".xml") ||
+                        path.endsWith(".toml") || path.endsWith(".gradle") ||
+                        path.endsWith(".properties")
             }
         log.info("[generateAnalysis] 확장자 필터링 후 파일 수: ${allFilePaths.size}")
 // 2단계: 동적 배치로 GLM 1차 호출 (최대한 많은 파일 경로 전달)
@@ -277,6 +325,8 @@ class ContextAnalyzerServiceImpl(
         private const val DAILY_REQUEST_LIMIT = 5L
         /** 파일당 최대 문자 수 (토큰 절약) */
         private const val MAX_FILE_CONTENT_LENGTH = 3000
+        /** 캐시 유효기간 (일). 이 기간이 지나면 GitHub API로 이슈 수정 여부를 확인. */
+        private const val CACHE_VALIDITY_DAYS = 3L
     }
 
     private fun toGuideDto(result: AnalysisResult): GuideResponseDto {

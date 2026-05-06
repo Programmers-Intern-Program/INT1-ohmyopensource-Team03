@@ -54,3 +54,8 @@ app:
 github:
   token: ${GITHUB_TOKEN:test-token}
 
+langfuse:
+  host: ${LANGFUSE_HOST:http://localhost:3001}
+  public-key: ${LANGFUSE_PUBLIC_KEY:}
+  secret-key: ${LANGFUSE_SECRET_KEY:}
+
