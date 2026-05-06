@@ -86,27 +86,36 @@ class SpringAiClient(
                     [생성된 PR 본문]
                     $generatedBody
 
+                    [사전 확인] diff가 공백·포맷팅·주석만 변경한 trivial diff인지 먼저 판단해.
+                    trivial diff라면 제목에 refactor:/chore: 컨벤션이 맞고 본문에 "포맷팅 정리" 수준의 설명이 있으면 만점 처리해.
+                    변경 이유를 장황하게 서술하지 않아도 감점하지 마.
+
                     [채점 기준] 각 항목을 꼼꼼히 확인하고 부족하면 감점해.
-                    - 제목 (0~3점): feat:/fix: 등 컨벤션 준수 + diff 핵심을 정확히 한 줄로 요약. 두루뭉술하면 감점.
+                    - 제목 (0~3점): feat:/fix: 등 컨벤션 준수 (1점) + diff 핵심 파일·동작을 정확히 한 줄로 요약 (2점). 두루뭉술하거나 컨벤션 없으면 감점.
                     - 변경 내용 (0~5점): 변경 이유와 맥락을 충분히 설명했는가 (0~2점, diff에서 추론 불가능해 '(작성 필요)'로 표시된 경우 감점 제외) + 타입 변경·메서드 시그니처·어노테이션 등 기술적 세부사항을 명시했는가 (0~3점). 고수준 요약만 있으면 감점.
                     - 정확성 (0~2점): diff에 없는 내용을 지어내거나 기술적으로 틀린 설명이 있으면 감점.
 
                     [채점 기준점] 변경 내용(5점)이 핵심 배점이므로 여기서 충분히 감점해야 전체 점수가 의미 있다. 평범한 PR은 5~6점, 훌륭한 PR만 8점 이상. 10점은 모든 항목 만점일 때만.
 
-                    반드시 아래 JSON 형식으로만 응답해.
-                    {"score": 6.0, "reason": "채점 근거 한 줄"}
+                    반드시 아래 JSON 형식으로만 응답해. 항목별 점수를 반드시 포함해.
+                    {"score": 6.0, "title": 2, "content": 3, "accuracy": 1, "reason": "감점 항목과 이유를 항목별로 간략히"}
                 """.trimIndent()
 
                 val judgeResponse = chatModel.call(judgePrompt) ?: return@submit
 
-                // JSON에서 score와 reason 추출
+                // JSON에서 항목별 점수와 reason 추출
                 val json = extractJson(judgeResponse) ?: return@submit
                 val node = objectMapper.readTree(json)
                 val score = node.get("score")?.asDouble() ?: return@submit
+                val title = node.get("title")?.asInt()
+                val content = node.get("content")?.asInt()
+                val accuracy = node.get("accuracy")?.asInt()
                 val reason = node.get("reason")?.asText() ?: ""
 
-                langfuseClient.recordScore(traceId, score, reason)
-                logger.debug { "LLM judge 채점 완료: score=$score" }
+                // 항목별 점수를 reason에 포함해서 Langfuse에 기록
+                val fullReason = "[제목:$title / 변경내용:$content / 정확성:$accuracy] $reason"
+                langfuseClient.recordScore(traceId, score, fullReason)
+                logger.debug { "LLM judge 채점 완료: score=$score (title=$title, content=$content, accuracy=$accuracy)" }
             } catch (e: Exception) {
                 // 채점 실패는 메인 흐름에 영향을 주지 않음
                 logger.warn { "LLM judge 채점 실패 (무시됨): ${e.message}" }
