@@ -37,7 +37,7 @@ import java.io.File
  * @author 5h6vm
  * @since 2026-04-30
  */
-@Disabled("수동 프롬프트 평가 전용 — 실행 시 @Disabled 제거")
+//@Disabled("수동 프롬프트 평가 전용 — 실행 시 @Disabled 제거")
 @SpringBootTest
 @ActiveProfiles("test")
 class PrDraftPromptEvalTest {
@@ -61,7 +61,9 @@ class PrDraftPromptEvalTest {
                 val prompt = promptBuilder.build(
                     diffContent = sample.diff,
                     contributing = null,
-                    prs = emptyList()
+                    prs = emptyList(),
+                    issueTitle = sample.issueTitle,
+                    issueContent = sample.issueContent
                 )
                 val result = aiClient.generatePrDraft(prompt)
                 println("제목: ${result.title}")
@@ -89,7 +91,9 @@ class PrDraftPromptEvalTest {
                 val prompt = promptBuilder.build(
                     diffContent = sample.diff,
                     contributing = null,
-                    prs = emptyList()
+                    prs = emptyList(),
+                    issueTitle = sample.issueTitle,
+                    issueContent = sample.issueContent
                 )
 
                 val result = aiClient.generatePrDraft(prompt)
@@ -122,7 +126,9 @@ class PrDraftPromptEvalTest {
                 val prompt = promptBuilder.build(
                     diffContent = sample.diff,
                     contributing = null,
-                    prs = emptyList()
+                    prs = emptyList(),
+                    issueTitle = sample.issueTitle,
+                    issueContent = sample.issueContent
                 )
                 val result = aiClient.generatePrDraft(prompt)
                 println("제목: ${result.title}")
@@ -150,7 +156,9 @@ class PrDraftPromptEvalTest {
                 val prompt = promptBuilder.build(
                     diffContent = sample.diff,
                     contributing = null,
-                    prs = emptyList()
+                    prs = emptyList(),
+                    issueTitle = sample.issueTitle,
+                    issueContent = sample.issueContent
                 )
                 val result = aiClient.generatePrDraft(prompt)
                 println("제목: ${result.title}")
@@ -170,11 +178,14 @@ class PrDraftPromptEvalTest {
      */
     @Test
     fun `CONTRIBUTING md 컨텍스트로 프롬프트 평가`() {
+        val sample = EVAL_SAMPLES[0]
         try {
             val prompt = promptBuilder.build(
-                diffContent = EVAL_SAMPLES[0].diff,
+                diffContent = sample.diff,
                 contributing = SAMPLE_CONTRIBUTING,
-                prs = emptyList()
+                prs = emptyList(),
+                issueTitle = sample.issueTitle,
+                issueContent = sample.issueContent
             )
             val result = aiClient.generatePrDraft(prompt)
             println("제목: ${result.title}")
@@ -198,7 +209,9 @@ class PrDraftPromptEvalTest {
                 val prompt = promptBuilder.build(
                     diffContent = sample.diff,
                     contributing = SAMPLE_CONTRIBUTING_LONG,
-                    prs = emptyList()
+                    prs = emptyList(),
+                    issueTitle = sample.issueTitle,
+                    issueContent = sample.issueContent
                 )
                 val result = aiClient.generatePrDraft(prompt)
                 println("제목: ${result.title}")
@@ -217,11 +230,14 @@ class PrDraftPromptEvalTest {
      */
     @Test
     fun `기존 PR 컨텍스트로 프롬프트 평가`() {
+        val sample = EVAL_SAMPLES[1]
         try {
             val prompt = promptBuilder.build(
-                diffContent = EVAL_SAMPLES[1].diff,
+                diffContent = sample.diff,
                 contributing = null,
-                prs = SAMPLE_PRS
+                prs = SAMPLE_PRS,
+                issueTitle = sample.issueTitle,
+                issueContent = sample.issueContent
             )
             val result = aiClient.generatePrDraft(prompt)
             println("제목: ${result.title}")
@@ -381,7 +397,12 @@ class PrDraftPromptEvalTest {
             )
         )
 
-        data class EvalSample(val description: String, val diff: String)
+        data class EvalSample(
+            val description: String,
+            val diff: String,
+            val issueTitle: String? = null,
+            val issueContent: String? = null
+        )
 
         val EVAL_SAMPLES = listOf(
 
@@ -390,6 +411,8 @@ class PrDraftPromptEvalTest {
             // 샘플 1: 단순 버그 수정 (null 안전성)
             EvalSample(
                 description = "null 안전성 버그 수정",
+                issueTitle = "getUserProfile() 호출 시 NullPointerException 발생",
+                issueContent = "name 또는 email이 null인 사용자 조회 시 UserProfileRes 생성 단계에서 NPE 발생. null 안전 처리 및 예외 메시지 개선 필요.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/UserService.kt b/src/main/kotlin/com/example/service/UserService.kt
                     index a1b2c3d..e4f5g6h 100644
@@ -413,6 +436,8 @@ class PrDraftPromptEvalTest {
             // 샘플 2: 신규 기능 (페이지네이션 추가)
             EvalSample(
                 description = "목록 조회 API에 페이지네이션 추가",
+                issueTitle = "게시글 목록 API 데이터 증가 시 응답 속도 저하",
+                issueContent = "게시글 수가 늘어나면서 /api/posts 응답 시간이 점점 길어지고 있음. page, size 파라미터를 받아 페이지 단위로 반환하도록 수정 요청.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/controller/PostController.kt b/src/main/kotlin/com/example/controller/PostController.kt
                     index b2c3d4e..f5g6h7i 100644
@@ -443,6 +468,8 @@ class PrDraftPromptEvalTest {
             // 샘플 3: 리팩토링 (중복 코드 추출)
             EvalSample(
                 description = "공통 검증 로직 메서드 추출 리팩토링",
+                issueTitle = "OrderService 주문 조회 + 권한 검증 코드 중복",
+                issueContent = "cancelOrder, getOrderDetail 두 메서드에서 동일한 주문 조회 및 소유자 확인 로직이 반복됨. 공통 private 메서드로 추출하여 중복 제거 필요.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/OrderService.kt b/src/main/kotlin/com/example/service/OrderService.kt
                     index c3d4e5f..g6h7i8j 100644
@@ -479,6 +506,8 @@ class PrDraftPromptEvalTest {
             // 샘플 4: 성능 개선 (캐싱 적용)
             EvalSample(
                 description = "레포지토리 정보 조회에 캐싱 적용",
+                issueTitle = "레포지토리 정보 반복 조회 시 DB 부하",
+                issueContent = "대시보드 렌더링 시 동일한 레포지토리 정보를 여러 번 조회하는데 매번 DB 쿼리가 발생함. 캐싱 레이어 적용으로 부하 감소 필요.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/RepoService.kt b/src/main/kotlin/com/example/service/RepoService.kt
                     index d4e5f6g..h7i8j9k 100644
@@ -508,6 +537,8 @@ class PrDraftPromptEvalTest {
             // 샘플 5: 보안 수정 (입력값 검증 추가)
             EvalSample(
                 description = "API 요청 입력값 검증 추가",
+                issueTitle = "댓글 생성 API 입력값 검증 없음",
+                issueContent = "현재 댓글 내용에 빈 문자열이나 500자를 초과하는 텍스트도 저장 가능함. Jakarta Validation(@NotBlank, @Size)을 적용하고 컨트롤러에 @Valid 추가 필요.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/dto/CreateCommentReq.kt b/src/main/kotlin/com/example/dto/CreateCommentReq.kt
                     index e5f6g7h..i8j9k0l 100644
@@ -543,6 +574,8 @@ class PrDraftPromptEvalTest {
             // 샘플 6: 에러 메시지 한 줄 수정
             EvalSample(
                 description = "에러 메시지 한 줄 수정 (극소 diff — 가장 쉬운 케이스)",
+                issueTitle = "사용자 미존재 에러 메시지 영문으로 노출됨",
+                issueContent = "USER_NOT_FOUND 에러 발생 시 클라이언트에 'User not found' 영문 메시지가 그대로 노출됨. 한국어로 변경 요청.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/exception/ErrorCode.kt b/src/main/kotlin/com/example/exception/ErrorCode.kt
                     index a1b2c3d..e4f5g6h 100644
@@ -560,6 +593,8 @@ class PrDraftPromptEvalTest {
             // 샘플 7: 설정값 상수 변경
             EvalSample(
                 description = "JWT 액세스 토큰 만료 시간 1시간 → 24시간 변경 (극소 diff)",
+                issueTitle = "액세스 토큰 만료 시간이 짧아 사용 중 자동 로그아웃 발생",
+                issueContent = "현재 액세스 토큰 TTL이 1시간으로 설정되어 있어 장시간 사용 중 세션이 끊기는 불편이 있음. 24시간으로 연장 요청.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/config/JwtProperties.kt b/src/main/kotlin/com/example/config/JwtProperties.kt
                     index b2c3d4e..f5g6h7i 100644
@@ -581,6 +616,8 @@ class PrDraftPromptEvalTest {
             // 샘플 8: 알림 서비스 신규 구현
             EvalSample(
                 description = "알림 기능 신규 구현 (entity + service + controller, 대형 diff)",
+                issueTitle = "알림 기능 구현 — 읽지 않은 알림 조회 및 읽음 처리",
+                issueContent = "사용자에게 읽지 않은 알림 목록 조회(GET /notifications/unread), 전체 읽음 처리(PATCH /notifications/read-all), 단건 읽음 처리(PATCH /notifications/{id}/read) API가 필요함. Notification entity, service, controller 신규 구현.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/domain/notification/Notification.kt b/src/main/kotlin/com/example/domain/notification/Notification.kt
                     new file mode 100644
@@ -681,6 +718,8 @@ class PrDraftPromptEvalTest {
             // 샘플 9: 댓글 기능 전체 구현 (entity + dto + repository + service + controller)
             EvalSample(
                 description = "댓글 기능 전체 구현 (5개 파일 신규 추가, 가장 큰 diff)",
+                issueTitle = "게시글 댓글 CRUD 기능 구현",
+                issueContent = "게시글에 댓글 작성(POST /comments), 게시글별 댓글 목록 조회(GET /comments/post/{postId}) 기능 필요. Comment entity, DTO, Repository, Service, Controller 전체 신규 구현.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/domain/comment/Comment.kt b/src/main/kotlin/com/example/domain/comment/Comment.kt
                     new file mode 100644
@@ -793,6 +832,8 @@ class PrDraftPromptEvalTest {
             // 샘플 10: 정렬 기준 변경 (왜 바꿨는지 코드만으로 불분명)
             EvalSample(
                 description = "이슈 목록 정렬 기준 변경 (애매 — 변경 이유가 코드만으로 불분명)",
+                issueTitle = "이슈 목록을 최근 활동 순으로 정렬 변경 요청",
+                issueContent = "현재 이슈 목록이 생성일(createdAt) 기준으로 정렬되는데, 최근에 댓글이 달리거나 수정된 이슈가 위에 보여야 한다는 피드백이 있음. updatedAt 기준으로 변경 요청.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/IssueService.kt b/src/main/kotlin/com/example/service/IssueService.kt
                     index a1b2c3d..e4f5g6h 100644
@@ -811,6 +852,8 @@ class PrDraftPromptEvalTest {
             // 샘플 11: 트랜잭션 전파 전략 변경 (성능·정확성 트레이드오프인지 코드만으론 불분명)
             EvalSample(
                 description = "결제 감사 로그 트랜잭션 전파 전략 변경 (애매 — REQUIRES_NEW 이유 불분명)",
+                issueTitle = "결제 실패 시 감사 로그도 함께 롤백되어 감사 추적 불가",
+                issueContent = "결제 처리 트랜잭션이 롤백될 때 같은 트랜잭션에 묶인 감사 로그도 삭제됨. 감사 로그는 결제 성공/실패 여부와 무관하게 항상 커밋되어야 함. REQUIRES_NEW 전파 전략 적용 필요.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/PaymentService.kt b/src/main/kotlin/com/example/service/PaymentService.kt
                     index b2c3d4e..f5g6h7i 100644
@@ -831,6 +874,8 @@ class PrDraftPromptEvalTest {
             // 샘플 12: 설정 파일 + 서비스 로직 + DTO 동시 수정 (연관성 파악 필요)
             EvalSample(
                 description = "파일 업로드 용량 제한 상향 (설정 + 서비스 + DTO 동시 수정, 애매)",
+                issueTitle = "파일 업로드 5MB 제한으로 고화질 이미지 업로드 불가",
+                issueContent = "현재 파일 업로드 최대 크기가 5MB로 제한되어 있어 고화질 이미지(보통 5~10MB)를 업로드할 수 없음. 서비스 제한, Spring multipart 설정, DTO 응답 필드를 함께 10MB로 상향 요청.",
                 diff = """
                     diff --git a/src/main/resources/application.yml b/src/main/resources/application.yml
                     index a1b2c3d..e4f5g6h 100644
@@ -873,6 +918,8 @@ class PrDraftPromptEvalTest {
             // 샘플 13: 테스트 파일만 추가 (프로덕션 코드 변경 없음)
             EvalSample(
                 description = "테스트 파일만 추가 (프로덕션 변경 없는 케이스)",
+                issueTitle = "UserService 단위 테스트 누락",
+                issueContent = "getUserProfile 메서드에 대한 단위 테스트가 없음. 정상 조회 케이스와 미존재 사용자 케이스에 대한 테스트 클래스 추가 필요.",
                 diff = """
                     diff --git a/src/test/kotlin/com/example/service/UserServiceTest.kt b/src/test/kotlin/com/example/service/UserServiceTest.kt
                     new file mode 100644
@@ -922,6 +969,8 @@ class PrDraftPromptEvalTest {
             // 샘플 14: 빌드 파일만 변경 (dependency 추가)
             EvalSample(
                 description = "모니터링 의존성 추가 (build.gradle.kts만 변경)",
+                issueTitle = "Prometheus/Grafana 연동을 위한 메트릭 수집 설정 필요",
+                issueContent = "운영 모니터링 대시보드 구축을 위해 Spring Actuator와 Micrometer Prometheus 의존성 추가 필요. build.gradle.kts에 의존성만 추가하면 됨.",
                 diff = """
                     diff --git a/build.gradle.kts b/build.gradle.kts
                     index a1b2c3d..e4f5g6h 100644
@@ -942,6 +991,8 @@ class PrDraftPromptEvalTest {
             // 샘플 15: 기능 삭제 위주 (deprecated API 제거)
             EvalSample(
                 description = "Deprecated 레거시 API 엔드포인트 제거 (삭제 위주 diff)",
+                issueTitle = "v2 전환 완료 후 레거시 /legacy 엔드포인트 제거",
+                issueContent = "v2 API 전환이 완료되었고 /api/users/legacy/* 엔드포인트를 사용하는 클라이언트가 없음을 확인. @Deprecated 엔드포인트 및 관련 서비스 메서드 제거 요청.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/controller/UserController.kt b/src/main/kotlin/com/example/controller/UserController.kt
                     index b2c3d4e..f5g6h7i 100644
@@ -979,6 +1030,8 @@ class PrDraftPromptEvalTest {
             // 샘플 16: 공백/포맷팅만 변경 (내용 변경 없는 trivial diff — 가장 까다로운 케이스)
             EvalSample(
                 description = "코드 포맷팅/공백만 변경 (내용 변경 없는 trivial diff)",
+                issueTitle = "PostService ktlint 포맷팅 위반 수정",
+                issueContent = "CI ktlint 검사에서 PostService 파일에 공백 및 포맷팅 위반이 감지됨. 로직 변경 없이 Kotlin 코딩 컨벤션에 맞게 포맷팅만 정리.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/PostService.kt b/src/main/kotlin/com/example/service/PostService.kt
                     index a1b2c3d..e4f5g6h 100644
@@ -1009,6 +1062,8 @@ class PrDraftPromptEvalTest {
             // 샘플 17: DB 마이그레이션 SQL만 변경
             EvalSample(
                 description = "DB 마이그레이션 파일 추가 — 컬럼 추가 및 인덱스 생성",
+                issueTitle = "User 테이블에 프로필 이미지 URL 컬럼 추가",
+                issueContent = "프로필 이미지 기능 구현을 위해 users 테이블에 profile_image_url, profile_image_updated_at 컬럼이 필요함. Flyway 마이그레이션 스크립트로 컬럼 추가 및 조회 성능을 위한 인덱스 생성.",
                 diff = """
                     diff --git a/src/main/resources/db/migration/V5__add_profile_image_to_user.sql b/src/main/resources/db/migration/V5__add_profile_image_to_user.sql
                     new file mode 100644
@@ -1026,6 +1081,8 @@ class PrDraftPromptEvalTest {
             // 샘플 18: 로깅 추가 (여러 파일 cross-cutting)
             EvalSample(
                 description = "주요 서비스 메서드에 구조화 로깅 추가 (여러 파일 cross-cutting)",
+                issueTitle = "로그인·사용자 삭제 이벤트 로그 부재로 운영 중 디버깅 어려움",
+                issueContent = "운영 환경에서 비정상 로그인 시도나 사용자 삭제 이슈 발생 시 추적이 불가능함. AuthService와 UserService 주요 메서드에 구조화 로그(SLF4J) 추가 필요.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/AuthService.kt b/src/main/kotlin/com/example/service/AuthService.kt
                     index a1b2c3d..e4f5g6h 100644
@@ -1069,6 +1126,8 @@ class PrDraftPromptEvalTest {
             // 샘플 19: 커스텀 예외 체계 도입 + 기존 코드 연결
             EvalSample(
                 description = "커스텀 예외 클래스 추가 및 RuntimeException 교체",
+                issueTitle = "RuntimeException 직접 사용으로 에러 핸들러에서 도메인 예외 구분 불가",
+                issueContent = "현재 서비스 전반에서 RuntimeException을 직접 throw하고 있어 GlobalExceptionHandler에서 도메인별 에러를 분기할 수 없음. UserNotFoundException, PostNotFoundException, ForbiddenException 등 커스텀 예외 클래스 도입 요청.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/exception/CustomExceptions.kt b/src/main/kotlin/com/example/exception/CustomExceptions.kt
                     new file mode 100644
@@ -1104,6 +1163,8 @@ class PrDraftPromptEvalTest {
             // 샘플 20: 인터페이스 분리 + SMTP 구현체 추가
             EvalSample(
                 description = "메일 발송 인터페이스 분리 및 SMTP 구현체 추가",
+                issueTitle = "NotificationService가 MailService 구현체에 직접 의존해 테스트 및 교체 어려움",
+                issueContent = "NotificationService가 MailService 구현체를 직접 주입받아 단위 테스트 시 mock 처리가 번거롭고 구현체 교체 시 서비스 코드를 수정해야 함. MailSender 인터페이스를 분리하고 SmtpMailSender 구현체를 추가하는 방식으로 의존성 역전 적용 요청.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/MailSender.kt b/src/main/kotlin/com/example/service/MailSender.kt
                     new file mode 100644
