@@ -42,7 +42,7 @@ class PrDraftPromptBuilder {
 
     companion object {
         // 프롬프트 내용을 변경할 때 이 버전도 함께 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
-        const val PROMPT_VERSION = "v6.1"
+        const val PROMPT_VERSION = "v6.3"
     }
 
 
@@ -64,12 +64,23 @@ class PrDraftPromptBuilder {
         issueContent: String? = null
     ): String {
         val contextSection = when {
-            contributing != null -> "\n[CONTRIBUTING.md]\n$contributing\n"
+            contributing != null -> {
+                "\n[CONTRIBUTING.md]\n$contributing\n\n[기본 템플릿]\n$defaultTemplate\n"
+            }
             prs.isNotEmpty() -> {
                 val examples = prs.joinToString("\n---\n") { "제목: ${it.title}\n본문: ${it.body}" }
-                "\n[기존 PR 예시 - PR들의 톤앤매너가 일관적이라면 이를 참고하여 작성하고, 일관적이지 않다면 아래 기본 템플릿 형식에 맞춰 작성하세요]\n$examples\n\n[기본 템플릿]\n$defaultTemplate\n"
+                "\n[기존 PR 예시]\n$examples\n\n[기본 템플릿]\n$defaultTemplate\n"
             }
-            else -> "\n[아래 기본 템플릿 형식에 맞춰 작성하세요]\n$defaultTemplate\n"
+            else -> "\n[기본 템플릿]\n$defaultTemplate\n"
+        }
+
+        val structureInstruction = when {
+            contributing != null ->
+                "CONTRIBUTING.md의 PR 본문 형식을 따르세요. PR 형식이 없거나 모호한 경우 '변경 이유(Why)', '수정 내용(What)'의 2단 구조로 작성하세요. 변경 이유는 이슈 내용을 우선 참고하고, 이슈에도 없으면 '(작성 필요)'로 남겨두세요."
+            prs.isNotEmpty() ->
+                "PR 예시에서 일관된 구조를 파악해 따르세요. 규칙이 모호한 경우 '변경 이유(Why)', '수정 내용(What)'의 2단 구조로 작성하세요. 변경 이유는 이슈 내용을 우선 참고하고, 이슈에도 없으면 '(작성 필요)'로 남겨두세요."
+            else ->
+                "본문은 '변경 이유(Why)', '수정 내용(What)'의 2단 구조로 작성하세요. 변경 이유는 이슈 내용을 우선 참고하고, 이슈에도 없으면 '(작성 필요)'로 남겨두세요."
         }
 
         val issueSection = if (issueTitle != null) {
@@ -90,11 +101,10 @@ class PrDraftPromptBuilder {
 
             [Instruction]
             1. 제목은 feat:, fix:, refactor:, chore:, docs:, test: 중 하나의 커밋 컨벤션을 따르고 50자 이내로 작성하세요.
-            2. 본문은 '변경 이유(Why)', '수정 내용(What)'의 2단 구조로 작성하세요.
-            3. 변경 이유는 이슈 내용을 우선 참고하고, 이슈에도 없으면 '(작성 필요)'로 남겨두세요.
-            4. 핵심 변경사항 위주로 간결하게 작성하세요
-            5. 불필요한 미사여구는 배제하고, 엔지니어링 관점에서 간결하고 명확한 어조를 유지하세요.
-            6. 테스트 방법 섹션은 개발자가 직접 작성할 수 있도록 아래와 같이 placeholder로 남겨두세요.
+            2. $structureInstruction
+            3. 불필요한 미사여구는 배제하고, 엔지니어링 관점에서 간결하고 명확한 어조를 유지하세요.
+            4. 타입 변경·메서드 시그니처·어노테이션 위치 등 기술적 세부사항이 있다면 본문에 명시하세요.
+            5. 테스트 방법 섹션은 개발자가 직접 작성할 수 있도록 아래와 같이 placeholder로 남겨두세요.
                ## 테스트 방법
                <!-- 직접 작성 필요 -->
 
