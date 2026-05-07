@@ -42,7 +42,7 @@ class PrDraftPromptBuilder {
 
     companion object {
         // 프롬프트 내용을 변경할 때 이 버전도 함께 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
-        const val PROMPT_VERSION = "v6.3"
+        const val PROMPT_VERSION = "v7"
     }
 
 
@@ -61,7 +61,8 @@ class PrDraftPromptBuilder {
         contributing: String?,
         prs: List<GitHubPrRes>,
         issueTitle: String? = null,
-        issueContent: String? = null
+        issueContent: String? = null,
+        issueGuideline: String? = null
     ): String {
         val contextSection = when {
             contributing != null -> {
@@ -87,6 +88,11 @@ class PrDraftPromptBuilder {
             "\n[이슈]\n제목: $issueTitle\n내용: ${issueContent ?: "(본문 없음)"}\n"
         } else ""
 
+        val guidelineSection = issueGuideline
+            ?.take(500)
+            ?.let { "\n[분석 가이드라인]\n$it\n" }
+            ?: ""
+
         return """
             [System Message]
             당신은 오픈소스 커뮤니티의 소통을 돕는 테크니컬 라이터입니다.
@@ -95,6 +101,7 @@ class PrDraftPromptBuilder {
 
             [Input]
             $issueSection
+            $guidelineSection
             $contextSection
             - 변경된 코드 내역:
             $diffContent
