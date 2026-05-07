@@ -43,7 +43,7 @@ class SpringAiClient(
 
     companion object {
         // 프롬프트 내용을 변경할 때 버전을 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
-        private const val GENERATION_PR_DRAFT = "pr-draft-v5"
+        private const val GENERATION_PR_DRAFT = "pr-draft-v6.1"
         private const val GENERATION_TRANSLATE = "pr-translate-v1"
 
         // LLM judge 채점 전용 풀 — 동시 채점 수를 제한해 스레드 고갈 방지
