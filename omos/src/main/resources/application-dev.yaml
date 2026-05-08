@@ -11,7 +11,7 @@ spring:
       chat:
         completions-path: /chat/completions
         options:
-          model: glm-5-turbo
+          model: glm-4.5
       embedding:
         enabled: false  # 임베딩은 Gemini가 담당
 

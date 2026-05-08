@@ -40,9 +40,10 @@ class PrDraftPromptBuilder {
     private val defaultTemplate = ClassPathResource("templates/pr-default-template.md")
         .inputStream.bufferedReader().readText()
 
+
     companion object {
         // 프롬프트 내용을 변경할 때 이 버전도 함께 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
-        const val PROMPT_VERSION = "v7.4"
+        const val PROMPT_VERSION = "v7.0"
     }
 
 
