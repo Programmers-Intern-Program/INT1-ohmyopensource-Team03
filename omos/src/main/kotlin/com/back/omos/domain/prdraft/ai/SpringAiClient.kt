@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import mu.KotlinLogging
 import org.springframework.ai.chat.model.ChatModel
 import org.springframework.ai.chat.prompt.Prompt
+import org.springframework.ai.openai.OpenAiChatOptions
 import org.springframework.stereotype.Component
 import java.security.MessageDigest
 import java.time.Instant
@@ -46,7 +47,7 @@ class SpringAiClient(
     companion object {
         // 프롬프트 내용을 변경할 때 버전을 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
         private const val GENERATION_PR_DRAFT = "pr-draft-v7.0"
-        private const val GENERATION_TRANSLATE = "pr-translate-v1"
+        private const val GENERATION_TRANSLATE = "pr-translate-v1.1"
 
         // LLM judge 채점 전용 풀 — 동시 채점 수를 제한해 스레드 고갈 방지
         private val judgeExecutor = Executors.newFixedThreadPool(4)
@@ -181,9 +182,10 @@ class SpringAiClient(
      */
     override fun translate(title: String, body: String): AiPrResult {
         val prompt = promptBuilder.buildTranslatePrompt(title, body)
+        val turboOptions = OpenAiChatOptions.builder().model("glm-5-turbo").build()
 
         val startTime = Instant.now()
-        val chatResponse = chatModel.call(Prompt(prompt))
+        val chatResponse = chatModel.call(Prompt(prompt, turboOptions))
         val endTime = Instant.now()
 
         val response = chatResponse.result.output.text

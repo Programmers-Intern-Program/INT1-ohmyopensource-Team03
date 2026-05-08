@@ -1,5 +1,6 @@
 package com.back.omos.domain.prdraft.ai
 
+import com.back.omos.domain.prdraft.service.PrDraftPromptBuilder
 import com.back.omos.global.ai.LangfuseClient
 import com.back.omos.global.exception.errorCode.AiErrorCode
 import com.back.omos.global.exception.exceptions.AiException
@@ -29,12 +30,13 @@ class SpringAiClientTest {
 
     @Mock private lateinit var chatModel: ChatModel
     @Mock private lateinit var langfuseClient: LangfuseClient
+    @Mock private lateinit var promptBuilder: PrDraftPromptBuilder
 
     private lateinit var client: SpringAiClient
 
     @BeforeEach
     fun setUp() {
-        client = SpringAiClient(chatModel, jacksonObjectMapper(), langfuseClient)
+        client = SpringAiClient(chatModel, jacksonObjectMapper(), langfuseClient, promptBuilder)
         // Langfuse 미설정 환경처럼 동작 (score 기록 불필요)
         given(langfuseClient.recordGeneration(any(), any(), any(), any(), any(), anyOrNull(), anyOrNull(), any())).willReturn(null)
     }
