@@ -144,7 +144,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       return true;
 
     case 'CREATE_PR_DRAFT':
-      apiFetch('/api/v1/pr-drafts', {
+      apiFetch('/api/v1/pr', {
         method: 'POST',
         body: JSON.stringify(message.payload),
       })

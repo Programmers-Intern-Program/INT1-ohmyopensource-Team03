@@ -250,20 +250,55 @@ function renderAnalysisResult(data) {
 
 function renderPrCreate(el) {
   const pathParts = location.pathname.split('/');
-  const repoFullName = `${pathParts[1]}/${pathParts[2]}`;
+  const upstreamRepo = `${pathParts[1]}/${pathParts[2]}`;
+
+  // URL에서 baseBranch, headBranch 파싱
+  // 형식: /owner/repo/compare/baseBranch...forkOwner:headBranch
+  const comparePart = location.pathname.split('/compare/')[1] ?? '';
+  const [rawBase, rawHead] = comparePart.split('...');
+  const baseBranch = rawBase ?? '';
+  const headBranch = rawHead?.includes(':') ? (rawHead.split(':').at(-1) ?? '') : (rawHead ?? '');
 
   el.innerHTML = `
     <h3 class="omos-section-title">PR 초안 생성</h3>
-    <p class="omos-desc">현재 브랜치의 변경사항을 분석하여 PR 제목과 본문을 자동으로 채워드립니다.</p>
+    <p class="omos-desc">diff를 분석해 PR 제목과 본문을 자동으로 생성합니다.</p>
+    <div class="omos-field-group">
+      <label class="omos-field-label">레포지토리</label>
+      <p class="omos-field-value">${upstreamRepo}</p>
+    </div>
+    <div class="omos-field-group">
+      <label class="omos-field-label">브랜치</label>
+      <p class="omos-field-value">${baseBranch || '—'} → ${headBranch || '—'}</p>
+    </div>
+    <div class="omos-field-group">
+      <label class="omos-field-label" for="omos-issue-number">연결할 이슈 번호 <span class="omos-required">*</span></label>
+      <input class="omos-input" id="omos-issue-number" type="number" min="1" placeholder="예: 42" />
+    </div>
     <button class="omos-btn" id="omos-draft-btn">초안 생성</button>
     <div id="omos-draft-result"></div>
   `;
 
   document.getElementById('omos-draft-btn').addEventListener('click', () => {
+    const issueNumberInput = document.getElementById('omos-issue-number');
+    const githubIssueNumber = parseInt(issueNumberInput?.value ?? '', 10);
     const resultEl = document.getElementById('omos-draft-result');
-    resultEl.innerHTML = '<p class="omos-loading">생성 중...</p>';
+
+    if (!githubIssueNumber || githubIssueNumber < 1) {
+      resultEl.innerHTML = `<p class="omos-error">이슈 번호를 입력해주세요.</p>`;
+      return;
+    }
+    if (!baseBranch || !headBranch) {
+      resultEl.innerHTML = `<p class="omos-error">브랜치 정보를 URL에서 읽을 수 없습니다.<br>GitHub compare 페이지에서 사용해주세요.</p>`;
+      return;
+    }
+
+    resultEl.innerHTML = '<p class="omos-loading">생성 중... (수 분이 걸릴 수 있습니다)</p>';
+
     sendMessage(
-      { type: 'CREATE_PR_DRAFT', payload: { repoFullName } },
+      {
+        type: 'CREATE_PR_DRAFT',
+        payload: { upstreamRepo, githubIssueNumber, baseBranch, headBranch },
+      },
       (res) => {
         if (!res?.ok) {
           resultEl.innerHTML = renderError(res?.error);
@@ -272,11 +307,15 @@ function renderPrCreate(el) {
         const draft = res.data?.data;
         resultEl.innerHTML = `
           <div class="omos-result">
-            <p class="omos-label-text">제목</p>
-            <p class="omos-draft-title">${draft?.title ?? ''}</p>
-            <p class="omos-label-text" style="margin-top:10px;">본문</p>
-            <pre>${draft?.body ?? ''}</pre>
-            <button class="omos-btn" id="omos-apply-btn" style="margin-top:10px;">PR에 적용</button>
+            <div class="omos-result-section">
+              <p class="omos-result-label">제목</p>
+              <p class="omos-draft-title">${draft?.title ?? ''}</p>
+            </div>
+            <div class="omos-result-section">
+              <p class="omos-result-label">본문</p>
+              <pre class="omos-code-block">${draft?.body ?? ''}</pre>
+            </div>
+            <button class="omos-btn" id="omos-apply-btn">PR 폼에 적용</button>
           </div>
         `;
         document.getElementById('omos-apply-btn')?.addEventListener('click', () => {
