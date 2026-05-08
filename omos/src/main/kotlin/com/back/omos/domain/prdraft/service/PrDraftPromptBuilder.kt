@@ -44,7 +44,7 @@ class PrDraftPromptBuilder {
     companion object {
         // 프롬프트 내용을 변경할 때 이 버전도 함께 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
         const val PROMPT_VERSION = "v7.0"
-        const val PROMPT_VERSION_TRANSLATE = "v1"
+        const val PROMPT_VERSION_TRANSLATE = "v2.0"
     }
 
 
@@ -136,6 +136,14 @@ class PrDraftPromptBuilder {
     fun buildTranslatePrompt(title: String, body: String): String {
         return """
             Translate the following Korean PR title and body into natural English.
+
+            Rules:
+            1. Preserve the exact markdown header level (## must stay ##, ### must stay ###).
+            2. Translate section headers naturally: 변경 이유 → Why, 수정 내용 → Changes, 테스트 방법 → How to Test.
+            3. Keep <!-- --> comment content as-is without translating it.
+            4. Do not translate class names, method names, annotations, or file paths.
+            5. Write natural English, not a word-for-word literal translation.
+
             Return only the JSON below with no extra text.
             {
               "title": "translated title",
