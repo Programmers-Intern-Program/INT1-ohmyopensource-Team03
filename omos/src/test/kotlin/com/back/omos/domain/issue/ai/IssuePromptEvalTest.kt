@@ -64,11 +64,59 @@ class IssuePromptEvalTest {
         }
     }
 
+
+    @Test
+    fun `기술 스택이 모호한 관심사 기반 프로필 추천 성능 평가`() {
+        val candidatePool = createFixedCandidateIssues()
+
+        val ambiguousCases = listOf(
+            EvalCase("Data-Oriented", "데이터의 무결성을 유지하면서 수만 건의 쿼리를 최적화하는 데 집착합니다."),
+            EvalCase("Low-Level", "하드웨어 리소스를 직접 제어하거나 메모리 할당 효율을 높이는 저수준 최적화에 관심이 많습니다."),
+            EvalCase("UI-UX-Flow", "사용자에게 부드러운 화면 전환을 제공하고 상태 관리를 선언적으로 처리하는 것을 선호합니다."),
+            EvalCase("Infrastructure", "서버의 확장성을 고민하며, 동시성 처리를 통해 처리량을 극대화하는 설계를 좋아합니다."),
+            EvalCase("Middleware", "클라이언트와 서버 사이에서 요청을 가로채거나 비동기적으로 메시지를 처리하는 구조를 설계하고 싶습니다.")
+        )
+
+        ambiguousCases.forEach { case ->
+            println("=== [Evaluating Ambiguous] Focus: ${case.language} ===")
+            try {
+                val results = issueGlmClient.generateRecommendationReasons(case.profile, candidatePool)
+                results.forEach { println(" - [${case.language}] -> ${it.title}") }
+            } catch (e: Exception) {
+                println(" ! Error: ${e.message}")
+            }
+        }
+    }
+
+    @Test
+    fun `후보 풀에 없는 기술 스택 프로필 추천 성능 평가`() {
+        val candidatePool = createFixedCandidateIssues()
+
+        val unmatchedCases = listOf(
+            EvalCase("Rust", "Rust 언어의 소유권 개념을 사랑하며, Rocket 프레임워크로 웹 서버를 구축합니다."),
+            EvalCase("Swift", "iOS 환경에서 Swift를 사용해 고성능 애니메이션과 Combine을 활용한 비동기 처리를 구현합니다."),
+            EvalCase("Ruby", "Ruby on Rails의 생산성을 즐기며, 가독성 높은 코드를 작성하는 데 자부심이 있습니다."),
+            EvalCase("Flutter", "Dart 언어를 기반으로 하나의 코드베이스에서 멀티 플랫폼 UI를 구현하는 데 특화되어 있습니다."),
+            EvalCase("PHP", "Laravel 프레임워크를 활용해 대규모 커머스 시스템의 백엔드를 구축해온 시니어 개발자입니다.")
+        )
+
+        unmatchedCases.forEach { case ->
+            println("=== [Evaluating Unmatched] Tech: ${case.language} ===")
+            try {
+                val results = issueGlmClient.generateRecommendationReasons(case.profile, candidatePool)
+                results.forEach { println(" - [${case.language}] -> ${it.title}") }
+            } catch (e: Exception) {
+                println(" ! Error: ${e.message}")
+            }
+        }
+    }
+
+
     private fun createFixedCandidateIssues(): List<Issue> {
         return listOf(
             Issue(
                 repoFullName = "spring-projects/spring-data-jpa",
-                issueNumber = 101L, // Long 타입의 이슈 번호 추가
+                issueNumber = 101L,
                 title = "Fix N+1 query in Spring Data JPA",
                 labels = listOf("java", "bug")
             ),
