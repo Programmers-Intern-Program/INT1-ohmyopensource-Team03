@@ -13,7 +13,7 @@ data class CreatePrReq(
     @field:NotBlank(message = "upstreamRepo는 비어 있을 수 없습니다.")
     val upstreamRepo: String,
     @field:Positive(message = "githubIssueNumber는 1 이상이어야 합니다.")
-    val githubIssueNumber: Long,
+    val githubIssueNumber: Long?,
     @field:NotBlank(message = "baseBranch는 비어 있을 수 없습니다.")
     val baseBranch: String,
     @field:NotBlank(message = "headBranch는 비어 있을 수 없습니다.")

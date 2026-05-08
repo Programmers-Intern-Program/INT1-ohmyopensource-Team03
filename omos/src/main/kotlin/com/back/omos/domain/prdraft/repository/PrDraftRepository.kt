@@ -33,7 +33,7 @@ interface PrDraftRepository : JpaRepository<PrDraft, Long> {
      * @return PR 초안 페이지 (최신순, issue 포함)
      */
     @Query(
-        value = "SELECT pd FROM PrDraft pd JOIN FETCH pd.issue WHERE pd.user.githubId = :githubId ORDER BY pd.createdAt DESC",
+        value = "SELECT pd FROM PrDraft pd LEFT JOIN FETCH pd.issue WHERE pd.user.githubId = :githubId ORDER BY pd.createdAt DESC",
         countQuery = "SELECT COUNT(pd) FROM PrDraft pd WHERE pd.user.githubId = :githubId"
     )
     fun findAllWithIssueByUserGithubId(@Param("githubId") githubId: String, pageable: Pageable): Page<PrDraft>
@@ -61,6 +61,6 @@ interface PrDraftRepository : JpaRepository<PrDraft, Long> {
      * @param githubId 조회할 사용자의 GitHub ID
      * @return PR 초안 (없거나 소유자 불일치 시 null, issue 포함)
      */
-    @Query("SELECT pd FROM PrDraft pd JOIN FETCH pd.issue WHERE pd.id = :id AND pd.user.githubId = :githubId")
+    @Query("SELECT pd FROM PrDraft pd LEFT JOIN FETCH pd.issue WHERE pd.id = :id AND pd.user.githubId = :githubId")
     fun findByIdWithIssueAndUserGithubId(@Param("id") id: Long, @Param("githubId") githubId: String): PrDraft?
 }

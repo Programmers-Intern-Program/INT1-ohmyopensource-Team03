@@ -38,11 +38,11 @@ class PrDraft(
     /**
      * PR 초안이 연결된 Issue입니다.
      *
-     * 해당 Issue를 해결하기 위한 변경 내용을 기반으로 PR이 생성됩니다.
+     * 이슈 번호 없이 PR을 생성하는 경우(크롬 익스텐션 등) null이 될 수 있습니다.
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "issue_id", nullable = false)
-    var issue: Issue,
+    @JoinColumn(name = "issue_id", nullable = true)
+    var issue: Issue?,
 
     /**
      * 사용자가 작성한 코드 변경 내용(diff)입니다.

@@ -66,7 +66,7 @@ class PrDraftServiceImplTest {
             given(issueRepository.findByRepoFullNameAndIssueNumber("owner/repo", 1L)).willReturn(issue)
             given(gitHubClient.fetchDiff("owner/repo", "main", githubId, "fix/issue-123")).willReturn(diffContent)
             given(gitHubClient.fetchContributing("owner/repo")).willReturn("contributing content")
-            given(prDraftPromptBuilder.build(diffContent, "contributing content", emptyList())).willReturn("prompt")
+            given(prDraftPromptBuilder.build(diffContent, "contributing content", emptyList(), "test issue", null)).willReturn("prompt")
             given(aiClient.generatePrDraft("prompt")).willReturn(AiPrResult("feat: title", "body"))
             given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer {
                 val prDraft = it.arguments[0] as PrDraft
@@ -90,7 +90,7 @@ class PrDraftServiceImplTest {
             given(gitHubClient.fetchDiff("owner/repo", "main", githubId, "fix/issue-123")).willReturn(diffContent)
             given(gitHubClient.fetchContributing("owner/repo")).willReturn(null)
             given(gitHubClient.fetchMergedPrs("owner/repo")).willReturn(prs)
-            given(prDraftPromptBuilder.build(diffContent, null, prs)).willReturn("prompt")
+            given(prDraftPromptBuilder.build(diffContent, null, prs, "test issue", null)).willReturn("prompt")
             given(aiClient.generatePrDraft("prompt")).willReturn(AiPrResult("title", "body"))
             given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer {
                 val prDraft = it.arguments[0] as PrDraft
@@ -230,9 +230,11 @@ class PrDraftServiceImplTest {
 
             assertThat(result.titleEn).isEqualTo("feat: title")
             assertThat(result.bodyEn).isEqualTo("body")
-            assertThat(result.githubUrl).contains("owner/repo")
-            assertThat(result.githubUrl).contains("main...testUser:fix/issue-123")
-            assertThat(result.githubUrl).contains("quick_pull=1")
+            assertThat(result.githubUrl)
+                .isNotNull()
+                .contains("owner/repo")
+                .contains("main...testUser:fix/issue-123")
+                .contains("quick_pull=1")
         }
 
         @Test

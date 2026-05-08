@@ -16,5 +16,5 @@ package com.back.omos.domain.prdraft.dto
 data class PrTranslateRes(
     val titleEn: String,
     val bodyEn: String,
-    val githubUrl: String
+    val githubUrl: String?
 )

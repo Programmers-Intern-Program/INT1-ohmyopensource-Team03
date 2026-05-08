@@ -104,7 +104,7 @@ class GitHubClientImpl(
 
             response
                 ?.filter { !it.mergedAt.isNullOrBlank() && !it.body.isNullOrBlank() }
-                ?.take(10)
+                ?.take(5)
                 ?: emptyList()
         } catch (e: RestClientResponseException) {
             if (e.statusCode.value() != 404) {
