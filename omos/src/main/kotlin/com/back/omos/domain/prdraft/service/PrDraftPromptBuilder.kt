@@ -44,6 +44,7 @@ class PrDraftPromptBuilder {
     companion object {
         // 프롬프트 내용을 변경할 때 이 버전도 함께 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
         const val PROMPT_VERSION = "v7.0"
+        const val PROMPT_VERSION_TRANSLATE = "v1"
     }
 
 
@@ -122,6 +123,30 @@ class PrDraftPromptBuilder {
               "title": "PR 제목",
               "body": "PR 본문"
             }
+        """.trimIndent()
+    }
+
+    /**
+     * 한국어 PR 제목과 본문을 영어로 번역하기 위한 프롬프트를 구성합니다.
+     *
+     * @param title 번역할 PR 제목 (한국어)
+     * @param body 번역할 PR 본문 (한국어)
+     * @return AI에 전달할 번역 프롬프트 문자열
+     */
+    fun buildTranslatePrompt(title: String, body: String): String {
+        return """
+            Translate the following Korean PR title and body into natural English.
+            Return only the JSON below with no extra text.
+            {
+              "title": "translated title",
+              "body": "translated body"
+            }
+
+            [Korean Title]
+            $title
+
+            [Korean Body]
+            $body
         """.trimIndent()
     }
 }
