@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import mu.KotlinLogging
 import org.springframework.ai.chat.model.ChatModel
 import org.springframework.ai.chat.prompt.Prompt
-import org.springframework.ai.openai.OpenAiChatOptions
 import org.springframework.stereotype.Component
 import java.security.MessageDigest
 import java.time.Instant
@@ -44,9 +43,7 @@ class SpringAiClient(
 
     companion object {
         // 프롬프트 내용을 변경할 때 버전을 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
-        private const val GENERATION_PR_DRAFT = "pr-draft-v7.3"
-
-        private const val MAX_OUTPUT_TOKENS = 1200
+        private const val GENERATION_PR_DRAFT = "pr-draft-v7.4"
         private const val GENERATION_TRANSLATE = "pr-translate-v1"
 
         // LLM judge 채점 전용 풀 — 동시 채점 수를 제한해 스레드 고갈 방지
@@ -137,9 +134,8 @@ class SpringAiClient(
      * @throws AiException AI 응답이 비어 있거나 JSON 파싱에 실패한 경우
      */
     override fun generatePrDraft(prompt: String): AiPrResult {
-        val options = OpenAiChatOptions.builder().maxTokens(MAX_OUTPUT_TOKENS).build()
         val startTime = Instant.now()
-        val chatResponse = chatModel.call(Prompt(prompt, options))
+        val chatResponse = chatModel.call(Prompt(prompt))
         val endTime = Instant.now()
 
         val response = chatResponse.result.output.text

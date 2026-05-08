@@ -34,7 +34,7 @@ spring:
       chat:
         completions-path: /chat/completions
         options:
-          model: glm-4.5
+          model: glm-5-turbo
       embedding:
         enabled: false
 
