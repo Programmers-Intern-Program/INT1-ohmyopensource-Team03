@@ -11,6 +11,7 @@ import com.back.omos.global.auth.principal.OAuthPrincipal
 import com.back.omos.global.exception.errorCode.IssueErrorCode
 import com.back.omos.global.exception.exceptions.IssueException
 import com.back.omos.global.response.CommonResponse
+import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
@@ -101,7 +102,8 @@ class IssueController(
 
             CommonResponse.success(response)
         } catch (e: Exception) {
-            throw IssueException(IssueErrorCode.ISSUE_CRAWLING_FAIL);
+            LoggerFactory.getLogger(IssueController::class.java).error("[crawlBySearch] 크롤링 실패: ${e.javaClass.simpleName} - ${e.message}", e)
+            throw IssueException(IssueErrorCode.ISSUE_CRAWLING_FAIL)
         }
     }
 
