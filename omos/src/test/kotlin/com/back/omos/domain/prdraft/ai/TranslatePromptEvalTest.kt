@@ -40,7 +40,7 @@ import java.io.File
  * @author 5h6vm
  * @since 2026-05-08
  */
-//@Disabled("수동 번역 프롬프트 평가 전용 — 실행 시 @Disabled 제거")
+@Disabled("수동 번역 프롬프트 평가 전용 — 실행 시 @Disabled 제거")
 @SpringBootTest
 @ActiveProfiles("test")
 class TranslatePromptEvalTest {
