@@ -335,10 +335,12 @@ class SpringAiClient(
         // 첫 번째 '{'와 마지막 '}'로 범위를 잡아 최외각 JSON 객체를 추출한다.
         val start = response.indexOf('{')
         val end = response.lastIndexOf('}')
-        if (start == -1 || end == -1 || start >= end) return null
-        val candidate = response.substring(start, end + 1)
-
-        // max_tokens로 잘린 경우 복구 시도
+        if (start != -1 && end != -1 && start < end) {
+            val candidate = response.substring(start, end + 1)
+            val parsed = runCatching { objectMapper.readTree(candidate); candidate }.getOrNull()
+            if (parsed != null) return parsed
+        }
+        // 완전한 JSON이 없으면 max_tokens로 잘린 경우 복구 시도
         return repairTruncated(response)
     }
 
