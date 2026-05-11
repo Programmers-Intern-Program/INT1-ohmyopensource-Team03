@@ -48,6 +48,8 @@ class IssuePromptEvalTest {
             EvalCase("Go", "Goroutine 기반 고성능 서버 개발 및 Kubernetes 커스텀 리소스, MSA 환경 구축 선호.")
         )
 
+        val failures = mutableListOf<String>()
+
         // 3. 테스트 실행
         testCases.forEach { case ->
             println("=== [Evaluating] Language: ${case.language} ===")
@@ -59,8 +61,16 @@ class IssuePromptEvalTest {
                     println(" - Recommended: ${it.title} (Reason: ${it.reason.take(30)}...)")
                 }
             } catch (e: Exception) {
-                println(" ! Error during ${case.language} evaluation: ${e.message}")
+                val errorMessage = " ! Error during ${case.language} evaluation: ${e.message}"
+                println(errorMessage)
+                failures.add(errorMessage) // 실패 내용 기록
             }
+        }
+
+        // 4. 최종 검증: 실패가 하나라도 있으면 테스트를 실패 처리
+        if (failures.isNotEmpty()) {
+            val failureSummary = failures.joinToString(separator = "\n")
+            org.junit.jupiter.api.Assertions.fail<Unit>("추천 성능 평가 중 다음 케이스에서 예외가 발생했습니다:\n$failureSummary")
         }
     }
 
