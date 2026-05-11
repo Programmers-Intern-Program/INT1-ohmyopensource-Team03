@@ -93,7 +93,7 @@ class TranslatePromptEvalTest {
             if (index < TRANSLATE_SAMPLES.lastIndex) Thread.sleep(10_000)
         }
 
-        Thread.sleep(60_000)
+        Thread.sleep(120_000)
     }
 
     /**
