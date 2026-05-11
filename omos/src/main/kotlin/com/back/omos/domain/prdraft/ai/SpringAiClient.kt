@@ -47,7 +47,7 @@ class SpringAiClient(
     companion object {
         // 프롬프트 내용을 변경할 때 버전을 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
         private const val GENERATION_PR_DRAFT = "pr-draft-v7.0"
-        private const val GENERATION_TRANSLATE = "pr-translate-v2.1"
+        private const val GENERATION_TRANSLATE = "pr-translate-v2.2"
 
         // LLM judge 채점 전용 풀 — 동시 채점 수를 제한해 스레드 고갈 방지
         private val judgeExecutor = Executors.newFixedThreadPool(4)
@@ -254,7 +254,8 @@ class SpringAiClient(
                     [채점 기준]
                     - 자연스러움 (0~4점): 영어가 어색하지 않고 원어민이 쓸 법한 표현인가
                     - 기술 용어 보존 (0~3점): 클래스명·메서드명·어노테이션·파일경로 등을 번역하지 않고 원문 그대로 유지했는가
-                    - 형식 보존 (0~3점): feat:/fix: 등 커밋 컨벤션 prefix, ## 헤더, 불릿, <!-- --> 주석 등 마크다운 형식을 유지했는가
+                    - 형식 보존 (0~3점): feat:/fix: 등 커밋 컨벤션 prefix, ## 헤더, 불릿, <!-- --> 주석 구조를 유지했는가.
+                      단, <!-- --> 주석 안의 텍스트를 영어로 번역한 것(예: <!-- 직접 작성 필요 --> → <!-- Fill in manually -->)은 의도된 동작이므로 감점하지 말 것.
 
                     반드시 아래 JSON 형식으로만 응답해. 항목별 점수를 반드시 포함해.
                     {"score": 8.0, "fluency": 3, "terms": 3, "format": 2, "reason": "감점 항목과 이유를 항목별로 간략히"}
@@ -330,8 +331,13 @@ class SpringAiClient(
     private fun extractJson(response: String): String? {
         val fenceMatch = Regex("""```(?:json)?\s*([\s\S]*?)```""").find(response)
         if (fenceMatch != null) return fenceMatch.groupValues[1].trim()
-        val candidate = Regex("""\{[\s\S]*\}""").find(response)?.value
-        if (candidate != null && runCatching { objectMapper.readTree(candidate) }.isSuccess) return candidate
+        // non-greedy 정규식은 JSON 값 안의 '}'(예: {postId}, judge reason의 코드 스니펫)에서 잘리므로,
+        // 첫 번째 '{'와 마지막 '}'로 범위를 잡아 최외각 JSON 객체를 추출한다.
+        val start = response.indexOf('{')
+        val end = response.lastIndexOf('}')
+        if (start == -1 || end == -1 || start >= end) return null
+        val candidate = response.substring(start, end + 1)
+
         // max_tokens로 잘린 경우 복구 시도
         return repairTruncated(response)
     }
