@@ -316,21 +316,44 @@ function renderPrCreate(el) {
               <pre class="omos-code-block">${draft?.body ?? ''}</pre>
             </div>
             <button class="omos-btn" id="omos-apply-btn">PR 폼에 적용</button>
+            <div id="omos-translate-status"></div>
           </div>
         `;
         document.getElementById('omos-apply-btn')?.addEventListener('click', () => {
-          applyDraftToPrForm(draft);
+          translateAndApplyDraft(draft?.id, resultEl.querySelector('#omos-translate-status'));
         });
       }
     );
   });
 }
 
-function applyDraftToPrForm(draft) {
+function applyDraftToPrForm(title, body) {
   const titleInput = document.querySelector('#pull_request_title, input[name="pull_request[title]"]');
   const bodyInput = document.querySelector('#pull_request_body, textarea[name="pull_request[body]"]');
-  if (titleInput && draft?.title) titleInput.value = draft.title;
-  if (bodyInput && draft?.body) bodyInput.value = draft.body;
+  if (titleInput && title) titleInput.value = title;
+  if (bodyInput && body) bodyInput.value = body;
+}
+
+function translateAndApplyDraft(draftId, statusEl) {
+  if (!draftId) {
+    if (statusEl) statusEl.innerHTML = renderError('초안 ID가 없습니다.');
+    return;
+  }
+
+  const applyBtn = document.getElementById('omos-apply-btn');
+  if (applyBtn) applyBtn.disabled = true;
+  if (statusEl) statusEl.innerHTML = '<p class="omos-loading">번역 중...</p>';
+
+  sendMessage({ type: 'TRANSLATE_PR_DRAFT', draftId }, (res) => {
+    if (applyBtn) applyBtn.disabled = false;
+    if (!res?.ok) {
+      if (statusEl) statusEl.innerHTML = renderError(res?.error);
+      return;
+    }
+    const translated = res.data?.data;
+    applyDraftToPrForm(translated?.titleEn, translated?.bodyEn);
+    if (statusEl) statusEl.innerHTML = '<p class="omos-desc" style="color:#3fb950">번역 후 PR 폼에 적용됐습니다.</p>';
+  });
 }
 
 // ── 공통 ─────────────────────────────────────────────────────────────────────

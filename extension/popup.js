@@ -24,6 +24,7 @@ function setLoggedIn(isLoggedIn) {
 
 // 추천 이력 조회 (빠름, DB 기반)
 function loadHistory() {
+  recLoading.textContent = '불러오는 중...';
   recLoading.style.display = 'block';
   recList.innerHTML = '';
 
@@ -49,6 +50,7 @@ function loadHistory() {
 
 // 새 추천 생성 (느림, AI 호출)
 function refreshRecommendations() {
+  recLoading.textContent = 'AI 분석 중... (수 분이 걸릴 수 있습니다)';
   recLoading.style.display = 'block';
   recList.innerHTML = '';
   recHint.textContent = '';

@@ -151,5 +151,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         .then((data) => sendResponse({ ok: true, data }))
         .catch((e) => sendResponse({ ok: false, error: e.message }));
       return true;
+
+    case 'TRANSLATE_PR_DRAFT':
+      apiFetch(`/api/v1/pr/${message.draftId}/translate`, { method: 'POST' })
+        .then((data) => sendResponse({ ok: true, data }))
+        .catch((e) => sendResponse({ ok: false, error: e.message }));
+      return true;
   }
 });
