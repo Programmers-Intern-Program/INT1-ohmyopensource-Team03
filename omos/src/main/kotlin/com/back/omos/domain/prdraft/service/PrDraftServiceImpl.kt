@@ -65,8 +65,10 @@ class PrDraftServiceImpl(
         // 정보 조회
         val user = userRepository.findByGithubId(githubId)
             .orElseThrow { AuthException(AuthErrorCode.USER_NOT_FOUND) }
-        val issue = issueRepository.findByRepoFullNameAndIssueNumber(request.upstreamRepo, request.githubIssueNumber)
-            ?: throw IssueException(IssueErrorCode.ISSUE_NOT_FOUND)
+        val issue = request.githubIssueNumber?.let {
+            issueRepository.findByRepoFullNameAndIssueNumber(request.upstreamRepo, it)
+                ?: throw IssueException(IssueErrorCode.ISSUE_NOT_FOUND)
+        }
 
         // GitHub Compare API로 diff 가져오기 (forkOwner는 GitHub 로그인명)
         val forkOwner = user.name ?: throw AuthException(AuthErrorCode.USER_NOT_FOUND)
@@ -77,7 +79,7 @@ class PrDraftServiceImpl(
         val prs = if (contributing == null) gitHubClient.fetchMergedPrs(request.upstreamRepo) else emptyList()
 
         // prompt 작성
-        val prompt = prDraftPromptBuilder.build(diffContent, contributing, prs)
+        val prompt = prDraftPromptBuilder.build(diffContent, contributing, prs, issue?.title, issue?.content)
 
         // AI 호출
         val aiResult = aiClient.generatePrDraft(prompt)
@@ -165,8 +167,10 @@ class PrDraftServiceImpl(
         // AI로 제목/본문 영어 번역
         val translated = aiClient.translate(prDraft.prTitle, prDraft.prBody)
 
-        // GitHub URL 빌드
-        val githubUrl = buildGithubUrl(prDraft.issue.repoFullName, prDraft.baseBranch, prDraft.forkOwner, prDraft.headBranch, translated.title, translated.body)
+        // GitHub URL 빌드 (이슈 없이 생성된 PR 초안은 repoFullName 미확인으로 URL null)
+        val githubUrl = prDraft.issue?.repoFullName?.let {
+            buildGithubUrl(it, prDraft.baseBranch, prDraft.forkOwner, prDraft.headBranch, translated.title, translated.body)
+        }
 
         return PrTranslateRes(
             titleEn = translated.title,

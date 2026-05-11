@@ -22,8 +22,8 @@ import java.time.LocalDateTime
  */
 data class PrDetailRes(
     val id: Long,
-    val repoFullName: String,
-    val issueTitle: String,
+    val repoFullName: String?,
+    val issueTitle: String?,
     val title: String,
     val body: String,
     val diffContent: String,
@@ -32,8 +32,8 @@ data class PrDetailRes(
     companion object {
         fun from(prDraft: PrDraft) = PrDetailRes(
             id = prDraft.id!!,
-            repoFullName = prDraft.issue.repoFullName,
-            issueTitle = prDraft.issue.title,
+            repoFullName = prDraft.issue?.repoFullName,
+            issueTitle = prDraft.issue?.title,
             title = prDraft.prTitle,
             body = prDraft.prBody,
             diffContent = prDraft.diffContent,

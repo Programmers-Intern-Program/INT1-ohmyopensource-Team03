@@ -1,5 +1,6 @@
 package com.back.omos.domain.analysis.ai
 
+import com.back.omos.global.ai.LangfuseClient
 import com.back.omos.global.exception.exceptions.AnalysisException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -14,6 +15,11 @@ import org.mockito.BDDMockito.given
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.springframework.ai.chat.model.ChatModel
+import org.springframework.ai.chat.prompt.Prompt
+import org.springframework.ai.chat.model.ChatResponse
+import org.springframework.ai.chat.model.Generation
+import org.mockito.quality.Strictness
+import org.mockito.junit.jupiter.MockitoSettings
 
 /**
  * GlmClientImpl 단위 테스트
@@ -25,6 +31,7 @@ import org.springframework.ai.chat.model.ChatModel
  * @since 2026-04-29
  */
 @ExtendWith(MockitoExtension::class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("GlmClientImpl 단위 테스트")
 class GlmClientImplTest {
 
@@ -36,9 +43,20 @@ class GlmClientImplTest {
 
     private lateinit var glmClientImpl: GlmClientImpl
 
+    @Mock
+    private lateinit var langfuseClient: LangfuseClient
+
+    private val promptBuilder = GlmPromptBuilder()
+
     @BeforeEach
     fun setUp() {
-        glmClientImpl = GlmClientImpl(chatModel, objectMapper)
+        glmClientImpl = GlmClientImpl(chatModel, objectMapper, langfuseClient, promptBuilder)
+    }
+
+    private fun mockResponse(content: String): ChatResponse {
+        val message = org.springframework.ai.chat.messages.AssistantMessage(content)
+        val generation = Generation(message)
+        return ChatResponse(listOf(generation))
     }
 
     // ──────────────────────────────────────────
@@ -53,8 +71,8 @@ class GlmClientImplTest {
         @DisplayName("정상 JSON 응답을 파일 경로 목록으로 파싱한다")
         fun `정상 JSON 파싱 성공`() {
             // given
-            given(chatModel.call(any<String>()))
-                .willReturn("""{"files": ["src/a.kt", "src/b.kt"]}""")
+            given(chatModel.call(any<Prompt>()))
+                .willReturn(mockResponse("""{"files": ["src/a.kt", "src/b.kt"]}"""))
 
             // when
             val result = glmClientImpl.selectFiles("Fix bug", null, listOf("src/a.kt", "src/b.kt"))
@@ -68,7 +86,7 @@ class GlmClientImplTest {
         fun `마크다운 코드블록 응답 파싱 성공`() {
             // given: ```json ... ``` 래핑된 응답
             val response = "```json\n{\"files\": [\"src/a.kt\"]}\n```"
-            given(chatModel.call(any<String>())).willReturn(response)
+            given(chatModel.call(any<Prompt>())).willReturn(mockResponse("```json\n{\"files\": [\"src/a.kt\"]}\n```"))
 
             // when
             val result = glmClientImpl.selectFiles("Fix bug", null, listOf("src/a.kt"))
@@ -81,7 +99,7 @@ class GlmClientImplTest {
         @DisplayName("'files' 키가 없는 JSON 응답이면 AnalysisException을 던진다")
         fun `files 키 없으면 예외`() {
             // given: files 키 없는 올바른 JSON
-            given(chatModel.call(any<String>())).willReturn("""{"other": []}""")
+            given(chatModel.call(any<Prompt>())).willReturn(mockResponse("""{"other": []}"""))
 
             // when & then
             assertThrows(AnalysisException::class.java) {
@@ -93,7 +111,7 @@ class GlmClientImplTest {
         @DisplayName("JSON 형식이 깨진 응답이면 AnalysisException을 던진다")
         fun `JSON 형식 오류시 예외`() {
             // given: JSON이 아닌 문자열
-            given(chatModel.call(any<String>())).willReturn("not json at all")
+            given(chatModel.call(any<Prompt>())).willReturn(mockResponse("not json at all"))
 
             // when & then
             assertThrows(AnalysisException::class.java) {
@@ -114,7 +132,7 @@ class GlmClientImplTest {
         @DisplayName("chatModel.call()이 null을 반환하면 AnalysisException을 던진다")
         fun `chatModel null 반환시 예외`() {
             // given
-            given(chatModel.call(any<String>())).willReturn(null)
+            given(chatModel.call(any<Prompt>())).willReturn(mockResponse(""))
 
             // when & then
             assertThrows(AnalysisException::class.java) {
@@ -126,7 +144,7 @@ class GlmClientImplTest {
         @DisplayName("chatModel.call()이 RuntimeException을 던지면 AnalysisException으로 래핑한다")
         fun `chatModel RuntimeException시 AnalysisException 래핑`() {
             // given: 네트워크 오류 등 런타임 예외 시뮬레이션
-            given(chatModel.call(any<String>())).willThrow(RuntimeException("API connection error"))
+            given(chatModel.call(any<Prompt>())).willThrow(RuntimeException("API connection error"))
 
             // when & then
             assertThrows(AnalysisException::class.java) {
@@ -147,7 +165,7 @@ class GlmClientImplTest {
         @DisplayName("chatModel.call()이 null을 반환하면 AnalysisException을 던진다")
         fun `chatModel null 반환시 예외`() {
             // given
-            given(chatModel.call(any<String>())).willReturn(null)
+            given(chatModel.call(any<Prompt>())).willReturn(mockResponse(""))
 
             // when & then
             assertThrows(AnalysisException::class.java) {
@@ -159,7 +177,7 @@ class GlmClientImplTest {
         @DisplayName("chatModel.call()이 RuntimeException을 던지면 AnalysisException으로 래핑한다")
         fun `chatModel RuntimeException시 AnalysisException 래핑`() {
             // given
-            given(chatModel.call(any<String>())).willThrow(RuntimeException("API connection error"))
+            given(chatModel.call(any<Prompt>())).willThrow(RuntimeException("API connection error"))
 
             // when & then
             assertThrows(AnalysisException::class.java) {
@@ -178,7 +196,7 @@ class GlmClientImplTest {
                     "sideEffects": "기존 null 반환에 의존하던 코드 영향 가능"
                 }
             """.trimIndent()
-            given(chatModel.call(any<String>())).willReturn(json)
+            given(chatModel.call(any<Prompt>())).willReturn(mockResponse(json))
 
             // when
             val result = glmClientImpl.analyze("Fix NullPointerException", "본문", listOf("bug"), emptyMap())
@@ -193,7 +211,7 @@ class GlmClientImplTest {
         @DisplayName("GlmAnalysisRes로 파싱할 수 없는 JSON 응답이면 AnalysisException을 던진다")
         fun `파싱 불가 JSON 응답시 예외`() {
             // given: 필수 필드가 누락된 JSON (GlmAnalysisRes 역직렬화 실패)
-            given(chatModel.call(any<String>())).willReturn("broken json")
+            given(chatModel.call(any<Prompt>())).willReturn(mockResponse("broken json"))
 
             // when & then
             assertThrows(AnalysisException::class.java) {

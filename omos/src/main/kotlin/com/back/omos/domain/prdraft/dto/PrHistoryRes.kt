@@ -20,16 +20,16 @@ import java.time.LocalDateTime
  */
 data class PrHistoryRes(
     val id: Long,
-    val repoFullName: String,
-    val issueTitle: String,
+    val repoFullName: String?,
+    val issueTitle: String?,
     val title: String,
     val createdAt: LocalDateTime
 ) {
     companion object {
         fun from(prDraft: PrDraft) = PrHistoryRes(
             id = prDraft.id!!,
-            repoFullName = prDraft.issue.repoFullName,
-            issueTitle = prDraft.issue.title,
+            repoFullName = prDraft.issue?.repoFullName,
+            issueTitle = prDraft.issue?.title,
             title = prDraft.prTitle,
             createdAt = prDraft.createdAt
         )
