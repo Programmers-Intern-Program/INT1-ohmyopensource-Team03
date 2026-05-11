@@ -43,36 +43,47 @@ class RecommendServiceImpl(
         val userVector = user.profileVector
             ?: throw AuthException(AuthErrorCode.USER_NOT_FOUND, "유저의 프로필 벡터가 존재하지 않습니다. 먼저 GitHub 분석을 완료해주세요.")
 
-        // 3. 유사 이슈 검색 현재 5개
-        val topIssues = issueRepository.findBySimilarity(userVector, 5)
+        // 3. 이미 추천된 이슈 ID 목록 조회
+        val alreadyRecommendedIds = userRecommendedIssueRepository
+            .findAllByUserIdOrderByUpdatedAtDesc(user.id!!)
+            .mapNotNull { it.issue.id }
+            .toSet()
+
+        // 4. 유사 이슈 후보를 넓게 조회한 뒤 이미 추천된 이슈 제외
+        val candidates = issueRepository.findBySimilarity(userVector, CANDIDATE_LIMIT)
+        val freshCandidates = candidates.filter { it.id !in alreadyRecommendedIds }
+
+        // 신규 이슈가 부족하면 기존 추천 이슈도 후보에 포함
+        val topIssues = freshCandidates.ifEmpty { candidates }
 
         if (topIssues.isEmpty()) {
             throw IssueException(IssueErrorCode.ISSUE_NOT_FOUND, "추천할 수 있는 이슈가 DB에 없습니다.")
         }
 
-        // 4. 컨텍스트 구성
+        // 5. 컨텍스트 구성
         val userStackText = user.primaryLanguages?.joinToString(", ") ?: "알 수 없음"
         val userContext = "주요 사용 언어: $userStackText"
 
-        // 5. [Generation] AI 추천 사유 생성 (RAG)
+        // 6. [Generation] AI 추천 사유 생성 (RAG)
         val aiRecommendationReasons = issueGlmClient.generateRecommendationReasons(
             userProfile = userContext,
             candidateIssues = topIssues
         )
 
-        // 6. AI 결과와 이슈 매칭
+        // 7. AI 결과와 이슈 매칭 (LLM이 제목을 변형할 수 있으므로 정규화 후 비교)
         val recommendations = aiRecommendationReasons.mapNotNull { aiResult ->
             val matchedIssue = topIssues.find {
-                it.title == aiResult.title && it.repoFullName == aiResult.repoName
+                normalize(it.title) == normalize(aiResult.title) &&
+                normalize(it.repoFullName) == normalize(aiResult.repoName)
             } ?: return@mapNotNull null
 
             matchedIssue to aiResult.reason
         }
 
-        // 7. 추천 이력 저장 (upsert)
+        // 8. 추천 이력 저장 (upsert)
         saveRecommendationHistory(user, recommendations)
 
-        // 8. 결과 반환
+        // 9. 결과 반환
         return recommendations.map { (issue, reason) ->
             RecommendIssueRes.from(issue).copy(summary = reason)
         }
@@ -96,7 +107,7 @@ class RecommendServiceImpl(
         return history.map { recommended ->
             val analysisRequest = recommended.issue.id?.let { analyzedMap[it] }
             RecommendIssueHistoryRes.from(recommended, analysisRequest)
-        }.sortedByDescending { it.isAnalyzed }
+        }
     }
 
     /**
@@ -110,6 +121,13 @@ class RecommendServiceImpl(
      * @author MintyU
      * @since 2026-04-29
      */
+    companion object {
+        private const val CANDIDATE_LIMIT = 20
+    }
+
+    private fun normalize(text: String): String =
+        text.trim().lowercase().replace(Regex("\\s+"), " ")
+
     private fun saveRecommendationHistory(user: User, recommendations: List<Pair<Issue, String>>) {
         val userId = user.id ?: return
         val deduped = recommendations.distinctBy { (issue, _) -> issue.id }

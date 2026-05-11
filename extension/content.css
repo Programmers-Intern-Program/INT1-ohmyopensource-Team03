@@ -1,0 +1,366 @@
+#omos-toggle {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 9999;
+  background: #238636;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px 0 0 8px;
+  width: 32px;
+  height: 48px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+}
+
+#omos-toggle:hover {
+  background: #2ea043;
+}
+
+#omos-sidebar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 320px;
+  height: 100vh;
+  background: #0d1117;
+  color: #e6edf3;
+  border-left: 1px solid #30363d;
+  z-index: 9998;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  transition: transform 0.25s ease;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.4);
+}
+
+#omos-sidebar.omos-hidden {
+  transform: translateX(100%);
+}
+
+#omos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #30363d;
+  font-weight: 600;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+#omos-close {
+  background: none;
+  border: none;
+  color: #8b949e;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  line-height: 1;
+}
+
+#omos-close:hover {
+  color: #e6edf3;
+}
+
+#omos-content {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.omos-loading {
+  color: #8b949e;
+  font-size: 13px;
+  margin: 0;
+}
+
+.omos-empty {
+  color: #8b949e;
+  font-size: 13px;
+  margin: 0;
+}
+
+.omos-error {
+  color: #f85149;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.omos-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 12px;
+}
+
+.omos-desc {
+  font-size: 13px;
+  color: #8b949e;
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+
+/* 이슈 카드 */
+.omos-issue-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.omos-issue-card a {
+  color: #58a6ff;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.omos-issue-card a:hover {
+  text-decoration: underline;
+}
+
+.omos-issue-card p {
+  font-size: 13px;
+  margin: 4px 0 6px;
+  color: #e6edf3;
+  line-height: 1.4;
+}
+
+.omos-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.omos-label {
+  display: inline-block;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 1px 8px;
+  font-size: 11px;
+  color: #8b949e;
+}
+
+/* 버튼 */
+.omos-btn {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: #238636;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  text-align: center;
+  transition: background 0.15s;
+}
+
+.omos-btn:hover {
+  background: #2ea043;
+}
+
+.omos-btn:disabled {
+  background: #21262d;
+  color: #484f58;
+  cursor: not-allowed;
+}
+
+.omos-btn-secondary {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #e6edf3;
+}
+
+.omos-btn-secondary:hover {
+  background: #30363d;
+}
+
+/* 분석 결과 */
+.omos-result {
+  margin-top: 12px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.omos-result-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.omos-result-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.omos-result-text {
+  font-size: 13px;
+  color: #e6edf3;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.omos-result-warning {
+  color: #d29922;
+}
+
+.omos-file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.omos-file-item {
+  font-size: 12px;
+  color: #58a6ff;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  padding: 2px 8px;
+  background: rgba(88, 166, 255, 0.08);
+  border-radius: 4px;
+}
+
+.omos-file-item::before {
+  content: '📄 ';
+}
+
+.omos-code-block {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #e6edf3;
+  font-size: 12px;
+  line-height: 1.6;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+/* PR 초안 입력 폼 */
+.omos-field-group {
+  margin-bottom: 12px;
+}
+
+.omos-field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+.omos-field-value {
+  font-size: 12px;
+  color: #e6edf3;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  margin: 0;
+}
+
+.omos-input {
+  width: 100%;
+  padding: 6px 10px;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #e6edf3;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.omos-input:focus {
+  border-color: #388bfd;
+}
+
+.omos-input::placeholder {
+  color: #484f58;
+}
+
+.omos-required {
+  color: #f85149;
+}
+
+.omos-label-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 4px;
+}
+
+.omos-draft-title {
+  font-size: 13px;
+  color: #e6edf3;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* 추천 이유 */
+.omos-reason-card {
+  background: rgba(88, 166, 255, 0.06);
+  border: 1px solid rgba(88, 166, 255, 0.2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.omos-reason-text {
+  font-size: 13px;
+  color: #c9d1d9;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.omos-divider {
+  border: none;
+  border-top: 1px solid #21262d;
+  margin: 0 0 16px;
+}
+
+/* GitHub 이슈 목록 인라인 뱃지 */
+.omos-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 7px;
+  background: rgba(63, 185, 80, 0.12);
+  border: 1px solid rgba(63, 185, 80, 0.4);
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #3fb950;
+  vertical-align: middle;
+  white-space: nowrap;
+}

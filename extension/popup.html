@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 320px;
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 14px;
+    }
+
+    /* 상단 상태 바 */
+    #status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid #21262d;
+    }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .status-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot.on  { background: #3fb950; }
+    .dot.off { background: #484f58; }
+
+    #status-label {
+      font-size: 12px;
+      color: #8b949e;
+    }
+
+    #login-btn {
+      padding: 5px 12px;
+      background: #238636;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    #login-btn:hover { background: #2ea043; }
+
+    #logout-btn {
+      padding: 5px 12px;
+      background: transparent;
+      color: #8b949e;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      display: none;
+    }
+
+    #logout-btn:hover { color: #e6edf3; border-color: #8b949e; }
+
+    /* 추천 이슈 섹션 */
+    #rec-section { padding: 12px 16px 16px; }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .section-hint {
+      font-size: 11px;
+      color: #484f58;
+    }
+
+    #rec-list { display: flex; flex-direction: column; gap: 6px; max-height: 460px; overflow-y: auto; }
+
+    .rec-card {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 10px 12px;
+      text-decoration: none;
+      display: block;
+      transition: border-color 0.15s;
+    }
+
+    .rec-card:hover { border-color: #388bfd; }
+
+    .rec-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .rec-repo {
+      font-size: 11px;
+      color: #8b949e;
+    }
+
+    .rec-score {
+      font-size: 11px;
+      color: #3fb950;
+      margin-left: auto;
+    }
+
+    .rec-title {
+      font-size: 13px;
+      color: #e6edf3;
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+
+    .rec-labels { display: flex; flex-wrap: wrap; gap: 4px; }
+
+    .rec-label {
+      display: inline-block;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-size: 11px;
+      color: #8b949e;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 20px 0;
+      color: #484f58;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .rec-summary {
+      font-size: 12px;
+      color: #8b949e;
+      margin: 2px 0 6px;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .rec-analyzed {
+      margin-left: auto;
+      font-size: 11px;
+      color: #58a6ff;
+      background: rgba(88, 166, 255, 0.1);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+      border-radius: 10px;
+      padding: 1px 7px;
+    }
+
+    #refresh-btn {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 8px;
+      background: #21262d;
+      color: #8b949e;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    #refresh-btn:hover { color: #e6edf3; border-color: #8b949e; }
+
+    #rec-loading { color: #8b949e; font-size: 13px; padding: 12px 0; }
+  </style>
+</head>
+<body>
+  <div id="status-bar">
+    <div class="status-left">
+      <span>✦ OMOS</span>
+    </div>
+    <div class="status-right">
+      <span class="dot off" id="status-dot"></span>
+      <span id="status-label">로그인되지 않음</span>
+      <button id="login-btn">로그인</button>
+      <button id="logout-btn">로그아웃</button>
+    </div>
+  </div>
+
+  <div id="rec-section">
+    <div class="section-header">
+      <span class="section-title">추천 이슈</span>
+      <span class="section-hint" id="rec-hint"></span>
+    </div>
+    <p id="rec-loading" style="display:none;">불러오는 중...</p>
+    <div id="rec-list"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
