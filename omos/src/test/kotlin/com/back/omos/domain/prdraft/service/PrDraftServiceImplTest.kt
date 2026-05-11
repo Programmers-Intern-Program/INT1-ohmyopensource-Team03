@@ -1,5 +1,6 @@
 package com.back.omos.domain.prdraft.service
 
+import com.back.omos.domain.analysis.repository.AnalysisResultRepository
 import com.back.omos.domain.issue.entity.Issue
 import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.prdraft.ai.AiClient
@@ -37,6 +38,7 @@ class PrDraftServiceImplTest {
     @Mock private lateinit var prDraftRepository: PrDraftRepository
     @Mock private lateinit var userRepository: UserRepository
     @Mock private lateinit var issueRepository: IssueRepository
+    @Mock private lateinit var analysisResultRepository: AnalysisResultRepository
     @Mock private lateinit var prDraftPromptBuilder: PrDraftPromptBuilder
     @Mock private lateinit var aiClient: AiClient
     @Mock private lateinit var gitHubClient: GitHubClient
@@ -53,7 +55,7 @@ class PrDraftServiceImplTest {
     fun setUp() {
         service = PrDraftServiceImpl(
             prDraftRepository, userRepository, issueRepository,
-            prDraftPromptBuilder, aiClient, gitHubClient
+            analysisResultRepository, prDraftPromptBuilder, aiClient, gitHubClient
         )
     }
 
@@ -66,7 +68,7 @@ class PrDraftServiceImplTest {
             given(issueRepository.findByRepoFullNameAndIssueNumber("owner/repo", 1L)).willReturn(issue)
             given(gitHubClient.fetchDiff("owner/repo", "main", githubId, "fix/issue-123")).willReturn(diffContent)
             given(gitHubClient.fetchContributing("owner/repo")).willReturn("contributing content")
-            given(prDraftPromptBuilder.build(diffContent, "contributing content", emptyList(), "test issue", null)).willReturn("prompt")
+            given(prDraftPromptBuilder.build(diffContent, "contributing content", emptyList(), "test issue", null, null)).willReturn("prompt")
             given(aiClient.generatePrDraft("prompt")).willReturn(AiPrResult("feat: title", "body"))
             given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer {
                 val prDraft = it.arguments[0] as PrDraft
@@ -90,7 +92,7 @@ class PrDraftServiceImplTest {
             given(gitHubClient.fetchDiff("owner/repo", "main", githubId, "fix/issue-123")).willReturn(diffContent)
             given(gitHubClient.fetchContributing("owner/repo")).willReturn(null)
             given(gitHubClient.fetchMergedPrs("owner/repo")).willReturn(prs)
-            given(prDraftPromptBuilder.build(diffContent, null, prs, "test issue", null)).willReturn("prompt")
+            given(prDraftPromptBuilder.build(diffContent, null, prs, "test issue", null, null)).willReturn("prompt")
             given(aiClient.generatePrDraft("prompt")).willReturn(AiPrResult("title", "body"))
             given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer {
                 val prDraft = it.arguments[0] as PrDraft

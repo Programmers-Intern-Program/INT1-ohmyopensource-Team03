@@ -63,7 +63,8 @@ class PrDraftPromptEvalTest {
                     contributing = null,
                     prs = emptyList(),
                     issueTitle = sample.issueTitle,
-                    issueContent = sample.issueContent
+                    issueContent = sample.issueContent,
+                    issueGuideline = sample.issueGuideline
                 )
                 val result = aiClient.generatePrDraft(prompt)
                 println("제목: ${result.title}")
@@ -93,7 +94,8 @@ class PrDraftPromptEvalTest {
                     contributing = null,
                     prs = emptyList(),
                     issueTitle = sample.issueTitle,
-                    issueContent = sample.issueContent
+                    issueContent = sample.issueContent,
+                    issueGuideline = sample.issueGuideline
                 )
 
                 val result = aiClient.generatePrDraft(prompt)
@@ -128,7 +130,8 @@ class PrDraftPromptEvalTest {
                     contributing = null,
                     prs = emptyList(),
                     issueTitle = sample.issueTitle,
-                    issueContent = sample.issueContent
+                    issueContent = sample.issueContent,
+                    issueGuideline = sample.issueGuideline
                 )
                 val result = aiClient.generatePrDraft(prompt)
                 println("제목: ${result.title}")
@@ -158,7 +161,8 @@ class PrDraftPromptEvalTest {
                     contributing = null,
                     prs = emptyList(),
                     issueTitle = sample.issueTitle,
-                    issueContent = sample.issueContent
+                    issueContent = sample.issueContent,
+                    issueGuideline = sample.issueGuideline
                 )
                 val result = aiClient.generatePrDraft(prompt)
                 println("제목: ${result.title}")
@@ -185,7 +189,8 @@ class PrDraftPromptEvalTest {
                 contributing = SAMPLE_CONTRIBUTING,
                 prs = emptyList(),
                 issueTitle = sample.issueTitle,
-                issueContent = sample.issueContent
+                issueContent = sample.issueContent,
+                issueGuideline = sample.issueGuideline
             )
             val result = aiClient.generatePrDraft(prompt)
             println("제목: ${result.title}")
@@ -211,7 +216,8 @@ class PrDraftPromptEvalTest {
                     contributing = SAMPLE_CONTRIBUTING_LONG,
                     prs = emptyList(),
                     issueTitle = sample.issueTitle,
-                    issueContent = sample.issueContent
+                    issueContent = sample.issueContent,
+                    issueGuideline = sample.issueGuideline
                 )
                 val result = aiClient.generatePrDraft(prompt)
                 println("제목: ${result.title}")
@@ -237,7 +243,8 @@ class PrDraftPromptEvalTest {
                 contributing = null,
                 prs = SAMPLE_PRS,
                 issueTitle = sample.issueTitle,
-                issueContent = sample.issueContent
+                issueContent = sample.issueContent,
+                issueGuideline = sample.issueGuideline
             )
             val result = aiClient.generatePrDraft(prompt)
             println("제목: ${result.title}")
@@ -401,7 +408,8 @@ class PrDraftPromptEvalTest {
             val description: String,
             val diff: String,
             val issueTitle: String? = null,
-            val issueContent: String? = null
+            val issueContent: String? = null,
+            val issueGuideline: String? = null
         )
 
         val EVAL_SAMPLES = listOf(
@@ -413,6 +421,7 @@ class PrDraftPromptEvalTest {
                 description = "null 안전성 버그 수정",
                 issueTitle = "getUserProfile() 호출 시 NullPointerException 발생",
                 issueContent = "name 또는 email이 null인 사용자 조회 시 UserProfileRes 생성 단계에서 NPE 발생. null 안전 처리 및 예외 메시지 개선 필요.",
+                issueGuideline = "UserService.getUserProfile()에서 User.name·User.email이 nullable임에도 직접 접근해 UserProfileRes 생성 시 NPE가 발생함. orElseThrow 예외를 RuntimeException 대신 도메인 예외(UserNotFoundException)로 교체하고, 반환 시 엘비스 연산자(?:)로 null 기본값을 처리할 것. UserProfileRes 생성자 파라미터 타입 변경 여부도 함께 확인 필요.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/UserService.kt b/src/main/kotlin/com/example/service/UserService.kt
                     index a1b2c3d..e4f5g6h 100644
@@ -438,6 +447,7 @@ class PrDraftPromptEvalTest {
                 description = "목록 조회 API에 페이지네이션 추가",
                 issueTitle = "게시글 목록 API 데이터 증가 시 응답 속도 저하",
                 issueContent = "게시글 수가 늘어나면서 /api/posts 응답 시간이 점점 길어지고 있음. page, size 파라미터를 받아 페이지 단위로 반환하도록 수정 요청.",
+                issueGuideline = "PostController.getPosts()가 전체 목록을 List로 반환해 데이터 증가 시 메모리 과부하가 발생할 수 있음. 컨트롤러에 @RequestParam으로 page·size를 받아 PageRequest를 생성하고, PostService와 PostRepository의 반환 타입을 Page<PostRes>로 변경해야 함. 응답 타입 변경으로 API 클라이언트의 totalElements 처리 로직도 함께 수정 필요.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/controller/PostController.kt b/src/main/kotlin/com/example/controller/PostController.kt
                     index b2c3d4e..f5g6h7i 100644
@@ -470,6 +480,7 @@ class PrDraftPromptEvalTest {
                 description = "공통 검증 로직 메서드 추출 리팩토링",
                 issueTitle = "OrderService 주문 조회 + 권한 검증 코드 중복",
                 issueContent = "cancelOrder, getOrderDetail 두 메서드에서 동일한 주문 조회 및 소유자 확인 로직이 반복됨. 공통 private 메서드로 추출하여 중복 제거 필요.",
+                issueGuideline = "OrderService.cancelOrder()와 getOrderDetail()에서 주문 조회(findById + orElseThrow) 및 소유권 검증(order.userId != userId) 로직이 중복됨. 해당 공통 로직을 private 메서드로 추출하고 두 메서드에서 호출하도록 변경할 것. 추출된 메서드는 검증 실패 시 ForbiddenException을 던지고 Order를 반환하는 형태로 작성.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/OrderService.kt b/src/main/kotlin/com/example/service/OrderService.kt
                     index c3d4e5f..g6h7i8j 100644
@@ -508,6 +519,7 @@ class PrDraftPromptEvalTest {
                 description = "레포지토리 정보 조회에 캐싱 적용",
                 issueTitle = "레포지토리 정보 반복 조회 시 DB 부하",
                 issueContent = "대시보드 렌더링 시 동일한 레포지토리 정보를 여러 번 조회하는데 매번 DB 쿼리가 발생함. 캐싱 레이어 적용으로 부하 감소 필요.",
+                issueGuideline = "RepoService.getRepoInfo()가 매 호출마다 DB를 조회하고 있음. @Cacheable(value=[\"repoInfo\"], key=\"#repoId\")를 적용해 첫 조회 결과를 캐시하고, 레포 정보 변경 시 @CacheEvict로 무효화하는 메서드를 추가할 것. 설정 클래스에 @EnableCaching이 없으면 함께 추가 필요.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/RepoService.kt b/src/main/kotlin/com/example/service/RepoService.kt
                     index d4e5f6g..h7i8j9k 100644
@@ -539,6 +551,7 @@ class PrDraftPromptEvalTest {
                 description = "API 요청 입력값 검증 추가",
                 issueTitle = "댓글 생성 API 입력값 검증 없음",
                 issueContent = "현재 댓글 내용에 빈 문자열이나 500자를 초과하는 텍스트도 저장 가능함. Jakarta Validation(@NotBlank, @Size)을 적용하고 컨트롤러에 @Valid 추가 필요.",
+                issueGuideline = "CreateCommentReq의 content 필드에 @field:NotBlank와 @field:Size(max=500), postId에 @field:Positive를 추가하고 CommentController.createComment()의 @RequestBody 앞에 @Valid를 붙여야 함. 유효성 검증 실패 시 400 응답을 반환하는 GlobalExceptionHandler의 MethodArgumentNotValidException 핸들러가 있는지도 확인 필요.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/dto/CreateCommentReq.kt b/src/main/kotlin/com/example/dto/CreateCommentReq.kt
                     index e5f6g7h..i8j9k0l 100644
@@ -576,6 +589,7 @@ class PrDraftPromptEvalTest {
                 description = "에러 메시지 한 줄 수정 (극소 diff — 가장 쉬운 케이스)",
                 issueTitle = "사용자 미존재 에러 메시지 영문으로 노출됨",
                 issueContent = "USER_NOT_FOUND 에러 발생 시 클라이언트에 'User not found' 영문 메시지가 그대로 노출됨. 한국어로 변경 요청.",
+                issueGuideline = "ErrorCode enum의 USER_NOT_FOUND 값에 설정된 message 파라미터 'User not found'를 한국어로 변경하면 됨. 다른 영문 메시지 항목도 함께 확인하여 일관성을 맞출 것.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/exception/ErrorCode.kt b/src/main/kotlin/com/example/exception/ErrorCode.kt
                     index a1b2c3d..e4f5g6h 100644
@@ -595,6 +609,7 @@ class PrDraftPromptEvalTest {
                 description = "JWT 액세스 토큰 만료 시간 1시간 → 24시간 변경 (극소 diff)",
                 issueTitle = "액세스 토큰 만료 시간이 짧아 사용 중 자동 로그아웃 발생",
                 issueContent = "현재 액세스 토큰 TTL이 1시간으로 설정되어 있어 장시간 사용 중 세션이 끊기는 불편이 있음. 24시간으로 연장 요청.",
+                issueGuideline = "JwtProperties의 accessExpirationMs 기본값 3_600_000(1시간)을 86_400_000(24시간)으로 변경하면 됨. 보안 정책상 만료 시간 연장의 적절성을 검토하고, 필요 시 리프레시 토큰 로직과의 균형도 확인할 것.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/config/JwtProperties.kt b/src/main/kotlin/com/example/config/JwtProperties.kt
                     index b2c3d4e..f5g6h7i 100644
@@ -618,6 +633,7 @@ class PrDraftPromptEvalTest {
                 description = "알림 기능 신규 구현 (entity + service + controller, 대형 diff)",
                 issueTitle = "알림 기능 구현 — 읽지 않은 알림 조회 및 읽음 처리",
                 issueContent = "사용자에게 읽지 않은 알림 목록 조회(GET /notifications/unread), 전체 읽음 처리(PATCH /notifications/read-all), 단건 읽음 처리(PATCH /notifications/{id}/read) API가 필요함. Notification entity, service, controller 신규 구현.",
+                issueGuideline = "Notification entity는 User와 ManyToOne(LAZY), type은 Enum(STRING), isRead 기본값 false로 설계할 것. NotificationService에 읽지 않은 알림 조회(@Transactional(readOnly=true)), 전체 읽음 벌크 처리, 단건 읽음(소유권 검증 후 markAsRead 호출) 메서드를 구현. NotificationController에서 @AuthenticationPrincipal로 userId를 추출해 서비스에 위임하는 방식으로 작성.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/domain/notification/Notification.kt b/src/main/kotlin/com/example/domain/notification/Notification.kt
                     new file mode 100644
@@ -720,6 +736,7 @@ class PrDraftPromptEvalTest {
                 description = "댓글 기능 전체 구현 (5개 파일 신규 추가, 가장 큰 diff)",
                 issueTitle = "게시글 댓글 CRUD 기능 구현",
                 issueContent = "게시글에 댓글 작성(POST /comments), 게시글별 댓글 목록 조회(GET /comments/post/{postId}) 기능 필요. Comment entity, DTO, Repository, Service, Controller 전체 신규 구현.",
+                issueGuideline = "Comment entity는 Post·User와 각각 ManyToOne(LAZY), content는 @Column(TEXT)로 설계. CommentService에 댓글 생성(Post·User 조회 후 Comment 저장)과 게시글별 목록 조회(createdAt 내림차순) 메서드를 구현. CommentController는 @AuthenticationPrincipal로 작성자 userId를 받아 서비스에 전달하고, 조회 엔드포인트는 /post/{postId} 하위로 구성.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/domain/comment/Comment.kt b/src/main/kotlin/com/example/domain/comment/Comment.kt
                     new file mode 100644
@@ -834,6 +851,7 @@ class PrDraftPromptEvalTest {
                 description = "이슈 목록 정렬 기준 변경 (애매 — 변경 이유가 코드만으로 불분명)",
                 issueTitle = "이슈 목록을 최근 활동 순으로 정렬 변경 요청",
                 issueContent = "현재 이슈 목록이 생성일(createdAt) 기준으로 정렬되는데, 최근에 댓글이 달리거나 수정된 이슈가 위에 보여야 한다는 피드백이 있음. updatedAt 기준으로 변경 요청.",
+                issueGuideline = "IssueService.getIssues()의 PageRequest 생성 시 Sort.by(\"createdAt\")를 Sort.by(\"updatedAt\")으로 변경하면 됨. issues 테이블의 updated_at 컬럼에 인덱스가 존재하는지 확인하고, 없으면 마이그레이션으로 추가하는 것을 권장.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/IssueService.kt b/src/main/kotlin/com/example/service/IssueService.kt
                     index a1b2c3d..e4f5g6h 100644
@@ -854,6 +872,7 @@ class PrDraftPromptEvalTest {
                 description = "결제 감사 로그 트랜잭션 전파 전략 변경 (애매 — REQUIRES_NEW 이유 불분명)",
                 issueTitle = "결제 실패 시 감사 로그도 함께 롤백되어 감사 추적 불가",
                 issueContent = "결제 처리 트랜잭션이 롤백될 때 같은 트랜잭션에 묶인 감사 로그도 삭제됨. 감사 로그는 결제 성공/실패 여부와 무관하게 항상 커밋되어야 함. REQUIRES_NEW 전파 전략 적용 필요.",
+                issueGuideline = "PaymentService.recordAuditLog()의 @Transactional을 @Transactional(propagation = Propagation.REQUIRES_NEW)로 변경해 독립 트랜잭션에서 항상 커밋되도록 할 것. REQUIRES_NEW는 새 커넥션을 사용하므로 커넥션 풀 크기가 충분한지 확인하고, 부모 트랜잭션이 락을 보유한 경우 데드락 가능성도 검토 필요.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/PaymentService.kt b/src/main/kotlin/com/example/service/PaymentService.kt
                     index b2c3d4e..f5g6h7i 100644
@@ -876,6 +895,7 @@ class PrDraftPromptEvalTest {
                 description = "파일 업로드 용량 제한 상향 (설정 + 서비스 + DTO 동시 수정, 애매)",
                 issueTitle = "파일 업로드 5MB 제한으로 고화질 이미지 업로드 불가",
                 issueContent = "현재 파일 업로드 최대 크기가 5MB로 제한되어 있어 고화질 이미지(보통 5~10MB)를 업로드할 수 없음. 서비스 제한, Spring multipart 설정, DTO 응답 필드를 함께 10MB로 상향 요청.",
+                issueGuideline = "세 곳을 일관되게 수정해야 함. FileService.upload()의 하드코딩된 5MB 체크를 10MB로 변경하고, application.yml에 spring.servlet.multipart.max-file-size=10MB·max-request-size=20MB를 추가. 클라이언트가 업로드 파일 크기를 확인할 수 있도록 FileUploadRes DTO에 sizeBytes(Long) 필드도 추가할 것.",
                 diff = """
                     diff --git a/src/main/resources/application.yml b/src/main/resources/application.yml
                     index a1b2c3d..e4f5g6h 100644
@@ -920,6 +940,7 @@ class PrDraftPromptEvalTest {
                 description = "테스트 파일만 추가 (프로덕션 변경 없는 케이스)",
                 issueTitle = "UserService 단위 테스트 누락",
                 issueContent = "getUserProfile 메서드에 대한 단위 테스트가 없음. 정상 조회 케이스와 미존재 사용자 케이스에 대한 테스트 클래스 추가 필요.",
+                issueGuideline = "MockK로 UserRepository를 mock하고 UserServiceTest 클래스를 신규 작성. 정상 조회(존재하는 userId → UserProfileRes 반환 검증)와 예외 케이스(존재하지 않는 userId → UserNotFoundException 발생 검증) 두 시나리오를 @Nested 클래스 구조로 작성할 것.",
                 diff = """
                     diff --git a/src/test/kotlin/com/example/service/UserServiceTest.kt b/src/test/kotlin/com/example/service/UserServiceTest.kt
                     new file mode 100644
@@ -971,6 +992,7 @@ class PrDraftPromptEvalTest {
                 description = "모니터링 의존성 추가 (build.gradle.kts만 변경)",
                 issueTitle = "Prometheus/Grafana 연동을 위한 메트릭 수집 설정 필요",
                 issueContent = "운영 모니터링 대시보드 구축을 위해 Spring Actuator와 Micrometer Prometheus 의존성 추가 필요. build.gradle.kts에 의존성만 추가하면 됨.",
+                issueGuideline = "build.gradle.kts의 dependencies 블록에 spring-boot-starter-actuator와 micrometer-registry-prometheus를 추가할 것. Prometheus 스크래핑 엔드포인트 노출을 위해 application.yml에 management.endpoints.web.exposure.include=prometheus 설정도 함께 추가 필요.",
                 diff = """
                     diff --git a/build.gradle.kts b/build.gradle.kts
                     index a1b2c3d..e4f5g6h 100644
@@ -993,6 +1015,7 @@ class PrDraftPromptEvalTest {
                 description = "Deprecated 레거시 API 엔드포인트 제거 (삭제 위주 diff)",
                 issueTitle = "v2 전환 완료 후 레거시 /legacy 엔드포인트 제거",
                 issueContent = "v2 API 전환이 완료되었고 /api/users/legacy/* 엔드포인트를 사용하는 클라이언트가 없음을 확인. @Deprecated 엔드포인트 및 관련 서비스 메서드 제거 요청.",
+                issueGuideline = "UserController의 getLegacyProfile(), getLegacyAvatar() 엔드포인트와 UserService의 getLegacyProfile(), getLegacyAvatarUrl() 메서드를 제거하면 됨. 관련 LegacyUserProfileRes DTO 클래스도 사용처가 없으면 함께 삭제하고, 해당 엔드포인트를 사용하는 클라이언트가 없음을 최종 확인 후 진행할 것.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/controller/UserController.kt b/src/main/kotlin/com/example/controller/UserController.kt
                     index b2c3d4e..f5g6h7i 100644
@@ -1032,6 +1055,7 @@ class PrDraftPromptEvalTest {
                 description = "코드 포맷팅/공백만 변경 (내용 변경 없는 trivial diff)",
                 issueTitle = "PostService ktlint 포맷팅 위반 수정",
                 issueContent = "CI ktlint 검사에서 PostService 파일에 공백 및 포맷팅 위반이 감지됨. 로직 변경 없이 Kotlin 코딩 컨벤션에 맞게 포맷팅만 정리.",
+                issueGuideline = "PostService의 함수 선언부 콜론 앞뒤 공백, 중괄호 앞 공백, 람다 중괄호 내부 공백을 Kotlin 코딩 컨벤션에 맞게 수정할 것. 로직 변경 없이 포맷팅만 정리하며, ./gradlew ktlintFormat 명령으로 자동 교정 후 변경 내역을 확인하는 것을 권장.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/PostService.kt b/src/main/kotlin/com/example/service/PostService.kt
                     index a1b2c3d..e4f5g6h 100644
@@ -1064,6 +1088,7 @@ class PrDraftPromptEvalTest {
                 description = "DB 마이그레이션 파일 추가 — 컬럼 추가 및 인덱스 생성",
                 issueTitle = "User 테이블에 프로필 이미지 URL 컬럼 추가",
                 issueContent = "프로필 이미지 기능 구현을 위해 users 테이블에 profile_image_url, profile_image_updated_at 컬럼이 필요함. Flyway 마이그레이션 스크립트로 컬럼 추가 및 조회 성능을 위한 인덱스 생성.",
+                issueGuideline = "Flyway 마이그레이션 파일(V5__...)을 신규 작성해 users 테이블에 profile_image_url(VARCHAR 500, NULL 허용)·profile_image_updated_at(DATETIME, NULL 허용) 컬럼을 ALTER TABLE로 추가할 것. profile_image_updated_at 기준 조회 성능을 위해 CREATE INDEX도 같은 파일에 포함. 기존 User entity에 해당 필드도 함께 추가 필요.",
                 diff = """
                     diff --git a/src/main/resources/db/migration/V5__add_profile_image_to_user.sql b/src/main/resources/db/migration/V5__add_profile_image_to_user.sql
                     new file mode 100644
@@ -1083,6 +1108,7 @@ class PrDraftPromptEvalTest {
                 description = "주요 서비스 메서드에 구조화 로깅 추가 (여러 파일 cross-cutting)",
                 issueTitle = "로그인·사용자 삭제 이벤트 로그 부재로 운영 중 디버깅 어려움",
                 issueContent = "운영 환경에서 비정상 로그인 시도나 사용자 삭제 이슈 발생 시 추적이 불가능함. AuthService와 UserService 주요 메서드에 구조화 로그(SLF4J) 추가 필요.",
+                issueGuideline = "AuthService와 UserService에 LoggerFactory.getLogger(javaClass)로 SLF4J 로거를 추가하고, 주요 이벤트(로그인 시도·성공, 사용자 삭제 요청·완료)에 구조화 로그를 남길 것. 로그 레벨은 시도/요청은 info, 삭제처럼 위험도 높은 작업은 warn으로 구분하고, 비밀번호·토큰 등 민감 정보가 로그에 포함되지 않도록 주의.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/AuthService.kt b/src/main/kotlin/com/example/service/AuthService.kt
                     index a1b2c3d..e4f5g6h 100644
@@ -1128,6 +1154,7 @@ class PrDraftPromptEvalTest {
                 description = "커스텀 예외 클래스 추가 및 RuntimeException 교체",
                 issueTitle = "RuntimeException 직접 사용으로 에러 핸들러에서 도메인 예외 구분 불가",
                 issueContent = "현재 서비스 전반에서 RuntimeException을 직접 throw하고 있어 GlobalExceptionHandler에서 도메인별 에러를 분기할 수 없음. UserNotFoundException, PostNotFoundException, ForbiddenException 등 커스텀 예외 클래스 도입 요청.",
+                issueGuideline = "exception 패키지에 UserNotFoundException(id: Long), PostNotFoundException(id: Long), ForbiddenException 커스텀 예외 클래스를 신규 생성할 것. 이후 서비스 코드에서 RuntimeException을 직접 throw하는 부분을 해당 도메인 예외로 교체하고, GlobalExceptionHandler에 각 예외 타입별 @ExceptionHandler 메서드도 추가 필요.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/exception/CustomExceptions.kt b/src/main/kotlin/com/example/exception/CustomExceptions.kt
                     new file mode 100644
@@ -1165,6 +1192,7 @@ class PrDraftPromptEvalTest {
                 description = "메일 발송 인터페이스 분리 및 SMTP 구현체 추가",
                 issueTitle = "NotificationService가 MailService 구현체에 직접 의존해 테스트 및 교체 어려움",
                 issueContent = "NotificationService가 MailService 구현체를 직접 주입받아 단위 테스트 시 mock 처리가 번거롭고 구현체 교체 시 서비스 코드를 수정해야 함. MailSender 인터페이스를 분리하고 SmtpMailSender 구현체를 추가하는 방식으로 의존성 역전 적용 요청.",
+                issueGuideline = "MailSender 인터페이스를 신규 생성하고 send(to, subject, body) 메서드를 정의할 것. SmtpMailSender가 MailSender를 구현하도록 작성하고 JavaMailSender를 주입받아 MIME 메시지를 생성·발송. NotificationService의 생성자 파라미터를 MailService → MailSender로 교체하고 sendMail() 호출을 send()로 변경. JavaMailSender 스프링 빈 설정이 존재하는지 확인 필요.",
                 diff = """
                     diff --git a/src/main/kotlin/com/example/service/MailSender.kt b/src/main/kotlin/com/example/service/MailSender.kt
                     new file mode 100644
@@ -1230,14 +1258,28 @@ class PrDraftPromptEvalTest {
 
         /**
          * 각 카테고리 대표 7종 — 프롬프트 수정 후 빠르게 회귀 확인할 때 사용.
-         * 샘플 1(기본 버그), 2(신규 기능), 6(극소 diff), 8(대형 diff),
-         * 10(애매), 14(빌드 파일), 16(공백만 변경)
+         * v7부터 guideline이 있는 샘플(1, 2, 8)을 포함해 가이드라인 효과를 함께 측정.
+         * 샘플 1(기본 버그 + guideline), 2(신규 기능 + guideline), 6(극소 diff),
+         * 8(대형 diff + guideline), 10(애매), 14(빌드 파일), 16(공백만 변경)
          */
         val QUICK_SAMPLES: List<EvalSample> = listOf(
-            EVAL_SAMPLES[0],   // 샘플 1: null 안전성 버그 수정
-            EVAL_SAMPLES[1],   // 샘플 2: 페이지네이션 추가
+            EVAL_SAMPLES[0].copy(  // 샘플 1: null 안전성 버그 수정 (guideline 포함)
+                issueGuideline = "getUserProfile()에서 User.name·User.email이 nullable인데 직접 접근해 NPE 발생. " +
+                    "엘비스 연산자(?:)로 기본값 처리하고, orElseThrow 예외를 RuntimeException → UserNotFoundException으로 교체할 것. " +
+                    "UserProfileRes 생성자 호출부 파라미터 타입 변경 여부도 확인 필요."
+            ),
+            EVAL_SAMPLES[1].copy(  // 샘플 2: 페이지네이션 추가 (guideline 포함)
+                issueGuideline = "PostController.getPosts()가 전체 목록을 반환해 데이터 증가 시 OOM 위험. " +
+                    "컨트롤러 파라미터에 @RequestParam page/size를 추가하고 PageRequest.of()로 Pageable 생성. " +
+                    "PostService·PostRepository 반환 타입을 List → Page로 변경하며, " +
+                    "응답 타입이 List<PostRes> → Page<PostRes>로 바뀌므로 API 클라이언트 측 totalElements 처리 필요."
+            ),
             EVAL_SAMPLES[5],   // 샘플 6: 에러 메시지 한 줄 수정
-            EVAL_SAMPLES[7],   // 샘플 8: 알림 서비스 신규 구현
+            EVAL_SAMPLES[7].copy(  // 샘플 8: 알림 서비스 신규 구현 (guideline 포함)
+                issueGuideline = "Notification entity에 user(ManyToOne LAZY), type(EnumType.STRING), isRead(기본 false) 필드 필요. " +
+                    "NotificationService에 getUnread(읽기 전용 트랜잭션), markAllAsRead(벌크 업데이트), markAsRead(소유권 체크 후 단건 처리) 메서드 구현. " +
+                    "NotificationController는 @AuthenticationPrincipal로 userId 추출해 서비스에 위임."
+            ),
             EVAL_SAMPLES[9],   // 샘플 10: 정렬 기준 변경
             EVAL_SAMPLES[13],  // 샘플 14: 빌드 파일만 변경
             EVAL_SAMPLES[15],  // 샘플 16: 공백/포맷팅만 변경

@@ -43,7 +43,7 @@ class SpringAiClient(
 
     companion object {
         // 프롬프트 내용을 변경할 때 버전을 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
-        private const val GENERATION_PR_DRAFT = "pr-draft-v6.3"
+        private const val GENERATION_PR_DRAFT = "pr-draft-v7.0"
         private const val GENERATION_TRANSLATE = "pr-translate-v1"
 
         // LLM judge 채점 전용 풀 — 동시 채점 수를 제한해 스레드 고갈 방지
@@ -268,7 +268,23 @@ class SpringAiClient(
     private fun extractJson(response: String): String? {
         val fenceMatch = Regex("""```(?:json)?\s*([\s\S]*?)```""").find(response)
         if (fenceMatch != null) return fenceMatch.groupValues[1].trim()
-        val candidate = Regex("""\{[\s\S]*?\}""").find(response)?.value ?: return null
+        val candidate = Regex("""\{[\s\S]*\}""").find(response)?.value
+        if (candidate != null && runCatching { objectMapper.readTree(candidate) }.isSuccess) return candidate
+        // max_tokens로 잘린 경우 복구 시도
+        return repairTruncated(response)
+    }
+
+    /**
+     * max_tokens 도달로 JSON이 잘린 경우 복구를 시도합니다.
+     * body 필드 문자열이 중간에 끊긴 형태({..."body":"...truncated)를 처리합니다.
+     */
+    private fun repairTruncated(response: String): String? {
+        val start = response.indexOf('{')
+        if (start == -1) return null
+        var s = response.substring(start).trimEnd()
+        if (s.endsWith('}')) return null
+        while (s.endsWith('\\')) s = s.dropLast(1)
+        val candidate = s + "\"}"
         return runCatching { objectMapper.readTree(candidate); candidate }.getOrNull()
     }
 }

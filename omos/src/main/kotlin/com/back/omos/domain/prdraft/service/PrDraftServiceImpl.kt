@@ -1,5 +1,6 @@
 package com.back.omos.domain.prdraft.service
 
+import com.back.omos.domain.analysis.repository.AnalysisResultRepository
 import com.back.omos.domain.issue.repository.IssueRepository
 import com.back.omos.domain.prdraft.dto.CreatePrReq
 import com.back.omos.domain.prdraft.dto.PrDetailRes
@@ -47,6 +48,7 @@ class PrDraftServiceImpl(
     private val prDraftRepository: PrDraftRepository,
     private val userRepository: UserRepository,
     private val issueRepository: IssueRepository,
+    private val analysisResultRepository: AnalysisResultRepository,
     private val prDraftPromptBuilder: PrDraftPromptBuilder,
     private val aiClient: AiClient,
     private val gitHubClient: GitHubClient
@@ -78,8 +80,11 @@ class PrDraftServiceImpl(
         val contributing = gitHubClient.fetchContributing(request.upstreamRepo)
         val prs = if (contributing == null) gitHubClient.fetchMergedPrs(request.upstreamRepo) else emptyList()
 
+        // 이슈에 대한 분석 가이드라인 조회 (없으면 null)
+        val guideline = issue?.id?.let { analysisResultRepository.findByIssueId(it)?.guideline }
+
         // prompt 작성
-        val prompt = prDraftPromptBuilder.build(diffContent, contributing, prs, issue?.title, issue?.content)
+        val prompt = prDraftPromptBuilder.build(diffContent, contributing, prs, issue?.title, issue?.content, guideline)
 
         // AI 호출
         val aiResult = aiClient.generatePrDraft(prompt)
