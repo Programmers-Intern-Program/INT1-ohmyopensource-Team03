@@ -111,6 +111,7 @@ class SecurityConfig(
         val config = CorsConfiguration().apply {
             allowedOriginPatterns = listOf(
                 "http://localhost:3000",
+                "https://omos.minty-u.site",
                 "chrome-extension://*"
             )
             allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
