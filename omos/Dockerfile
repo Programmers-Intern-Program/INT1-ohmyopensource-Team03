@@ -1,5 +1,6 @@
 FROM amazoncorretto:24 AS builder
 WORKDIR /app
+RUN yum install -y findutils
 COPY gradlew .
 COPY gradle/ gradle/
 COPY build.gradle settings.gradle ./
