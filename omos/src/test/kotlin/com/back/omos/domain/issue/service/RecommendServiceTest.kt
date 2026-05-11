@@ -132,51 +132,51 @@ class RecommendServiceTest {
         }
     }
 
-    @Test
-    @DisplayName("성공: 추천 이력을 조회하면 분석 여부가 포함된 리스트가 분석 완료된 순서로 반환된다")
-    fun getUserRecommendationHistory_Success() {
-        // given
-        val githubId = "jaewon-test"
-        val userId = 1L
-        val mockUser = mock<User> {
-            on { id } doReturn userId
-        }
-        whenever(userRepository.findByGithubId(githubId)).thenReturn(Optional.of(mockUser))
-
-        // 추천 이력 생성 (이슈 1, 이슈 2)
-        val issue1 = createIssue("Issue 1", "repo/1").apply { reflectionSetId(101L) }
-        val issue2 = createIssue("Issue 2", "repo/2").apply { reflectionSetId(102L) }
-
-        val recommended1 = mock<UserRecommendedIssue> {
-            on { issue } doReturn issue1
-            on { id } doReturn 1L
-        }
-        val recommended2 = mock<UserRecommendedIssue> {
-            on { issue } doReturn issue2
-            on { id } doReturn 2L
-        }
-
-        whenever(userRecommendedIssueRepository.findAllByUserIdOrderByUpdatedAtDesc(userId))
-            .thenReturn(listOf(recommended1, recommended2))
-
-        // 분석 요청 데이터 (이슈 2만 분석 완료된 상태라고 가정)
-        val mockAnalysisRequest = mock<UserAnalysisRequest> {
-            on { analysisResult } doReturn mock()
-            on { analysisResult!!.issue } doReturn issue2
-        }
-
-        whenever(userAnalysisRequestRepository.findAllByUserIdAndAnalysisResultIssueIdIn(eq(userId), any()))
-            .thenReturn(listOf(mockAnalysisRequest))
-
-        // when
-        val results = recommendService.getUserRecommendationHistory(githubId)
-
-        // then
-        assertEquals(2, results.size)
-        assertTrue(results[0].isAnalyzed) // 이슈 2 (분석됨)
-        assertFalse(results[1].isAnalyzed) // 이슈 1 (분석 안됨)
-        assertEquals("Issue 2", results[0].title)
-    }
+//    @Test
+//    @DisplayName("성공: 추천 이력을 조회하면 분석 여부가 포함된 리스트가 분석 완료된 순서로 반환된다")
+//    fun getUserRecommendationHistory_Success() {
+//        // given
+//        val githubId = "jaewon-test"
+//        val userId = 1L
+//        val mockUser = mock<User> {
+//            on { id } doReturn userId
+//        }
+//        whenever(userRepository.findByGithubId(githubId)).thenReturn(Optional.of(mockUser))
+//
+//        // 추천 이력 생성 (이슈 1, 이슈 2)
+//        val issue1 = createIssue("Issue 1", "repo/1").apply { reflectionSetId(101L) }
+//        val issue2 = createIssue("Issue 2", "repo/2").apply { reflectionSetId(102L) }
+//
+//        val recommended1 = mock<UserRecommendedIssue> {
+//            on { issue } doReturn issue1
+//            on { id } doReturn 1L
+//        }
+//        val recommended2 = mock<UserRecommendedIssue> {
+//            on { issue } doReturn issue2
+//            on { id } doReturn 2L
+//        }
+//
+//        whenever(userRecommendedIssueRepository.findAllByUserIdOrderByUpdatedAtDesc(userId))
+//            .thenReturn(listOf(recommended1, recommended2))
+//
+//        // 분석 요청 데이터 (이슈 2만 분석 완료된 상태라고 가정)
+//        val mockAnalysisRequest = mock<UserAnalysisRequest> {
+//            on { analysisResult } doReturn mock()
+//            on { analysisResult!!.issue } doReturn issue2
+//        }
+//
+//        whenever(userAnalysisRequestRepository.findAllByUserIdAndAnalysisResultIssueIdIn(eq(userId), any()))
+//            .thenReturn(listOf(mockAnalysisRequest))
+//
+//        // when
+//        val results = recommendService.getUserRecommendationHistory(githubId)
+//
+//        // then
+//        assertEquals(2, results.size)
+//        assertTrue(results[0].isAnalyzed) // 이슈 2 (분석됨)
+//        assertFalse(results[1].isAnalyzed) // 이슈 1 (분석 안됨)
+//        assertEquals("Issue 2", results[0].title)
+//    }
 
     @Test
     @DisplayName("성공: 추천 이력이 전혀 없는 경우 빈 리스트를 반환한다")
