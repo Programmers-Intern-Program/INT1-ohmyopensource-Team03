@@ -6,7 +6,7 @@
   "permissions": ["storage", "tabs"],
   "host_permissions": [
     "https://github.com/*",
-    "http://localhost:8080/*"
+    "https://api.omos.minty-u.site/*"
   ],
   "background": {
     "service_worker": "background.js"

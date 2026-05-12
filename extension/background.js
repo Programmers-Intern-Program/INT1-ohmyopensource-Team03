@@ -1,7 +1,7 @@
-const API_BASE = 'http://localhost:8080';
+const API_BASE = 'https://api.omos.minty-u.site';
 
 // app.oauth2.redirect-uri 설정값과 반드시 일치해야 합니다
-const REDIRECT_URI_PREFIX = 'http://localhost:3000/oauth/callback';
+const REDIRECT_URI_PREFIX = 'https://omos.minty-u.site/oauth/callback';
 
 async function getToken() {
   const { token } = await chrome.storage.local.get('token');
