@@ -1,5 +1,6 @@
 package com.back.omos.domain.prdraft.ai
 
+import com.back.omos.domain.prdraft.service.PrDraftPromptBuilder
 import com.back.omos.global.ai.LangfuseClient
 import com.back.omos.global.exception.errorCode.AiErrorCode
 import com.back.omos.global.exception.exceptions.AiException
@@ -7,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import mu.KotlinLogging
 import org.springframework.ai.chat.model.ChatModel
 import org.springframework.ai.chat.prompt.Prompt
+import org.springframework.ai.openai.OpenAiChatOptions
 import org.springframework.stereotype.Component
 import java.security.MessageDigest
 import java.time.Instant
@@ -36,7 +38,8 @@ import java.util.concurrent.Executors
 class SpringAiClient(
     private val chatModel: ChatModel,
     private val objectMapper: ObjectMapper,
-    private val langfuseClient: LangfuseClient
+    private val langfuseClient: LangfuseClient,
+    private val promptBuilder: PrDraftPromptBuilder
 ) : AiClient {
 
     private val logger = KotlinLogging.logger {}
@@ -44,7 +47,7 @@ class SpringAiClient(
     companion object {
         // 프롬프트 내용을 변경할 때 버전을 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
         private const val GENERATION_PR_DRAFT = "pr-draft-v7.0"
-        private const val GENERATION_TRANSLATE = "pr-translate-v1"
+        private const val GENERATION_TRANSLATE = "pr-translate-v2.2"
 
         // LLM judge 채점 전용 풀 — 동시 채점 수를 제한해 스레드 고갈 방지
         private val judgeExecutor = Executors.newFixedThreadPool(4)
@@ -178,23 +181,11 @@ class SpringAiClient(
      * @throws AiException AI 응답이 비어 있거나 JSON 파싱에 실패한 경우
      */
     override fun translate(title: String, body: String): AiPrResult {
-        val prompt = """
-            Translate the following Korean PR title and body into natural English.
-            Return only the JSON below with no extra text.
-            {
-              "title": "translated title",
-              "body": "translated body"
-            }
-
-            [Korean Title]
-            $title
-
-            [Korean Body]
-            $body
-        """.trimIndent()
+        val prompt = promptBuilder.buildTranslatePrompt(title, body)
+        val turboOptions = OpenAiChatOptions.builder().model("glm-5-turbo").build()
 
         val startTime = Instant.now()
-        val chatResponse = chatModel.call(Prompt(prompt))
+        val chatResponse = chatModel.call(Prompt(prompt, turboOptions))
         val endTime = Instant.now()
 
         val response = chatResponse.result.output.text
@@ -204,7 +195,7 @@ class SpringAiClient(
         val usage = chatResponse.metadata.usage
 
         // 응답시간·토큰 수·프롬프트·결과를 Langfuse에 비동기 기록 (실패해도 메인 흐름에 영향 없음)
-        langfuseClient.recordGeneration(
+        val traceId = langfuseClient.recordGeneration(
             name = GENERATION_TRANSLATE,
             input = prompt,
             output = response,
@@ -214,7 +205,79 @@ class SpringAiClient(
             outputTokens = usage?.completionTokens?.toInt()
         )
 
-        return parseResponse(response)
+        val result = parseResponse(response)
+
+        if (traceId != null) {
+            evaluateTranslateAsync(traceId, title, body, result.title, result.body)
+        }
+
+        return result
+    }
+
+    /**
+     * 번역 결과의 품질을 LLM-as-judge 방식으로 채점합니다.
+     *
+     * <p>
+     * 원문(한국어)과 번역 결과(영어)를 AI에게 전달하여
+     * 0~10점 점수와 채점 근거를 JSON으로 반환받습니다.
+     *
+     * @param traceId 점수를 붙일 Langfuse trace ID
+     * @param koTitle 원문 PR 제목 (한국어)
+     * @param koBody 원문 PR 본문 (한국어)
+     * @param enTitle 번역된 PR 제목 (영어)
+     * @param enBody 번역된 PR 본문 (영어)
+     */
+    private fun evaluateTranslateAsync(
+        traceId: String,
+        koTitle: String,
+        koBody: String,
+        enTitle: String,
+        enBody: String
+    ) {
+        judgeExecutor.submit {
+            try {
+                val judgePrompt = """
+                    아래 한국어 PR을 영어로 번역한 결과를 평가해줘.
+
+                    [원문 제목 (한국어)]
+                    $koTitle
+
+                    [원문 본문 (한국어)]
+                    $koBody
+
+                    [번역 제목 (영어)]
+                    $enTitle
+
+                    [번역 본문 (영어)]
+                    $enBody
+
+                    [채점 기준]
+                    - 자연스러움 (0~4점): 영어가 어색하지 않고 원어민이 쓸 법한 표현인가
+                    - 기술 용어 보존 (0~3점): 클래스명·메서드명·어노테이션·파일경로 등을 번역하지 않고 원문 그대로 유지했는가
+                    - 형식 보존 (0~3점): feat:/fix: 등 커밋 컨벤션 prefix, ## 헤더, 불릿, <!-- --> 주석 구조를 유지했는가.
+                      단, <!-- --> 주석 안의 텍스트를 영어로 번역한 것(예: <!-- 직접 작성 필요 --> → <!-- Fill in manually -->)은 의도된 동작이므로 감점하지 말 것.
+
+                    반드시 아래 JSON 형식으로만 응답해. 항목별 점수를 반드시 포함해.
+                    {"score": 8.0, "fluency": 3, "terms": 3, "format": 2, "reason": "감점 항목과 이유를 항목별로 간략히"}
+                """.trimIndent()
+
+                val judgeResponse = chatModel.call(judgePrompt) ?: return@submit
+
+                val json = extractJson(judgeResponse) ?: return@submit
+                val node = objectMapper.readTree(json)
+                val score = node.get("score")?.asDouble() ?: return@submit
+                val fluency = node.get("fluency")?.asInt()
+                val terms = node.get("terms")?.asInt()
+                val format = node.get("format")?.asInt()
+                val reason = node.get("reason")?.asText() ?: ""
+
+                val fullReason = "[자연스러움:$fluency / 기술용어:$terms / 형식:$format] $reason"
+                langfuseClient.recordScore(traceId, score, fullReason)
+                logger.debug { "번역 judge 채점 완료: score=$score (fluency=$fluency, terms=$terms, format=$format)" }
+            } catch (e: Exception) {
+                logger.warn { "번역 judge 채점 실패 (무시됨): ${e.message}" }
+            }
+        }
     }
 
     /**
@@ -268,9 +331,16 @@ class SpringAiClient(
     private fun extractJson(response: String): String? {
         val fenceMatch = Regex("""```(?:json)?\s*([\s\S]*?)```""").find(response)
         if (fenceMatch != null) return fenceMatch.groupValues[1].trim()
-        val candidate = Regex("""\{[\s\S]*\}""").find(response)?.value
-        if (candidate != null && runCatching { objectMapper.readTree(candidate) }.isSuccess) return candidate
-        // max_tokens로 잘린 경우 복구 시도
+        // non-greedy 정규식은 JSON 값 안의 '}'(예: {postId}, judge reason의 코드 스니펫)에서 잘리므로,
+        // 첫 번째 '{'와 마지막 '}'로 범위를 잡아 최외각 JSON 객체를 추출한다.
+        val start = response.indexOf('{')
+        val end = response.lastIndexOf('}')
+        if (start != -1 && end != -1 && start < end) {
+            val candidate = response.substring(start, end + 1)
+            val parsed = runCatching { objectMapper.readTree(candidate); candidate }.getOrNull()
+            if (parsed != null) return parsed
+        }
+        // 완전한 JSON이 없으면 max_tokens로 잘린 경우 복구 시도
         return repairTruncated(response)
     }
 

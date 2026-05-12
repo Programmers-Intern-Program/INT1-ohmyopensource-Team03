@@ -214,8 +214,9 @@ class ContextAnalyzerServiceImpl(
         // 1단계: 확장자 필터링
         val allFilePaths = gitHubClient.fetchTree(owner, repoName)
             .filter { path ->
-                path.endsWith(".ts") || path.endsWith(".js") ||
-                        path.endsWith(".kt") || path.endsWith(".java") ||
+                path.endsWith(".ts") || path.endsWith(".tsx") || path.endsWith(".js") ||
+                        path.endsWith(".jsx") || path.endsWith(".kt") ||
+                        path.endsWith(".kts") || path.endsWith(".java") ||
                         path.endsWith(".py") || path.endsWith(".go") ||
                         path.endsWith(".rs") || path.endsWith(".cpp") ||
                         path.endsWith(".json") || path.endsWith(".yaml") ||
@@ -223,7 +224,9 @@ class ContextAnalyzerServiceImpl(
                         path.endsWith(".html") || path.endsWith(".css") ||
                         path.endsWith(".scss") || path.endsWith(".xml") ||
                         path.endsWith(".toml") || path.endsWith(".gradle") ||
-                        path.endsWith(".properties")
+                        path.endsWith(".properties") || path.endsWith(".vue") ||
+                        path.endsWith(".svelte") || path.endsWith(".c") ||
+                        path.endsWith(".h")
             }
         log.info("[generateAnalysis] 확장자 필터링 후 파일 수: ${allFilePaths.size}")
 // 2단계: 동적 배치로 GLM 1차 호출 (최대한 많은 파일 경로 전달)
