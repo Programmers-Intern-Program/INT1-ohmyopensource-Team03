@@ -158,6 +158,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         .catch((e) => sendResponse({ ok: false, error: e.message }));
       return true;
 
+    case 'UPDATE_PR_DRAFT':
+      apiFetch(`/api/v1/pr/${message.draftId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ title: message.title, body: message.body }),
+      })
+        .then((data) => sendResponse({ ok: true, data }))
+        .catch((e) => sendResponse({ ok: false, error: e.message }));
+      return true;
+
     case 'GET_MY_PROFILE':
       apiFetch('/api/v1/users/me')
         .then((data) => sendResponse({ ok: true, data }))
