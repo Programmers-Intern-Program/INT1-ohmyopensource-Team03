@@ -69,41 +69,8 @@
 
 ## 시스템 아키텍처
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                        클라이언트                         │
-│                                                         │
-│   ┌──────────────────┐    ┌──────────────────────┐      │
-│   │  Web (Next.js)   │    │  Chrome Extension    │      │
-│   │  localhost:3000  │    │  (GitHub 페이지 주입) │      │
-│   └────────┬─────────┘    └──────────┬───────────┘      │
-└────────────┼──────────────────────────┼──────────────────┘
-             │ HTTP (JWT Bearer)         │ HTTP (JWT Bearer)
-             ▼                          ▼
-┌─────────────────────────────────────────────────────────┐
-│                   백엔드 (Spring Boot)                    │
-│                    localhost:8080                        │
-│                                                         │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
-│  │  Auth    │ │  User    │ │  Issue   │ │ PrDraft  │  │
-│  │ (OAuth2) │ │(Profiling│ │(Recommend│ │(PR 생성) │  │
-│  │  + JWT)  │ │+ Vector) │ │+ Guide)  │ │          │  │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘  │
-│                                                         │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │                  External API 연동                 │  │
-│  │  GitHub API  │  GLM-4.5  │  Gemini Embedding 2   │  │
-│  └──────────────────────────────────────────────────┘  │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-          ┌────────────┼────────────┐
-          ▼            ▼            ▼
-   ┌────────────┐ ┌─────────┐ ┌──────────┐
-   │ PostgreSQL │ │  Redis  │ │ Langfuse │
-   │ + pgvector │ │(캐싱/   │ │(LLM 모니 │
-   │  (벡터 DB) │ │Rate Lmt)│ │ 터링)    │
-   └────────────┘ └─────────┘ └──────────┘
-```
+<img width="1024" height="1536" alt="ChatGPT Image 2026년 5월 13일 오전 10_28_48" src="https://github.com/user-attachments/assets/ac6c3441-ac35-462b-ab7e-d810114d6014" />
+
 
 ---
 
@@ -407,36 +374,7 @@ NEXT_PUBLIC_BACKEND_OAUTH_URL=http://localhost:8080/oauth2/authorization/github
 
 ## 데이터베이스 스키마
 
-```
-users
-├── id, github_id (UK)
-├── name, email
-├── profile_vector (vector 3072)     ← Gemini Embedding
-├── primary_languages (jsonb)
-└── vector_updated_at
-
-issues
-├── id, repo_full_name, issue_number
-├── title, content
-├── labels (jsonb)
-├── issue_vector (vector 3072)       ← Gemini Embedding
-└── status (OPEN/CLOSED)
-
-analysis_results
-├── id, issue_id (FK, UK)
-├── file_paths, guideline, pseudo_code, side_effects
-
-user_recommended_issues
-├── id, user_id (FK), issue_id (FK)
-├── summary (추천 사유)
-└── score (유사도 점수)
-
-pr_draft
-├── id, user_id (FK), issue_id (FK, nullable)
-├── diff_content
-├── pr_title, pr_body
-└── base_branch, head_branch, fork_owner
-```
+<img width="390" height="565" alt="image" src="https://github.com/user-attachments/assets/8b992a81-7040-4e46-bdc6-f3c03cdc7cd8" />
 
 ---
 
@@ -447,12 +385,7 @@ pr_draft
 | 역할 | 이름 | 담당 |
 |------|------|------|
 | 팀장 | 김연수 | GitHub 프로필 분석, User Profiling AI |
+| 팀원 | 김민지 | PR 초안 생성 · 번역 AI |
 | 팀원 | 유재원 | 이슈 수집, Semantic Matcher AI |
 | 팀원 | 류재원 | 코드 수정 가이드, Context Analyzer AI |
-| 팀원 | 김민지 | PR 생성, PR Architect AI |
 
----
-
-## License
-
-This project is for educational purposes as part of the Programmers Internship Program.
