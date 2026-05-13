@@ -69,7 +69,7 @@
 
 ## 시스템 아키텍처
 
-<img width="1024" height="1536" alt="ChatGPT Image 2026년 5월 13일 오전 10_28_48" src="https://github.com/user-attachments/assets/ac6c3441-ac35-462b-ab7e-d810114d6014" />
+<img width="512" height="768" alt="ChatGPT Image 2026년 5월 13일 오전 10_28_48" src="https://github.com/user-attachments/assets/ac6c3441-ac35-462b-ab7e-d810114d6014" />
 
 
 ---
