@@ -13,11 +13,21 @@ function sendMessage(message, callback) {
 }
 
 // GitHub 현재 페이지 타입 감지
+const GITHUB_SYSTEM_PATHS = new Set([
+  'explore', 'trending', 'notifications', 'settings', 'orgs',
+  'marketplace', 'issues', 'pulls', 'sponsors', 'login', 'join',
+  'new', 'codespaces', 'copilot', 'features', 'about', 'contact',
+  'security', 'pricing', 'blog', 'enterprise', 'topics', 'collections',
+  'events', 'education', 'stars', 'watching', 'dashboard',
+]);
+
 function detectPageType() {
   const path = location.pathname;
   if (/^\/[^/]+\/[^/]+\/issues$/.test(path)) return 'ISSUE_LIST';
   if (/^\/[^/]+\/[^/]+\/issues\/\d+$/.test(path)) return 'ISSUE_DETAIL';
   if (/^\/[^/]+\/[^/]+\/compare/.test(path)) return 'PR_CREATE';
+  const profileMatch = path.match(/^\/([^/]+)$/);
+  if (profileMatch && !GITHUB_SYSTEM_PATHS.has(profileMatch[1].toLowerCase())) return 'PROFILE';
   return null;
 }
 
@@ -77,6 +87,9 @@ function loadContent() {
       break;
     case 'PR_CREATE':
       renderPrCreate(contentEl);
+      break;
+    case 'PROFILE':
+      renderProfile(contentEl);
       break;
   }
 }
@@ -353,6 +366,93 @@ function translateAndApplyDraft(draftId, statusEl) {
     const translated = res.data?.data;
     applyDraftToPrForm(translated?.titleEn, translated?.bodyEn);
     if (statusEl) statusEl.innerHTML = '<p class="omos-desc" style="color:#3fb950">번역 후 PR 폼에 적용됐습니다.</p>';
+  });
+}
+
+// ── 프로필: 내 계정 정보 + 프로필 벡터 갱신 ─────────────────────────────────
+
+function formatDateTime(value) {
+  if (!value) return null;
+  // Jackson이 배열([year,month,day,hour,minute,second])로 직렬화하는 경우 대응
+  if (Array.isArray(value)) {
+    const [year, month, day, hour = 0, minute = 0] = value;
+    return new Date(year, month - 1, day, hour, minute).toLocaleString('ko-KR');
+  }
+  return new Date(value).toLocaleString('ko-KR');
+}
+
+function renderProfile(el) {
+  el.innerHTML = '<p class="omos-loading">프로필 불러오는 중...</p>';
+
+  sendMessage({ type: 'GET_MY_PROFILE' }, (res) => {
+    if (!res?.ok) {
+      el.innerHTML = renderError(res?.error);
+      return;
+    }
+
+    const user = res.data?.data;
+    if (!user) {
+      el.innerHTML = renderError('프로필 정보를 불러올 수 없습니다.');
+      return;
+    }
+
+    const languages = user.primaryLanguages ?? [];
+    const languagesHtml = languages.length > 0
+      ? `<div class="omos-lang-tags">${languages.map((l) => `<span class="omos-lang-tag">${l}</span>`).join('')}</div>`
+      : `<p class="omos-empty">언어 정보 없음 (벡터 갱신 시 업데이트됩니다)</p>`;
+
+    const vectorUpdatedAt = formatDateTime(user.vectorUpdatedAt);
+
+    el.innerHTML = `
+      <h3 class="omos-section-title">내 계정</h3>
+      <div class="omos-profile-info">
+        <div class="omos-info-row">
+          <span class="omos-info-label">GitHub ID</span>
+          <span class="omos-info-value">${user.githubId}</span>
+        </div>
+        ${user.name ? `
+        <div class="omos-info-row">
+          <span class="omos-info-label">이름</span>
+          <span class="omos-info-value">${user.name}</span>
+        </div>` : ''}
+        ${user.email ? `
+        <div class="omos-info-row">
+          <span class="omos-info-label">이메일</span>
+          <span class="omos-info-value">${user.email}</span>
+        </div>` : ''}
+      </div>
+      <hr class="omos-divider">
+      <h3 class="omos-section-title">주요 언어</h3>
+      ${languagesHtml}
+      <hr class="omos-divider">
+      <h3 class="omos-section-title">프로필 벡터</h3>
+      <div class="omos-info-row" style="margin-bottom:12px;">
+        <span class="omos-info-label">마지막 갱신</span>
+        <span class="omos-info-value" id="omos-vector-date">${vectorUpdatedAt ?? '아직 갱신되지 않음'}</span>
+      </div>
+      <button class="omos-btn" id="omos-update-vector-btn">프로필 벡터 갱신</button>
+      <div id="omos-vector-status"></div>
+    `;
+
+    document.getElementById('omos-update-vector-btn').addEventListener('click', () => {
+      const btn = document.getElementById('omos-update-vector-btn');
+      const statusEl = document.getElementById('omos-vector-status');
+      btn.disabled = true;
+      statusEl.innerHTML = '<p class="omos-loading">갱신 중... (수 분이 걸릴 수 있습니다)</p>';
+
+      sendMessage({ type: 'UPDATE_PROFILE_VECTOR' }, (res) => {
+        btn.disabled = false;
+        if (!res?.ok) {
+          statusEl.innerHTML = renderError(res?.error);
+          return;
+        }
+        const updated = res.data?.data;
+        const updatedAt = formatDateTime(updated?.vectorUpdatedAt);
+        const dateEl = document.getElementById('omos-vector-date');
+        if (dateEl && updatedAt) dateEl.textContent = updatedAt;
+        statusEl.innerHTML = `<p class="omos-success">갱신 완료${updatedAt ? ` (${updatedAt})` : ''}</p>`;
+      });
+    });
   });
 }
 

@@ -349,6 +349,64 @@
   margin: 0 0 16px;
 }
 
+/* 프로필 정보 */
+.omos-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.omos-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.omos-info-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.omos-info-value {
+  font-size: 13px;
+  color: #e6edf3;
+  text-align: right;
+  word-break: break-all;
+}
+
+/* 언어 태그 */
+.omos-lang-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.omos-lang-tag {
+  display: inline-block;
+  background: rgba(88, 166, 255, 0.1);
+  border: 1px solid rgba(88, 166, 255, 0.3);
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 12px;
+  color: #58a6ff;
+  font-weight: 500;
+}
+
+/* 성공 메시지 */
+.omos-success {
+  color: #3fb950;
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+
 /* GitHub 이슈 목록 인라인 뱃지 */
 .omos-badge {
   display: inline-flex;

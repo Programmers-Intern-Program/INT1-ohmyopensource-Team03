@@ -157,5 +157,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         .then((data) => sendResponse({ ok: true, data }))
         .catch((e) => sendResponse({ ok: false, error: e.message }));
       return true;
+
+    case 'GET_MY_PROFILE':
+      apiFetch('/api/v1/users/me')
+        .then((data) => sendResponse({ ok: true, data }))
+        .catch((e) => sendResponse({ ok: false, error: e.message }));
+      return true;
+
+    case 'UPDATE_PROFILE_VECTOR':
+      apiFetch('/api/v1/users/me/vector', { method: 'POST' })
+        .then((data) => sendResponse({ ok: true, data }))
+        .catch((e) => sendResponse({ ok: false, error: e.message }));
+      return true;
   }
 });
