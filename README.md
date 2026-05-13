@@ -268,10 +268,10 @@ GLM_API_KEY=xxx          # Grepp Sandbox GLM API Key
 GEMINI_API_KEY=xxx       # Google Gemini API Key
 
 # 데이터베이스
-DB_NAME=oh_my_opensource
-DB_USER=postgres
+DB_NAME=xxx
+DB_USER=xxx
 DB_PASSWORD=xxx
-DB_PORT=5432
+DB_PORT=xxx
 
 # JWT
 JWT_SECRET=xxx           # 최소 32자 이상 랜덤 문자열
@@ -374,7 +374,8 @@ NEXT_PUBLIC_BACKEND_OAUTH_URL=http://localhost:8080/oauth2/authorization/github
 
 ## 데이터베이스 스키마
 
-<img width="390" height="565" alt="image" src="https://github.com/user-attachments/assets/8b992a81-7040-4e46-bdc6-f3c03cdc7cd8" />
+<img width="450" height="640" alt="image (1)" src="https://github.com/user-attachments/assets/0d6c45c9-e216-4ce7-b416-98cf57919277" />
+
 
 ---
 
