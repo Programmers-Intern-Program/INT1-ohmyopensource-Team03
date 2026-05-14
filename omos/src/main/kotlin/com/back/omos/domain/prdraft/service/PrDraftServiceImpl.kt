@@ -78,13 +78,14 @@ class PrDraftServiceImpl(
 
         // prompt에게 줄 pr 형식 정보
         val contributing = gitHubClient.fetchContributing(request.upstreamRepo)
-        val prs = if (contributing == null) gitHubClient.fetchMergedPrs(request.upstreamRepo) else emptyList()
+        val prTemplate = gitHubClient.fetchPrTemplate(request.upstreamRepo)
+        val prs = if (contributing == null && prTemplate == null) gitHubClient.fetchMergedPrs(request.upstreamRepo) else emptyList()
 
         // 이슈에 대한 분석 가이드라인 조회 (없으면 null)
         val guideline = issue?.id?.let { analysisResultRepository.findByIssueId(it)?.guideline }
 
         // prompt 작성
-        val prompt = prDraftPromptBuilder.build(diffContent, contributing, prs, issue?.title, issue?.content, guideline, issue?.issueNumber)
+        val prompt = prDraftPromptBuilder.build(diffContent, contributing, prs, issue?.title, issue?.content, guideline, issue?.issueNumber, prTemplate)
 
         // AI 호출
         val aiResult = aiClient.generatePrDraft(prompt)

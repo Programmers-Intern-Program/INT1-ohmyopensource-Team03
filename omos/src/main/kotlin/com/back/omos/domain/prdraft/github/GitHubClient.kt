@@ -39,6 +39,18 @@ interface GitHubClient {
     fun fetchMergedPrs(fullName: String): List<GitHubPrRes>
 
     /**
+     * 레포지토리의 PR 템플릿 내용을 가져옵니다.
+     *
+     * <p>
+     * .github/pull_request_template.md 등 일반적인 위치를 순서대로 탐색합니다.
+     * 파일이 없으면 null을 반환합니다.
+     *
+     * @param fullName owner/repo 형식의 레포지토리 이름
+     * @return PR 템플릿 내용, 없으면 null
+     */
+    fun fetchPrTemplate(fullName: String): String?
+
+    /**
      * GitHub Compare API로 두 브랜치 간의 diff를 가져옵니다.
      *
      * @param upstreamRepo owner/repo 형식의 upstream 레포지토리

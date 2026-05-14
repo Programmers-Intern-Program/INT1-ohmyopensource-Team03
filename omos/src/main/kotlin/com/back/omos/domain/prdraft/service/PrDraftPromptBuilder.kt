@@ -43,7 +43,7 @@ class PrDraftPromptBuilder {
 
     companion object {
         // 프롬프트 내용을 변경할 때 이 버전도 함께 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
-        const val PROMPT_VERSION = "v7.1"
+        const val PROMPT_VERSION = "v7.2"
         const val PROMPT_VERSION_TRANSLATE = "v2.2"
     }
 
@@ -56,6 +56,7 @@ class PrDraftPromptBuilder {
      * @param prs 참고용 기존 병합 PR 목록
      * @param issueTitle 연결된 이슈 제목 (없으면 null)
      * @param issueContent 연결된 이슈 본문 (없으면 null)
+     * @param prTemplate 레포지토리의 PR 템플릿 내용 (없으면 null)
      * @return AI에 전달할 프롬프트 문자열
      */
     fun build(
@@ -65,9 +66,14 @@ class PrDraftPromptBuilder {
         issueTitle: String? = null,
         issueContent: String? = null,
         issueGuideline: String? = null,
-        issueNumber: Long? = null
+        issueNumber: Long? = null,
+        prTemplate: String? = null
     ): String {
         val contextSection = when {
+            prTemplate != null -> {
+                val contributingPart = if (contributing != null) "\n[CONTRIBUTING.md]\n$contributing\n" else ""
+                "$contributingPart\n[PR 템플릿]\n$prTemplate\n"
+            }
             contributing != null -> {
                 "\n[CONTRIBUTING.md]\n$contributing\n\n[기본 템플릿]\n$defaultTemplate\n"
             }
@@ -79,6 +85,8 @@ class PrDraftPromptBuilder {
         }
 
         val structureInstruction = when {
+            prTemplate != null ->
+                "[PR 템플릿]의 섹션 구조와 체크박스(- [ ])를 그대로 유지하세요. HTML 주석(<!-- -->)은 모두 삭제하세요. 변경 이유는 이슈 내용을 우선 참고하고, 이슈에도 없으면 '(작성 필요)'로 남겨두세요."
             contributing != null ->
                 "CONTRIBUTING.md의 PR 본문 형식을 따르세요. PR 형식이 없거나 모호한 경우 '변경 이유(Why)', '수정 내용(What)'의 2단 구조로 작성하세요. 변경 이유는 이슈 내용을 우선 참고하고, 이슈에도 없으면 '(작성 필요)'로 남겨두세요."
             prs.isNotEmpty() ->

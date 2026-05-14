@@ -237,6 +237,52 @@ class PrDraftPromptEvalTest {
     }
 
     /**
+     * PR 템플릿이 프롬프트에 올바르게 포함되는지 확인합니다.
+     * AI 호출 없이 프롬프트 문자열만 검증하므로 빠르게 실행됩니다.
+     */
+    @Test
+    fun `PR 템플릿이 프롬프트에 포함되는지 확인`() {
+        val prompt = promptBuilder.build(
+            diffContent = "--- a/Test.kt\n+++ b/Test.kt\n@@ -1 +1 @@\n-old\n+new",
+            contributing = null,
+            prs = emptyList(),
+            prTemplate = SAMPLE_PR_TEMPLATE
+        )
+        println(prompt)
+        assert(prompt.contains("[PR 템플릿]")) { "[PR 템플릿] 섹션이 프롬프트에 없습니다" }
+        assert(prompt.contains("- [ ]")) { "체크박스가 프롬프트에 없습니다" }
+        assert(!prompt.contains("[기본 템플릿]")) { "prTemplate이 있는데 [기본 템플릿]이 포함되었습니다" }
+        println("프롬프트 검증 통과")
+    }
+
+    /**
+     * PR 템플릿 컨텍스트로 샘플 1을 평가합니다.
+     * prTemplate이 있을 때 AI가 해당 구조를 따르는지 확인합니다.
+     */
+    @Test
+    fun `PR 템플릿 컨텍스트로 프롬프트 평가`() {
+        val sample = EVAL_SAMPLES[0]
+        try {
+            val prompt = promptBuilder.build(
+                diffContent = sample.diff,
+                contributing = null,
+                prs = emptyList(),
+                issueTitle = sample.issueTitle,
+                issueContent = sample.issueContent,
+                issueGuideline = sample.issueGuideline,
+                issueNumber = sample.issueNumber,
+                prTemplate = SAMPLE_PR_TEMPLATE
+            )
+            val result = aiClient.generatePrDraft(prompt)
+            println("제목: ${result.title}")
+            println("본문 미리보기: ${result.body.take(200)}...")
+        } catch (e: Exception) {
+            println("PR 템플릿 테스트 실패 (건너뜀): ${e.message}")
+        }
+        Thread.sleep(60_000)
+    }
+
+    /**
      * 기존 PR 예시 컨텍스트로 프롬프트를 평가합니다.
      */
     @Test
@@ -284,6 +330,24 @@ class PrDraftPromptEvalTest {
                 }
             }
         }
+
+        val SAMPLE_PR_TEMPLATE = """
+            - [ ] I have read and followed the Contributing docs.
+            - [ ] This PR has content that I did not fully write myself.
+              - [ ] I used AI and I have read and followed the Generative AI Contribution Policy.
+            - [ ] I have the experience and knowledge necessary to understand, review, and validate all content in this PR.
+
+            ---
+
+            ## Summary
+
+            ## Changes
+
+            ## How to Test
+
+            ## Related Issues
+            close #
+        """.trimIndent()
 
         val SAMPLE_CONTRIBUTING = """
             # Contributing Guide

@@ -68,7 +68,8 @@ class PrDraftServiceImplTest {
             given(issueRepository.findByRepoFullNameAndIssueNumber("owner/repo", 1L)).willReturn(issue)
             given(gitHubClient.fetchDiff("owner/repo", "main", githubId, "fix/issue-123")).willReturn(diffContent)
             given(gitHubClient.fetchContributing("owner/repo")).willReturn("contributing content")
-            given(prDraftPromptBuilder.build(diffContent, "contributing content", emptyList(), "test issue", null, null, 1L)).willReturn("prompt")
+            given(gitHubClient.fetchPrTemplate("owner/repo")).willReturn(null)
+            given(prDraftPromptBuilder.build(diffContent, "contributing content", emptyList(), "test issue", null, null, 1L, null)).willReturn("prompt")
             given(aiClient.generatePrDraft("prompt")).willReturn(AiPrResult("feat: title", "body"))
             given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer {
                 val prDraft = it.arguments[0] as PrDraft
@@ -85,14 +86,35 @@ class PrDraftServiceImplTest {
         }
 
         @Test
+        fun `prTemplate 있을 때 merged PR 목록을 가져오지 않고 AI 호출 후 결과를 저장한다`() {
+            given(userRepository.findByGithubId(githubId)).willReturn(Optional.of(user))
+            given(issueRepository.findByRepoFullNameAndIssueNumber("owner/repo", 1L)).willReturn(issue)
+            given(gitHubClient.fetchDiff("owner/repo", "main", githubId, "fix/issue-123")).willReturn(diffContent)
+            given(gitHubClient.fetchContributing("owner/repo")).willReturn(null)
+            given(gitHubClient.fetchPrTemplate("owner/repo")).willReturn("## Summary\n- [ ] checkbox")
+            given(prDraftPromptBuilder.build(diffContent, null, emptyList(), "test issue", null, null, 1L, "## Summary\n- [ ] checkbox")).willReturn("prompt")
+            given(aiClient.generatePrDraft("prompt")).willReturn(AiPrResult("feat: title", "body"))
+            given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer {
+                val prDraft = it.arguments[0] as PrDraft
+                ReflectionTestUtils.setField(prDraft, "id", 1L)
+                prDraft
+            }
+
+            service.create(githubId, req)
+
+            verify(gitHubClient, org.mockito.BDDMockito.never()).fetchMergedPrs(any())
+        }
+
+        @Test
         fun `contributing 없을 때 기존 PR 목록을 가져와 프롬프트를 빌드한다`() {
             val prs = listOf(GitHubPrRes("pr title", "pr body", "2026-01-01"))
             given(userRepository.findByGithubId(githubId)).willReturn(Optional.of(user))
             given(issueRepository.findByRepoFullNameAndIssueNumber("owner/repo", 1L)).willReturn(issue)
             given(gitHubClient.fetchDiff("owner/repo", "main", githubId, "fix/issue-123")).willReturn(diffContent)
             given(gitHubClient.fetchContributing("owner/repo")).willReturn(null)
+            given(gitHubClient.fetchPrTemplate("owner/repo")).willReturn(null)
             given(gitHubClient.fetchMergedPrs("owner/repo")).willReturn(prs)
-            given(prDraftPromptBuilder.build(diffContent, null, prs, "test issue", null, null, 1L)).willReturn("prompt")
+            given(prDraftPromptBuilder.build(diffContent, null, prs, "test issue", null, null, 1L, null)).willReturn("prompt")
             given(aiClient.generatePrDraft("prompt")).willReturn(AiPrResult("title", "body"))
             given(prDraftRepository.save(any(PrDraft::class.java))).willAnswer {
                 val prDraft = it.arguments[0] as PrDraft
