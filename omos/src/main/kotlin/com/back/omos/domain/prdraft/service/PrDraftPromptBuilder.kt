@@ -43,7 +43,7 @@ class PrDraftPromptBuilder {
 
     companion object {
         // 프롬프트 내용을 변경할 때 이 버전도 함께 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
-        const val PROMPT_VERSION = "v7.2"
+        const val PROMPT_VERSION = "v7.3"
         const val PROMPT_VERSION_TRANSLATE = "v2.2"
     }
 
@@ -127,7 +127,7 @@ class PrDraftPromptBuilder {
                ## 테스트 방법
                <!-- 직접 작성 필요 -->
             6. 분석 가이드라인은 변경 맥락 파악을 위한 참고용입니다. PR은 실제 diff에 반영된 변경 사항만 기술하고, 가이드라인에만 언급된 내용은 포함하지 마세요.
-            ${if (issueNumber != null) "7. CONTRIBUTING.md나 기존 PR 예시에 이슈를 close하는 방식이 명시되어 있으면 그 방식을 따르고, 없으면 본문 마지막에 `Closes #$issueNumber`를 추가하세요." else ""}
+            ${if (issueNumber != null) "7. 본문에 이미 close 항목이 있으면 `Closes #$issueNumber`로 채우고 중복 추가하지 마세요. 없으면 본문 마지막에 추가하세요." else ""}
 
             반드시 아래 JSON 형식으로만 응답하세요.
             {

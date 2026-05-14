@@ -126,6 +126,10 @@ class GitHubClientImpl(
      *   <li>.github/pull_request_template.md</li>
      *   <li>.github/PULL_REQUEST_TEMPLATE.md</li>
      *   <li>pull_request_template.md</li>
+     *   <li>docs/pull_request_template.md</li>
+     *   <li>.github/PULL_REQUEST_TEMPLATE/pull_request_template.md</li>
+     *   <li>PULL_REQUEST_TEMPLATE/pull_request_template.md</li>
+     *   <li>docs/PULL_REQUEST_TEMPLATE/pull_request_template.md</li>
      * </ol>
      *
      * @param fullName owner/repo 형식의 레포지토리 이름
@@ -135,7 +139,11 @@ class GitHubClientImpl(
         val paths = listOf(
             ".github/pull_request_template.md",
             ".github/PULL_REQUEST_TEMPLATE.md",
-            "pull_request_template.md"
+            "pull_request_template.md",
+            "docs/pull_request_template.md",
+            ".github/PULL_REQUEST_TEMPLATE/pull_request_template.md",
+            "PULL_REQUEST_TEMPLATE/pull_request_template.md",
+            "docs/PULL_REQUEST_TEMPLATE/pull_request_template.md"
         )
         for (path in paths) {
             val result = fetchFile(fullName, path)
