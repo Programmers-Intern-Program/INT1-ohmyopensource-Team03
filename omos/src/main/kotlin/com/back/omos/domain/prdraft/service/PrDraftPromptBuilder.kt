@@ -43,7 +43,7 @@ class PrDraftPromptBuilder {
 
     companion object {
         // 프롬프트 내용을 변경할 때 이 버전도 함께 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
-        const val PROMPT_VERSION = "v7.0"
+        const val PROMPT_VERSION = "v7.1"
         const val PROMPT_VERSION_TRANSLATE = "v2.2"
     }
 
@@ -64,7 +64,8 @@ class PrDraftPromptBuilder {
         prs: List<GitHubPrRes>,
         issueTitle: String? = null,
         issueContent: String? = null,
-        issueGuideline: String? = null
+        issueGuideline: String? = null,
+        issueNumber: Long? = null
     ): String {
         val contextSection = when {
             contributing != null -> {
@@ -87,7 +88,8 @@ class PrDraftPromptBuilder {
         }
 
         val issueSection = if (issueTitle != null) {
-            "\n[이슈]\n제목: $issueTitle\n내용: ${issueContent ?: "(본문 없음)"}\n"
+            val numberLine = if (issueNumber != null) "번호: #$issueNumber\n" else ""
+            "\n[이슈]\n${numberLine}제목: $issueTitle\n내용: ${issueContent ?: "(본문 없음)"}\n"
         } else ""
 
         val guidelineSection = issueGuideline
@@ -116,7 +118,7 @@ class PrDraftPromptBuilder {
             5. 테스트 방법 섹션은 개발자가 직접 작성할 수 있도록 아래와 같이 placeholder로 남겨두세요.
                ## 테스트 방법
                <!-- 직접 작성 필요 -->
-            6. 분석 가이드라인은 변경 맥락 파악을 위한 참고용입니다. PR은 실제 diff에 반영된 변경 사항만 기술하고, 가이드라인에만 언급된 내용은 포함하지 마세요.
+            6. 분석 가이드라인은 변경 맥락 파악을 위한 참고용입니다. PR은 실제 diff에 반영된 변경 사항만 기술하고, 가이드라인에만 언급된 내용은 포함하지 마세요.${if (issueNumber != null) "\n            7. CONTRIBUTING.md나 기존 PR 예시에 이슈를 close하는 방식이 명시되어 있으면 그 방식을 따르고, 없으면 본문 마지막에 `Closes #$issueNumber`를 추가하세요." else ""}
 
             반드시 아래 JSON 형식으로만 응답하세요.
             {

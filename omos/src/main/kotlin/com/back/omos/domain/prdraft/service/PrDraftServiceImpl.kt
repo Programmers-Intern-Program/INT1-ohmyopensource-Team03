@@ -84,7 +84,7 @@ class PrDraftServiceImpl(
         val guideline = issue?.id?.let { analysisResultRepository.findByIssueId(it)?.guideline }
 
         // prompt 작성
-        val prompt = prDraftPromptBuilder.build(diffContent, contributing, prs, issue?.title, issue?.content, guideline)
+        val prompt = prDraftPromptBuilder.build(diffContent, contributing, prs, issue?.title, issue?.content, guideline, issue?.issueNumber)
 
         // AI 호출
         val aiResult = aiClient.generatePrDraft(prompt)
