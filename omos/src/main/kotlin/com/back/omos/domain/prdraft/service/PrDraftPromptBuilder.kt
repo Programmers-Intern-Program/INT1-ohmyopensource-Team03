@@ -126,7 +126,8 @@ class PrDraftPromptBuilder {
             5. 테스트 방법 섹션은 개발자가 직접 작성할 수 있도록 아래와 같이 placeholder로 남겨두세요.
                ## 테스트 방법
                <!-- 직접 작성 필요 -->
-            6. 분석 가이드라인은 변경 맥락 파악을 위한 참고용입니다. PR은 실제 diff에 반영된 변경 사항만 기술하고, 가이드라인에만 언급된 내용은 포함하지 마세요.${if (issueNumber != null) "\n            7. CONTRIBUTING.md나 기존 PR 예시에 이슈를 close하는 방식이 명시되어 있으면 그 방식을 따르고, 없으면 본문 마지막에 `Closes #$issueNumber`를 추가하세요." else ""}
+            6. 분석 가이드라인은 변경 맥락 파악을 위한 참고용입니다. PR은 실제 diff에 반영된 변경 사항만 기술하고, 가이드라인에만 언급된 내용은 포함하지 마세요.
+            ${if (issueNumber != null) "7. CONTRIBUTING.md나 기존 PR 예시에 이슈를 close하는 방식이 명시되어 있으면 그 방식을 따르고, 없으면 본문 마지막에 `Closes #$issueNumber`를 추가하세요." else ""}
 
             반드시 아래 JSON 형식으로만 응답하세요.
             {
