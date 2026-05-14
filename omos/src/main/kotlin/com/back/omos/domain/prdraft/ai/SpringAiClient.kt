@@ -46,7 +46,7 @@ class SpringAiClient(
 
     companion object {
         // 프롬프트 내용을 변경할 때 버전을 올려야 Langfuse에서 버전별 성능 비교가 가능합니다.
-        private const val GENERATION_PR_DRAFT = "pr-draft-v7.0"
+        private const val GENERATION_PR_DRAFT = "pr-draft-v7.3"
         private const val GENERATION_TRANSLATE = "pr-translate-v2.2"
 
         // LLM judge 채점 전용 풀 — 동시 채점 수를 제한해 스레드 고갈 방지
@@ -329,8 +329,12 @@ class SpringAiClient(
      * @return 추출된 JSON 문자열, 찾지 못한 경우 null
      */
     private fun extractJson(response: String): String? {
-        val fenceMatch = Regex("""```(?:json)?\s*([\s\S]*?)```""").find(response)
-        if (fenceMatch != null) return fenceMatch.groupValues[1].trim()
+        // 코드 펜스 안 내용이 유효한 JSON일 때만 반환 — body 안에 ```javascript 같은 코드 블록이 있으면 오매칭 방지
+        Regex("""```(?:json)?\s*([\s\S]*?)```""").findAll(response).forEach { match ->
+            val candidate = match.groupValues[1].trim()
+            val parsed = runCatching { objectMapper.readTree(candidate); candidate }.getOrNull()
+            if (parsed != null) return parsed
+        }
         // non-greedy 정규식은 JSON 값 안의 '}'(예: {postId}, judge reason의 코드 스니펫)에서 잘리므로,
         // 첫 번째 '{'와 마지막 '}'로 범위를 잡아 최외각 JSON 객체를 추출한다.
         val start = response.indexOf('{')

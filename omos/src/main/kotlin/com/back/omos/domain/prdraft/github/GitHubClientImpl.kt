@@ -118,6 +118,41 @@ class GitHubClientImpl(
     }
 
     /**
+     * PR 템플릿 파일 내용을 가져옵니다.
+     *
+     * <p>
+     * 일반적인 PR 템플릿 경로를 순서대로 탐색하며 가장 먼저 발견된 파일을 반환합니다.
+     * <ol>
+     *   <li>.github/pull_request_template.md</li>
+     *   <li>.github/PULL_REQUEST_TEMPLATE.md</li>
+     *   <li>pull_request_template.md</li>
+     *   <li>docs/pull_request_template.md</li>
+     *   <li>.github/PULL_REQUEST_TEMPLATE/pull_request_template.md</li>
+     *   <li>PULL_REQUEST_TEMPLATE/pull_request_template.md</li>
+     *   <li>docs/PULL_REQUEST_TEMPLATE/pull_request_template.md</li>
+     * </ol>
+     *
+     * @param fullName owner/repo 형식의 레포지토리 이름
+     * @return PR 템플릿 내용, 없으면 null
+     */
+    override fun fetchPrTemplate(fullName: String): String? {
+        val paths = listOf(
+            ".github/pull_request_template.md",
+            ".github/PULL_REQUEST_TEMPLATE.md",
+            "pull_request_template.md",
+            "docs/pull_request_template.md",
+            ".github/PULL_REQUEST_TEMPLATE/pull_request_template.md",
+            "PULL_REQUEST_TEMPLATE/pull_request_template.md",
+            "docs/PULL_REQUEST_TEMPLATE/pull_request_template.md"
+        )
+        for (path in paths) {
+            val result = fetchFile(fullName, path)
+            if (result != null) return result
+        }
+        return null
+    }
+
+    /**
      * GitHub Compare API로 두 브랜치 간의 diff를 가져옵니다.
      *
      * <p>
