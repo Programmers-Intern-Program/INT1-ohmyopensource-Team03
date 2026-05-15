@@ -48,10 +48,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <p className="text-github-muted text-xs text-center mt-4">
-          백엔드 서버:{" "}
-          <span className="text-github-accent">localhost:8080</span>
-        </p>
       </div>
     </div>
   );
